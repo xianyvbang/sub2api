@@ -210,6 +210,7 @@ type SystemSettings struct {
 	PaymentVisibleMethodWxpaySource   string
 	PaymentVisibleMethodAlipayEnabled bool
 	PaymentVisibleMethodWxpayEnabled  bool
+	PaymentSubscriptionEnabled        bool
 
 	// OpenAI 账号调度
 	OpenAIAdvancedSchedulerEnabled bool
