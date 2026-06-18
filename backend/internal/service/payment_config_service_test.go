@@ -84,6 +84,9 @@ func TestParsePaymentConfig(t *testing.T) {
 		if cfg.Enabled {
 			t.Fatal("expected Enabled=false by default")
 		}
+		if !cfg.SubscriptionEnabled {
+			t.Fatal("expected SubscriptionEnabled=true by default")
+		}
 		if cfg.MinAmount != 1 {
 			t.Fatalf("expected MinAmount=1, got %v", cfg.MinAmount)
 		}
@@ -108,6 +111,7 @@ func TestParsePaymentConfig(t *testing.T) {
 		t.Parallel()
 		vals := map[string]string{
 			SettingPaymentEnabled:      "true",
+			SettingPaymentSubscriptionEnabled: "false",
 			SettingMinRechargeAmount:   "5.00",
 			SettingMaxRechargeAmount:   "1000.00",
 			SettingDailyRechargeLimit:  "5000.00",
@@ -123,6 +127,9 @@ func TestParsePaymentConfig(t *testing.T) {
 
 		if !cfg.Enabled {
 			t.Fatal("expected Enabled=true")
+		}
+		if cfg.SubscriptionEnabled {
+			t.Fatal("expected SubscriptionEnabled=false")
 		}
 		if cfg.MinAmount != 5 {
 			t.Fatalf("MinAmount = %v, want 5", cfg.MinAmount)

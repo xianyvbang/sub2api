@@ -15,6 +15,7 @@ import (
 
 const (
 	SettingPaymentEnabled      = "payment_enabled"
+	SettingPaymentSubscriptionEnabled = "payment_subscription_enabled"
 	SettingMinRechargeAmount   = "MIN_RECHARGE_AMOUNT"
 	SettingMaxRechargeAmount   = "MAX_RECHARGE_AMOUNT"
 	SettingDailyRechargeLimit  = "DAILY_RECHARGE_LIMIT"
@@ -46,6 +47,7 @@ const (
 // PaymentConfig holds the payment system configuration.
 type PaymentConfig struct {
 	Enabled                   bool     `json:"enabled"`
+	SubscriptionEnabled       bool     `json:"subscription_enabled"`
 	MinAmount                 float64  `json:"min_amount"`
 	MaxAmount                 float64  `json:"max_amount"`
 	DailyLimit                float64  `json:"daily_limit"`
@@ -76,6 +78,7 @@ type PaymentConfig struct {
 // UpdatePaymentConfigRequest contains fields to update payment configuration.
 type UpdatePaymentConfigRequest struct {
 	Enabled                   *bool    `json:"enabled"`
+	SubscriptionEnabled       *bool    `json:"subscription_enabled"`
 	MinAmount                 *float64 `json:"min_amount"`
 	MaxAmount                 *float64 `json:"max_amount"`
 	DailyLimit                *float64 `json:"daily_limit"`
@@ -202,7 +205,7 @@ func (s *PaymentConfigService) IsPaymentEnabled(ctx context.Context) bool {
 // GetPaymentConfig returns the full payment configuration.
 func (s *PaymentConfigService) GetPaymentConfig(ctx context.Context) (*PaymentConfig, error) {
 	keys := []string{
-		SettingPaymentEnabled, SettingMinRechargeAmount, SettingMaxRechargeAmount,
+		SettingPaymentEnabled, SettingPaymentSubscriptionEnabled, SettingMinRechargeAmount, SettingMaxRechargeAmount,
 		SettingDailyRechargeLimit, SettingOrderTimeoutMinutes, SettingMaxPendingOrders,
 		SettingEnabledPaymentTypes, SettingBalancePayDisabled, SettingBalanceRechargeMult, SettingRechargeFeeRate, SettingLoadBalanceStrategy,
 		SettingProductNamePrefix, SettingProductNameSuffix,
@@ -226,6 +229,7 @@ func (s *PaymentConfigService) GetPaymentConfig(ctx context.Context) (*PaymentCo
 func (s *PaymentConfigService) parsePaymentConfig(vals map[string]string) *PaymentConfig {
 	cfg := &PaymentConfig{
 		Enabled:                   vals[SettingPaymentEnabled] == "true",
+		SubscriptionEnabled:       vals[SettingPaymentSubscriptionEnabled] != "false",
 		MinAmount:                 pcParseFloat(vals[SettingMinRechargeAmount], 1),
 		MaxAmount:                 pcParseFloat(vals[SettingMaxRechargeAmount], 0),
 		DailyLimit:                pcParseFloat(vals[SettingDailyRechargeLimit], 0),
@@ -306,6 +310,7 @@ func (s *PaymentConfigService) UpdatePaymentConfig(ctx context.Context, req Upda
 	}
 	m := map[string]string{
 		SettingPaymentEnabled:                    formatBoolOrEmpty(req.Enabled),
+		SettingPaymentSubscriptionEnabled:        formatBoolOrEmpty(req.SubscriptionEnabled),
 		SettingMinRechargeAmount:                 formatPositiveFloat(req.MinAmount),
 		SettingMaxRechargeAmount:                 formatPositiveFloat(req.MaxAmount),
 		SettingDailyRechargeLimit:                formatPositiveFloat(req.DailyLimit),

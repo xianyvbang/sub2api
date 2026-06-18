@@ -26,6 +26,7 @@ export type OrderType = 'balance' | 'subscription'
 
 export interface PaymentConfig {
   payment_enabled: boolean
+  subscription_enabled: boolean
   min_amount: number
   max_amount: number
   daily_limit: number
@@ -64,6 +65,7 @@ export interface CheckoutInfoResponse {
   global_max: number
   plans: SubscriptionPlan[]
   balance_disabled: boolean
+  subscription_enabled: boolean
   balance_recharge_multiplier: number
   recharge_fee_rate: number
   help_text: string

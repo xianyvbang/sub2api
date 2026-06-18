@@ -568,6 +568,7 @@ export interface SystemSettings {
 
   // Payment configuration
   payment_enabled: boolean;
+  payment_subscription_enabled: boolean;
   risk_control_enabled: boolean;
 
   // Cyber session block
@@ -810,6 +811,7 @@ export interface UpdateSettingsRequest {
   openai_allow_claude_code_codex_plugin?: boolean;
   // Payment configuration
   payment_enabled?: boolean;
+  payment_subscription_enabled?: boolean;
   risk_control_enabled?: boolean;
 
   // Cyber session block

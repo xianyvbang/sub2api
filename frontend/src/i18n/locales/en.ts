@@ -5909,6 +5909,8 @@ export default {
         configGuide: 'Configuration Guide',
         enabled: 'Enable Payment',
         enabledHint: 'Enable or disable the payment system',
+        subscriptionEnabled: 'Show Subscription',
+        subscriptionEnabledHint: 'Controls whether subscription purchase content is shown on the recharge page. Enabled by default.',
         enabledPaymentTypes: 'Enabled Providers',
         enabledPaymentTypesHint: 'Disabling a provider will also disable its instances.',
         findProvider: 'Looking for a suitable EasyPay provider?',

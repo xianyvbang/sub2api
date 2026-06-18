@@ -30,7 +30,7 @@
         <!-- Tab content (select phase) -->
         <template v-else>
           <!-- Top-up Tab -->
-          <template v-if="activeTab === 'recharge'">
+          <template v-if="activeTab === 'recharge' && !checkout.balance_disabled">
             <!-- Recharge Account Card -->
             <div class="card p-5">
               <p class="text-xs font-medium text-gray-400 dark:text-gray-500">{{ t('payment.rechargeAccount') }}</p>
@@ -90,7 +90,7 @@
             </template>
           </template>
           <!-- Subscribe Tab -->
-          <template v-else-if="activeTab === 'subscription'">
+          <template v-else-if="activeTab === 'subscription' && checkout.subscription_enabled">
             <!-- Subscription confirm (inline, replaces plan list) -->
             <template v-if="selectedPlan">
               <div class="card p-5">
@@ -205,6 +205,9 @@
               </div>
             </template>
           </template>
+          <div v-else class="card py-16 text-center">
+            <p class="text-gray-500 dark:text-gray-400">{{ t('payment.notAvailable') }}</p>
+          </div>
         </template>
         <div v-if="(checkout.help_text || checkout.help_image_url) && paymentPhase === 'select' && !selectedPlan" class="card p-4">
           <div class="flex flex-col items-center gap-3">
@@ -479,13 +482,15 @@ function onPaymentSettled() {
 // All checkout data from single API call
 const checkout = ref<CheckoutInfoResponse>({
   methods: {}, global_min: 0, global_max: 0,
-  plans: [], balance_disabled: false, balance_recharge_multiplier: 1, recharge_fee_rate: 0, help_text: '', help_image_url: '', stripe_publishable_key: '',
+  plans: [], balance_disabled: false, subscription_enabled: true, balance_recharge_multiplier: 1, recharge_fee_rate: 0, help_text: '', help_image_url: '', stripe_publishable_key: '',
 })
 
 const tabs = computed(() => {
   const result: { key: 'recharge' | 'subscription'; label: string }[] = []
   if (!checkout.value.balance_disabled) result.push({ key: 'recharge', label: t('payment.tabTopUp') })
-  result.push({ key: 'subscription', label: t('payment.tabSubscribe') })
+  if (checkout.value.subscription_enabled) {
+    result.push({ key: 'subscription', label: t('payment.tabSubscribe') })
+  }
   return result
 })
 
@@ -504,6 +509,13 @@ const planGridClass = computed(() => {
   if (n <= 2) return 'grid grid-cols-1 gap-5 sm:grid-cols-2'
   return 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'
 })
+
+watch(tabs, (nextTabs) => {
+  if (!nextTabs.some((tab) => tab.key === activeTab.value)) {
+    activeTab.value = nextTabs[0]?.key || 'recharge'
+    selectedPlan.value = null
+  }
+}, { immediate: true })
 
 // Check if an amount fits a method's [min, max]. 0 = no limit.
 function amountFitsMethod(amt: number, methodType: string): boolean {
@@ -1054,11 +1066,13 @@ onMounted(async () => {
       }
     }
     await resumeWechatPaymentFromQuery()
-    if (checkout.value.balance_disabled) {
+    if (checkout.value.balance_disabled && checkout.value.subscription_enabled) {
       activeTab.value = 'subscription'
+    } else if (!checkout.value.subscription_enabled) {
+      activeTab.value = 'recharge'
     }
     // Handle renewal navigation: ?tab=subscription&group=123
-    if (route.query.tab === 'subscription') {
+    if (route.query.tab === 'subscription' && checkout.value.subscription_enabled) {
       activeTab.value = 'subscription'
       if (route.query.group) {
         const groupId = Number(route.query.group)
@@ -1070,6 +1084,8 @@ onMounted(async () => {
           showRenewalModal.value = true
         }
       }
+    } else if (route.query.tab === 'subscription') {
+      activeTab.value = checkout.value.balance_disabled ? 'subscription' : 'recharge'
     }
   } catch (err: unknown) { appStore.showError(extractI18nErrorMessage(err, t, 'payment.errors', t('common.error'))) }
   finally { loading.value = false }
