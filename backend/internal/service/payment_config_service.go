@@ -19,7 +19,7 @@ const (
 	SettingMinRechargeAmount          = "MIN_RECHARGE_AMOUNT"
 	SettingMaxRechargeAmount          = "MAX_RECHARGE_AMOUNT"
 	SettingDailyRechargeLimit         = "DAILY_RECHARGE_LIMIT"
-	SettingOrderTimeoutMinutes = "ORDER_TIMEOUT_MINUTES"
+	SettingOrderTimeoutMinutes        = "ORDER_TIMEOUT_MINUTES"
 	SettingMaxPendingOrders           = "MAX_PENDING_ORDERS"
 	SettingEnabledPaymentTypes        = "ENABLED_PAYMENT_TYPES"
 	SettingLoadBalanceStrategy        = "LOAD_BALANCE_STRATEGY"
