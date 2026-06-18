@@ -605,6 +605,104 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(payload).not.toHaveProperty("payment_visible_method_wxpay_enabled");
   });
 
+  it("keeps USTD/USDC out of enabled providers while preserving supported payment methods", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      payment_enabled_types: ["alipay", "ustd_usdc"],
+    });
+
+    const providerListProps: unknown[] = [];
+    const providerDialogProps: unknown[] = [];
+
+    const PaymentProviderListStub = defineComponent({
+      props: [
+        "providers",
+        "loading",
+        "canCreate",
+        "enabledPaymentTypes",
+        "allPaymentTypes",
+        "redirectLabel",
+      ],
+      setup(props) {
+        providerListProps.push(props);
+        return () => h("div", { class: "provider-list-stub" });
+      },
+    });
+
+    const PaymentProviderDialogStub = defineComponent({
+      props: [
+        "show",
+        "saving",
+        "editing",
+        "allKeyOptions",
+        "enabledKeyOptions",
+        "allPaymentTypes",
+        "redirectLabel",
+      ],
+      setup(props, { expose }) {
+        providerDialogProps.push(props);
+        expose({
+          reset: vi.fn(),
+          loadProvider: vi.fn(),
+        });
+        return () => h("div", { class: "provider-dialog-stub" });
+      },
+    });
+
+    const wrapper = mount(SettingsView, {
+      global: {
+        stubs: {
+          AppLayout: AppLayoutStub,
+          Select: SelectStub,
+          Toggle: ToggleStub,
+          Icon: true,
+          ConfirmDialog: true,
+          PaymentProviderList: PaymentProviderListStub,
+          PaymentProviderDialog: PaymentProviderDialogStub,
+          GroupBadge: true,
+          GroupOptionItem: true,
+          ProxySelector: true,
+          ImageUpload: ImageUploadStub,
+          BackupSettings: true,
+        },
+      },
+    });
+
+    await flushPromises();
+    await openPaymentTab(wrapper);
+
+    expect(wrapper.text()).toContain("payment.methods.alipay");
+    expect(wrapper.text()).toContain("payment.methods.wxpay");
+    expect(wrapper.text()).not.toContain("payment.methods.ustd_usdc");
+
+    const listPaymentTypes = providerListProps.at(-1) as {
+      allPaymentTypes: Array<{ value: string }>;
+    };
+    const dialogPaymentTypes = providerDialogProps.at(-1) as {
+      allPaymentTypes: Array<{ value: string }>;
+      enabledKeyOptions: Array<{ value: string }>;
+    };
+
+    expect(listPaymentTypes.allPaymentTypes.map((item) => item.value)).toContain(
+      "ustd_usdc",
+    );
+    expect(dialogPaymentTypes.allPaymentTypes.map((item) => item.value)).toContain(
+      "ustd_usdc",
+    );
+    expect(dialogPaymentTypes.enabledKeyOptions.map((item) => item.value)).toEqual([
+      "alipay",
+    ]);
+
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payment_enabled_types: ["alipay"],
+      }),
+    );
+  });
+
   it("submits Anthropic cache TTL injection gateway setting", async () => {
     getSettings.mockResolvedValueOnce({
       ...baseSettingsResponse,

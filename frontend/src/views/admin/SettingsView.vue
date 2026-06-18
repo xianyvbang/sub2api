@@ -6360,7 +6360,7 @@
                   }}</label>
                   <div class="mt-1.5 flex flex-wrap gap-2">
                     <button
-                      v-for="pt in allPaymentTypes"
+                      v-for="pt in paymentProviderTypes"
                       :key="pt.value"
                       type="button"
                       @click="togglePaymentType(pt.value)"
@@ -6439,7 +6439,7 @@
             :loading="providersLoading"
             :can-create="hasAnyPaymentTypeEnabled"
             :enabled-payment-types="form.payment_enabled_types"
-            :all-payment-types="allPaymentTypes"
+            :all-payment-types="paymentSupportedTypes"
             :redirect-label="t('admin.settings.payment.easypayRedirect')"
             @refresh="loadProviders"
             @create="openCreateProvider"
@@ -6921,7 +6921,7 @@
         :editing="editingProvider"
         :all-key-options="providerKeyOptions"
         :enabled-key-options="enabledProviderKeyOptions"
-        :all-payment-types="allPaymentTypes"
+        :all-payment-types="paymentSupportedTypes"
         :redirect-label="t('admin.settings.payment.easypayRedirect')"
         @close="showProviderDialog = false"
         @save="handleSaveProvider"
@@ -8456,6 +8456,9 @@ async function loadSettings() {
         (form as Record<string, unknown>)[key] = value;
       }
     }
+    form.payment_enabled_types = normalizeEnabledPaymentProviderTypes(
+      form.payment_enabled_types,
+    );
     if (!form.claude_oauth_system_prompt_blocks?.trim()) {
       form.claude_oauth_system_prompt_blocks =
         defaultClaudeOAuthSystemPromptBlocks;
@@ -8983,7 +8986,9 @@ async function saveSettings() {
       payment_balance_recharge_multiplier:
         Number(form.payment_balance_recharge_multiplier) || 1,
       payment_recharge_fee_rate: Number(form.payment_recharge_fee_rate) || 0,
-      payment_enabled_types: form.payment_enabled_types,
+      payment_enabled_types: normalizeEnabledPaymentProviderTypes(
+        form.payment_enabled_types,
+      ),
       payment_load_balance_strategy: form.payment_load_balance_strategy,
       payment_product_name_prefix: form.payment_product_name_prefix,
       payment_product_name_suffix: form.payment_product_name_suffix,
@@ -9583,7 +9588,23 @@ async function saveBetaPolicySettings() {
 
 // ==================== Provider Management ====================
 
-const allPaymentTypes = computed(() => [
+const paymentProviderTypes = computed(() => [
+  { value: "easypay", label: t("payment.methods.easypay") },
+  { value: "alipay", label: t("payment.methods.alipay") },
+  { value: "wxpay", label: t("payment.methods.wxpay") },
+  { value: "stripe", label: t("payment.methods.stripe") },
+  { value: "airwallex", label: t("payment.methods.airwallex") },
+]);
+
+const paymentProviderTypeValues = new Set([
+  "easypay",
+  "alipay",
+  "wxpay",
+  "stripe",
+  "airwallex",
+]);
+
+const paymentSupportedTypes = computed(() => [
   { value: "easypay", label: t("payment.methods.easypay") },
   { value: "alipay", label: t("payment.methods.alipay") },
   { value: "ustd_usdc", label: t("payment.methods.ustd_usdc") },
@@ -9591,6 +9612,16 @@ const allPaymentTypes = computed(() => [
   { value: "stripe", label: t("payment.methods.stripe") },
   { value: "airwallex", label: t("payment.methods.airwallex") },
 ]);
+
+function normalizeEnabledPaymentProviderTypes(types: unknown): string[] {
+  if (!Array.isArray(types)) {
+    return [];
+  }
+  return types.filter(
+    (type): type is string =>
+      typeof type === "string" && paymentProviderTypeValues.has(type),
+  );
+}
 
 function isPaymentTypeEnabled(type: string): boolean {
   return form.payment_enabled_types.includes(type);
@@ -9651,9 +9682,6 @@ const providerKeyOptions = computed(() => [
 
 function providerKeyAvailableForEnabledType(providerKey: string, enabledType: string): boolean {
   if (providerKey === enabledType) return true;
-  if (enabledType === "ustd_usdc") {
-    return providerKey === "alipay" || providerKey === "easypay";
-  }
   return false;
 }
 
