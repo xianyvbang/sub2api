@@ -84,3 +84,69 @@ func TestUpdateServiceUsesConfiguredReleaseRepository(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "xianyvbang/sub2api", github.repo)
 }
+
+func TestCompareVersionsSupportsFourSegmentVersions(t *testing.T) {
+	testCases := []struct {
+		name     string
+		current  string
+		latest   string
+		expected int
+	}{
+		{
+			name:     "same four segment version",
+			current:  "1.2.3.4",
+			latest:   "1.2.3.4",
+			expected: 0,
+		},
+		{
+			name:     "detects fourth segment upgrade",
+			current:  "1.2.3.4",
+			latest:   "1.2.3.5",
+			expected: -1,
+		},
+		{
+			name:     "detects fourth segment downgrade",
+			current:  "1.2.3.5",
+			latest:   "1.2.3.4",
+			expected: 1,
+		},
+		{
+			name:     "treats missing segment as zero",
+			current:  "1.2.3",
+			latest:   "1.2.3.0",
+			expected: 0,
+		},
+		{
+			name:     "treats prefixed version equivalently",
+			current:  "v1.2.3.4",
+			latest:   "1.2.3.4",
+			expected: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expected, compareVersions(tc.current, tc.latest))
+		})
+	}
+}
+
+func TestUpdateServiceDetectsFourSegmentUpdate(t *testing.T) {
+	svc := NewUpdateService(
+		&updateServiceCacheStub{},
+		&updateServiceGitHubClientStub{
+			release: &GitHubRelease{
+				TagName: "v1.2.3.5",
+				Name:    "v1.2.3.5",
+			},
+		},
+		"1.2.3.4",
+		"release",
+	)
+
+	info, err := svc.CheckUpdate(context.Background(), true)
+
+	require.NoError(t, err)
+	require.True(t, info.HasUpdate)
+	require.Equal(t, "1.2.3.5", info.LatestVersion)
+}
