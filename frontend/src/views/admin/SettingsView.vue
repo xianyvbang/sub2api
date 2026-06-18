@@ -5501,6 +5501,42 @@
         <div class="card">
           <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ t('nav.modelMarketplace', '模型广场') }}
+            </h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('modelMarketplace.heroDescription', '每张卡片展示一个分组 + 供应商 + 模型，并公开展示价格信息。') }}
+            </p>
+          </div>
+          <div class="space-y-5 p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('common.enabled', '启用') }}
+                </label>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('modelMarketplace.adminEnabledHint', '开启后显示独立的模型广场页面和导航入口。') }}
+                </p>
+              </div>
+              <Toggle v-model="form.model_marketplace_enabled" />
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div>
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('modelMarketplace.adminLoginRequired', '需要登录') }}
+                </label>
+                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t('modelMarketplace.adminLoginRequiredHint', '开启后，未登录用户访问模型广场会跳转到登录页。') }}
+                </p>
+              </div>
+              <Toggle v-model="form.model_marketplace_requires_login" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
               {{ t('admin.settings.features.riskControl.title') }}
             </h2>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -7862,6 +7898,9 @@ const form = reactive<SettingsForm>({
   channel_monitor_default_interval_seconds: 60,
   // Available Channels feature switch
   available_channels_enabled: false,
+  // Model Marketplace feature switch
+  model_marketplace_enabled: false,
+  model_marketplace_requires_login: true,
   // Affiliate (邀请返利) feature switch
   affiliate_enabled: false,
   // Allow user view error requests
@@ -9035,6 +9074,9 @@ async function saveSettings() {
         Number(form.channel_monitor_default_interval_seconds) || 60,
       // Available Channels feature switch
       available_channels_enabled: form.available_channels_enabled,
+      // Model Marketplace feature switch
+      model_marketplace_enabled: form.model_marketplace_enabled,
+      model_marketplace_requires_login: form.model_marketplace_requires_login,
       // Affiliate (邀请返利) feature switch
       affiliate_enabled: form.affiliate_enabled,
       allow_user_view_error_requests: form.allow_user_view_error_requests,

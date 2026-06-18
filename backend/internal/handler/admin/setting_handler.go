@@ -302,6 +302,9 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 
 		AvailableChannelsEnabled: settings.AvailableChannelsEnabled,
 
+		ModelMarketplaceEnabled:       settings.ModelMarketplaceEnabled,
+		ModelMarketplaceRequiresLogin: settings.ModelMarketplaceRequiresLogin,
+
 		AffiliateEnabled: settings.AffiliateEnabled,
 
 		AllowUserViewErrorRequests: settings.AllowUserViewErrorRequests,
@@ -649,6 +652,10 @@ type UpdateSettingsRequest struct {
 
 	// Available Channels feature switch (user-facing)
 	AvailableChannelsEnabled *bool `json:"available_channels_enabled"`
+
+	// Model Marketplace feature switch (public page)
+	ModelMarketplaceEnabled       *bool `json:"model_marketplace_enabled"`
+	ModelMarketplaceRequiresLogin *bool `json:"model_marketplace_requires_login"`
 
 	// Affiliate (邀请返利) feature switch
 	AffiliateEnabled *bool `json:"affiliate_enabled"`
@@ -1795,6 +1802,18 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.AvailableChannelsEnabled
 		}(),
+		ModelMarketplaceEnabled: func() bool {
+			if req.ModelMarketplaceEnabled != nil {
+				return *req.ModelMarketplaceEnabled
+			}
+			return previousSettings.ModelMarketplaceEnabled
+		}(),
+		ModelMarketplaceRequiresLogin: func() bool {
+			if req.ModelMarketplaceRequiresLogin != nil {
+				return *req.ModelMarketplaceRequiresLogin
+			}
+			return previousSettings.ModelMarketplaceRequiresLogin
+		}(),
 		AffiliateEnabled: func() bool {
 			if req.AffiliateEnabled != nil {
 				return *req.AffiliateEnabled
@@ -2142,6 +2161,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		ChannelMonitorDefaultIntervalSeconds: updatedSettings.ChannelMonitorDefaultIntervalSeconds,
 
 		AvailableChannelsEnabled: updatedSettings.AvailableChannelsEnabled,
+
+		ModelMarketplaceEnabled:       updatedSettings.ModelMarketplaceEnabled,
+		ModelMarketplaceRequiresLogin: updatedSettings.ModelMarketplaceRequiresLogin,
 
 		AffiliateEnabled: updatedSettings.AffiliateEnabled,
 
@@ -2635,6 +2657,12 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	}
 	if before.AvailableChannelsEnabled != after.AvailableChannelsEnabled {
 		changed = append(changed, "available_channels_enabled")
+	}
+	if before.ModelMarketplaceEnabled != after.ModelMarketplaceEnabled {
+		changed = append(changed, "model_marketplace_enabled")
+	}
+	if before.ModelMarketplaceRequiresLogin != after.ModelMarketplaceRequiresLogin {
+		changed = append(changed, "model_marketplace_requires_login")
 	}
 	if before.AffiliateEnabled != after.AffiliateEnabled {
 		changed = append(changed, "affiliate_enabled")

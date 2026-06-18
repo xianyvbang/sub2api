@@ -167,6 +167,15 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/model-marketplace',
+    name: 'ModelMarketplace',
+    component: () => import('@/views/public/ModelMarketplaceView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Model Marketplace'
+    }
+  },
+  {
     path: '/legal/:documentId',
     name: 'LegalDocument',
     component: () => import('@/views/public/LegalDocumentView.vue'),
@@ -767,6 +776,20 @@ router.beforeEach(async (to, _from, next) => {
 
   // If route doesn't require auth, allow access
   if (!requiresAuth) {
+    if (!appStore.publicSettingsLoaded) {
+      await appStore.fetchPublicSettings()
+    }
+    if (
+      to.path === '/model-marketplace' &&
+      appStore.cachedPublicSettings?.model_marketplace_requires_login === true &&
+      !authStore.isAuthenticated
+    ) {
+      next({
+        path: '/login',
+        query: { redirect: to.fullPath }
+      })
+      return
+    }
     // If already authenticated and trying to access login/register, redirect to appropriate dashboard
     if (authStore.isAuthenticated && (to.path === '/login' || to.path === '/register')) {
       // In backend mode, non-admin users should NOT be redirected away from login

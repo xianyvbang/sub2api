@@ -304,6 +304,19 @@ func TestSettingService_UpdateSettings_APIKeyACLTrustForwardedIPRefreshesConfig(
 	require.True(t, cfg.TrustForwardedIPForAPIKeyACL())
 }
 
+func TestSettingService_UpdateSettings_ModelMarketplaceFlags(t *testing.T) {
+	repo := &settingUpdateRepoStub{}
+	svc := NewSettingService(repo, &config.Config{})
+
+	err := svc.UpdateSettings(context.Background(), &SystemSettings{
+		ModelMarketplaceEnabled:       true,
+		ModelMarketplaceRequiresLogin: false,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "true", repo.updates[SettingKeyModelMarketplaceEnabled])
+	require.Equal(t, "false", repo.updates[SettingKeyModelMarketplaceRequiresLogin])
+}
+
 func TestSettingService_ParseSettings_APIKeyACLTrustForwardedIPFallsBackToConfigWhenMissing(t *testing.T) {
 	cfg := &config.Config{}
 	cfg.Security.TrustForwardedIPForAPIKeyACL = true

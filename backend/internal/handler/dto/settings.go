@@ -245,6 +245,10 @@ type SystemSettings struct {
 	// Available Channels feature switch (user-facing aggregate view)
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
 
+	// Model Marketplace feature switch
+	ModelMarketplaceEnabled       bool `json:"model_marketplace_enabled"`
+	ModelMarketplaceRequiresLogin bool `json:"model_marketplace_requires_login"`
+
 	// 风控中心功能开关
 	RiskControlEnabled bool `json:"risk_control_enabled"`
 
@@ -323,6 +327,9 @@ type PublicSettings struct {
 	ChannelMonitorDefaultIntervalSeconds int  `json:"channel_monitor_default_interval_seconds"`
 
 	AvailableChannelsEnabled bool `json:"available_channels_enabled"`
+
+	ModelMarketplaceEnabled       bool `json:"model_marketplace_enabled"`
+	ModelMarketplaceRequiresLogin bool `json:"model_marketplace_requires_login"`
 
 	AffiliateEnabled bool `json:"affiliate_enabled"`
 

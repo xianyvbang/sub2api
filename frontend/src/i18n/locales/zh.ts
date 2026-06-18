@@ -389,6 +389,7 @@ export default {
     groups: '分组管理',
     channels: '渠道管理',
     availableChannels: '可用渠道',
+    modelMarketplace: '模型广场',
     subscriptions: '订阅管理',
     accounts: '账号管理',
     proxies: 'IP管理',
@@ -1107,6 +1108,30 @@ export default {
       unitPerMillion: '/ 1M token',
       unitPerRequest: '/ 次'
     }
+  },
+
+  modelMarketplace: {
+    heroTitle: '按模型、供应商和分组快速浏览可用能力',
+    heroDescription: '每张卡片展示一个分组 + 供应商 + 模型，并给出计费类型与明确价格。',
+    searchPlaceholder: '搜索模型名称',
+    billingType: '计费类型',
+    groupRate: '倍率',
+    pricing: '价格',
+    inputPrice: '输入',
+    outputPrice: '输出',
+    cacheWritePrice: '缓存写入',
+    cacheReadPrice: '缓存读取',
+    requestPrice: '按次',
+    imagePrice: '图片输出',
+    intervalPricing: '区间价格',
+    publicGroup: '公开',
+    exclusiveGroup: '专属',
+    unknownBilling: '未标注',
+    emptyTitle: '暂无匹配模型',
+    emptyDescription: '请调整搜索词或筛选条件后重试。',
+    adminEnabledHint: '开启后显示独立的模型广场页面和导航入口。',
+    adminLoginRequired: '需要登录',
+    adminLoginRequiredHint: '开启后，未登录用户访问模型广场会先跳转到登录页。'
   },
 
   affiliate: {

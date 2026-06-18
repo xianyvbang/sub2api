@@ -389,6 +389,7 @@ export default {
     groups: 'Groups',
     channels: 'Channels',
     availableChannels: 'Available Channels',
+    modelMarketplace: 'Model Marketplace',
     subscriptions: 'Subscriptions',
     accounts: 'Accounts',
     proxies: 'Proxies',
@@ -1103,6 +1104,30 @@ export default {
       unitPerMillion: '/ 1M tokens',
       unitPerRequest: '/ request'
     }
+  },
+
+  modelMarketplace: {
+    heroTitle: 'Browse models by provider and access group',
+    heroDescription: 'Each card shows one group + provider + model, including billing type and explicit pricing.',
+    searchPlaceholder: 'Search model names',
+    billingType: 'Billing Type',
+    groupRate: 'Rate',
+    pricing: 'Pricing',
+    inputPrice: 'Input',
+    outputPrice: 'Output',
+    cacheWritePrice: 'Cache Write',
+    cacheReadPrice: 'Cache Read',
+    requestPrice: 'Per Request',
+    imagePrice: 'Image Output',
+    intervalPricing: 'Tier Pricing',
+    publicGroup: 'Public',
+    exclusiveGroup: 'Exclusive',
+    unknownBilling: 'Unlabeled',
+    emptyTitle: 'No matching models',
+    emptyDescription: 'Try adjusting your search or filters.',
+    adminEnabledHint: 'Enable the standalone marketplace page and navigation entry.',
+    adminLoginRequired: 'Require Login',
+    adminLoginRequiredHint: 'When enabled, unauthenticated visitors are redirected to login before viewing the marketplace.'
   },
 
   affiliate: {

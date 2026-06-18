@@ -17,6 +17,7 @@ func RegisterAuthRoutes(
 	v1 *gin.RouterGroup,
 	h *handler.Handlers,
 	jwtAuth servermiddleware.JWTAuthMiddleware,
+	optionalJWTAuth servermiddleware.OptionalJWTAuthMiddleware,
 	redisClient *redis.Client,
 	settingService *service.SettingService,
 ) {
@@ -215,6 +216,12 @@ func RegisterAuthRoutes(
 	{
 		settings.GET("/public", h.Setting.GetPublicSettings)
 		settings.GET("/email-unsubscribe", h.Setting.UnsubscribeNotificationEmail)
+	}
+
+	marketplace := v1.Group("")
+	marketplace.Use(gin.HandlerFunc(optionalJWTAuth))
+	{
+		marketplace.GET("/model-marketplace", h.ModelMarketplace.List)
 	}
 
 	// 需要认证的当前用户信息

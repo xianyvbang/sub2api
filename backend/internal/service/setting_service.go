@@ -833,6 +833,8 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyChannelMonitorEnabled,
 		SettingKeyChannelMonitorDefaultIntervalSeconds,
 		SettingKeyAvailableChannelsEnabled,
+		SettingKeyModelMarketplaceEnabled,
+		SettingKeyModelMarketplaceRequiresLogin,
 		SettingKeyAffiliateEnabled,
 		SettingKeyRiskControlEnabled,
 		SettingKeyAllowUserViewErrorRequests,
@@ -944,6 +946,9 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		ChannelMonitorDefaultIntervalSeconds: parseChannelMonitorInterval(settings[SettingKeyChannelMonitorDefaultIntervalSeconds]),
 
 		AvailableChannelsEnabled: settings[SettingKeyAvailableChannelsEnabled] == "true",
+
+		ModelMarketplaceEnabled:       settings[SettingKeyModelMarketplaceEnabled] == "true",
+		ModelMarketplaceRequiresLogin: settings[SettingKeyModelMarketplaceRequiresLogin] != "false",
 
 		AffiliateEnabled: settings[SettingKeyAffiliateEnabled] == "true",
 
@@ -1261,6 +1266,8 @@ type PublicSettingsInjectionPayload struct {
 	ChannelMonitorEnabled                bool `json:"channel_monitor_enabled"`
 	ChannelMonitorDefaultIntervalSeconds int  `json:"channel_monitor_default_interval_seconds"`
 	AvailableChannelsEnabled             bool `json:"available_channels_enabled"`
+	ModelMarketplaceEnabled              bool `json:"model_marketplace_enabled"`
+	ModelMarketplaceRequiresLogin        bool `json:"model_marketplace_requires_login"`
 	AffiliateEnabled                     bool `json:"affiliate_enabled"`
 	RiskControlEnabled                   bool `json:"risk_control_enabled"`
 	AllowUserViewErrorRequests           bool `json:"allow_user_view_error_requests"`
@@ -1324,6 +1331,8 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		ChannelMonitorEnabled:                settings.ChannelMonitorEnabled,
 		ChannelMonitorDefaultIntervalSeconds: settings.ChannelMonitorDefaultIntervalSeconds,
 		AvailableChannelsEnabled:             settings.AvailableChannelsEnabled,
+		ModelMarketplaceEnabled:              settings.ModelMarketplaceEnabled,
+		ModelMarketplaceRequiresLogin:        settings.ModelMarketplaceRequiresLogin,
 		AffiliateEnabled:                     settings.AffiliateEnabled,
 		RiskControlEnabled:                   settings.RiskControlEnabled,
 		AllowUserViewErrorRequests:           settings.AllowUserViewErrorRequests,
@@ -1962,6 +1971,10 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 
 	// Available channels feature switch
 	updates[SettingKeyAvailableChannelsEnabled] = strconv.FormatBool(settings.AvailableChannelsEnabled)
+
+	// Model marketplace feature switch
+	updates[SettingKeyModelMarketplaceEnabled] = strconv.FormatBool(settings.ModelMarketplaceEnabled)
+	updates[SettingKeyModelMarketplaceRequiresLogin] = strconv.FormatBool(settings.ModelMarketplaceRequiresLogin)
 
 	// Affiliate (邀请返利) feature switch
 	updates[SettingKeyAffiliateEnabled] = strconv.FormatBool(settings.AffiliateEnabled)
@@ -2933,6 +2946,10 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		// Available channels feature (default disabled; opt-in)
 		SettingKeyAvailableChannelsEnabled: "false",
 
+		// Model marketplace feature (default disabled; login required)
+		SettingKeyModelMarketplaceEnabled:       "false",
+		SettingKeyModelMarketplaceRequiresLogin: "true",
+
 		// Affiliate (邀请返利) feature (default disabled; opt-in)
 		SettingKeyAffiliateEnabled: "false",
 
@@ -3446,6 +3463,10 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 
 	// Available channels feature (default: disabled; strict true)
 	result.AvailableChannelsEnabled = settings[SettingKeyAvailableChannelsEnabled] == "true"
+
+	// Model marketplace feature (default: disabled; login required)
+	result.ModelMarketplaceEnabled = settings[SettingKeyModelMarketplaceEnabled] == "true"
+	result.ModelMarketplaceRequiresLogin = settings[SettingKeyModelMarketplaceRequiresLogin] != "false"
 
 	// Affiliate (邀请返利) feature (default: disabled; strict true)
 	result.AffiliateEnabled = settings[SettingKeyAffiliateEnabled] == "true"

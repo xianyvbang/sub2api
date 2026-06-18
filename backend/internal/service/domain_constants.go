@@ -363,6 +363,16 @@ const (
 	// sidebar entry is hidden. Defaults to false (opt-in feature).
 	SettingKeyAvailableChannelsEnabled = "available_channels_enabled"
 
+	// SettingKeyModelMarketplaceEnabled is a DB-backed soft switch for the public
+	// "Model Marketplace" page and API. When false: the public endpoint returns
+	// an empty list and the frontend entry point stays hidden. Defaults to false.
+	SettingKeyModelMarketplaceEnabled = "model_marketplace_enabled"
+
+	// SettingKeyModelMarketplaceRequiresLogin controls whether the public
+	// "Model Marketplace" page requires an authenticated user session before the
+	// frontend will render it. Defaults to true.
+	SettingKeyModelMarketplaceRequiresLogin = "model_marketplace_requires_login"
+
 	// =========================
 	// Overload Cooldown (529)
 	// =========================

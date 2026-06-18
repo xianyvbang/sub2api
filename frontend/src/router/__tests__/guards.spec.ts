@@ -54,6 +54,7 @@ interface MockAuthState {
   isSimpleMode: boolean
   backendModeEnabled: boolean
   hasPendingAuthSession: boolean
+  modelMarketplaceRequiresLogin?: boolean
   setupNeedsSetup?: boolean
 }
 
@@ -74,6 +75,13 @@ function simulateGuard(
 
   // 不需要认证的路由
   if (!requiresAuth) {
+    if (
+      toPath === '/model-marketplace' &&
+      authState.modelMarketplaceRequiresLogin === true &&
+      !authState.isAuthenticated
+    ) {
+      return '/login'
+    }
     if (
       authState.isAuthenticated &&
       (toPath === '/login' || toPath === '/register')
@@ -188,6 +196,14 @@ describe('路由守卫逻辑', () => {
     it('访问 /home 公开页面允许通过', () => {
       const redirect = simulateGuard('/home', { requiresAuth: false }, authState)
       expect(redirect).toBeNull()
+    })
+
+    it('访问 /model-marketplace 在要求登录时重定向到 /login', () => {
+      const redirect = simulateGuard('/model-marketplace', { requiresAuth: false }, {
+        ...authState,
+        modelMarketplaceRequiresLogin: true,
+      })
+      expect(redirect).toBe('/login')
     })
   })
 
