@@ -115,7 +115,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		paymentCfg, _ = h.paymentConfigService.GetPaymentConfig(c.Request.Context())
 	}
 	if paymentCfg == nil {
-		paymentCfg = &service.PaymentConfig{}
+		paymentCfg = &service.PaymentConfig{SubscriptionEnabled: true}
 	}
 
 	payload := dto.SystemSettings{
@@ -1960,7 +1960,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		updatedPaymentCfg, _ = h.paymentConfigService.GetPaymentConfig(c.Request.Context())
 	}
 	if updatedPaymentCfg == nil {
-		updatedPaymentCfg = &service.PaymentConfig{}
+		updatedPaymentCfg = &service.PaymentConfig{SubscriptionEnabled: true}
 	}
 
 	payload := dto.SystemSettings{
