@@ -110,18 +110,18 @@ func TestParsePaymentConfig(t *testing.T) {
 	t.Run("all values populated", func(t *testing.T) {
 		t.Parallel()
 		vals := map[string]string{
-			SettingPaymentEnabled:      "true",
+			SettingPaymentEnabled:             "true",
 			SettingPaymentSubscriptionEnabled: "false",
-			SettingMinRechargeAmount:   "5.00",
-			SettingMaxRechargeAmount:   "1000.00",
-			SettingDailyRechargeLimit:  "5000.00",
-			SettingOrderTimeoutMinutes: "15",
-			SettingMaxPendingOrders:    "5",
-			SettingEnabledPaymentTypes: "alipay,wxpay,stripe",
-			SettingBalancePayDisabled:  "true",
-			SettingLoadBalanceStrategy: "least_amount",
-			SettingProductNamePrefix:   "PRE",
-			SettingProductNameSuffix:   "SUF",
+			SettingMinRechargeAmount:          "5.00",
+			SettingMaxRechargeAmount:          "1000.00",
+			SettingDailyRechargeLimit:         "5000.00",
+			SettingOrderTimeoutMinutes:        "15",
+			SettingMaxPendingOrders:           "5",
+			SettingEnabledPaymentTypes:        "alipay,wxpay,stripe",
+			SettingBalancePayDisabled:         "true",
+			SettingLoadBalanceStrategy:        "least_amount",
+			SettingProductNamePrefix:          "PRE",
+			SettingProductNameSuffix:          "SUF",
 		}
 		cfg := svc.parsePaymentConfig(vals)
 
