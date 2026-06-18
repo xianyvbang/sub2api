@@ -2,17 +2,14 @@ name: Docker Image
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'Dockerfile'
-      - '.dockerignore'
-      - 'backend/**'
-      - 'frontend/**'
-      - 'docs/legal/**'
-      - 'deploy/docker-entrypoint.sh'
-      - '.github/workflows/docker-image.yml'
+    tags:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build image for (e.g., v1.0.0)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -32,13 +29,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Collect build metadata
         id: vars
         shell: bash
         run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG_NAME=${{ github.event.inputs.tag }}
+          else
+            TAG_NAME=${GITHUB_REF#refs/tags/}
+          fi
+          VERSION=${TAG_NAME#v}
+
           echo "owner_lower=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
-          echo "version=$(tr -d '\r\n' < backend/cmd/server/VERSION)" >> "$GITHUB_OUTPUT"
+          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
@@ -57,9 +64,10 @@ jobs:
         with:
           images: ghcr.io/${{ steps.vars.outputs.owner_lower }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.vars.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.vars.outputs.tag_name }}
+            type=semver,pattern={{major}},value=${{ steps.vars.outputs.tag_name }}
+            type=raw,value=latest
 
       - name: Build and push image
         uses: docker/build-push-action@v6
