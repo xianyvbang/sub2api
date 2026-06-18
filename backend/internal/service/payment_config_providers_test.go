@@ -431,7 +431,7 @@ func TestUpdateProviderInstanceRejectsProtectedConfigChangesWhilePendingOrders(t
 			name:          "stripe currency",
 			providerKey:   payment.TypeStripe,
 			createConfig:  validStripeProviderConfig,
-			supportedType: []string{payment.TypeStripe},
+			supportedType: []string{payment.TypeCard},
 			updateConfig:  map[string]string{"currency": "HKD"},
 			fieldName:     "currency",
 			wantValue:     "CNY",
