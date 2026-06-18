@@ -9586,6 +9586,7 @@ async function saveBetaPolicySettings() {
 const allPaymentTypes = computed(() => [
   { value: "easypay", label: t("payment.methods.easypay") },
   { value: "alipay", label: t("payment.methods.alipay") },
+  { value: "ustd_usdc", label: t("payment.methods.ustd_usdc") },
   { value: "wxpay", label: t("payment.methods.wxpay") },
   { value: "stripe", label: t("payment.methods.stripe") },
   { value: "airwallex", label: t("payment.methods.airwallex") },
@@ -9648,9 +9649,19 @@ const providerKeyOptions = computed(() => [
   { value: "airwallex", label: t("admin.settings.payment.providerAirwallex") },
 ]);
 
+function providerKeyAvailableForEnabledType(providerKey: string, enabledType: string): boolean {
+  if (providerKey === enabledType) return true;
+  if (enabledType === "ustd_usdc") {
+    return providerKey === "alipay" || providerKey === "easypay";
+  }
+  return false;
+}
+
 const enabledProviderKeyOptions = computed(() => {
   const enabled = form.payment_enabled_types;
-  return providerKeyOptions.value.filter((opt) => enabled.includes(opt.value));
+  return providerKeyOptions.value.filter((opt) =>
+    enabled.some((type) => providerKeyAvailableForEnabledType(opt.value, type)),
+  );
 });
 
 const loadBalanceOptions = computed(() => [
@@ -9688,10 +9699,11 @@ type ProviderEnablementCandidate = Pick<
   ProviderInstance,
   "id" | "provider_key" | "supported_types" | "enabled" | "name"
 >;
+type ProviderVisibleMethod = "alipay" | "wxpay" | "ustd_usdc";
 
 function getProviderVisibleMethods(
   provider: ProviderEnablementCandidate,
-): Array<"alipay" | "wxpay"> {
+): ProviderVisibleMethod[] {
   if (!provider.enabled) {
     return [];
   }
@@ -9699,7 +9711,7 @@ function getProviderVisibleMethods(
   const supportedTypes = Array.isArray(provider.supported_types)
     ? provider.supported_types
     : [];
-  const methods = new Set<"alipay" | "wxpay">();
+  const methods = new Set<ProviderVisibleMethod>();
   const addMethod = (type: string) => {
     const method = normalizeVisibleMethod(type);
     if (method === "alipay" || method === "wxpay") {
@@ -9712,7 +9724,8 @@ function getProviderVisibleMethods(
       methods.add("alipay");
     } else {
       supportedTypes.forEach((type) => {
-        if (normalizeVisibleMethod(type) === "alipay") {
+        const method = normalizeVisibleMethod(type);
+        if (method === "alipay") {
           methods.add("alipay");
         }
       });
@@ -9736,7 +9749,7 @@ function getProviderVisibleMethods(
 
 function findProviderEnablementConflict(
   candidate: ProviderEnablementCandidate,
-): { method: "alipay" | "wxpay"; conflicting: ProviderInstance } | null {
+): { method: ProviderVisibleMethod; conflicting: ProviderInstance } | null {
   const claimedMethods = getProviderVisibleMethods(candidate);
   if (claimedMethods.length === 0) {
     return null;
@@ -9763,7 +9776,7 @@ function findProviderEnablementConflict(
 }
 
 function showProviderEnablementConflict(
-  conflict: { method: "alipay" | "wxpay"; conflicting: ProviderInstance },
+  conflict: { method: ProviderVisibleMethod; conflicting: ProviderInstance },
 ) {
   appStore.showError(
     t("admin.settings.payment.enableConflict", {

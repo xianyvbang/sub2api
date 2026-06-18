@@ -6147,6 +6147,7 @@ export default {
         field_accountIdHint: '不涉及多账户、组织级密钥或连接账户收款时可以不填；单账户 Scoped API Key 会默认使用所选账户。',
         field_cid: '支付渠道 ID',
         field_cidAlipay: '支付宝渠道 ID',
+        field_cidUstdUsdc: 'USTD/USDC 渠道 ID',
         field_cidWxpay: '微信渠道 ID',
         stripeWebhookHint: '请在 Stripe Dashboard 中将以下地址配置为 Webhook 端点：',
         stripeWebhookApiVersionHint: 'Webhook 端点的 API 版本请与当前集成的 Stripe SDK 对齐，建议选择 {version}；版本不一致可能导致回调事件解析失败。',

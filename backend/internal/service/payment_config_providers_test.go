@@ -34,7 +34,7 @@ func TestValidateProviderRequest(t *testing.T) {
 			name:           "valid easypay with types",
 			providerKey:    "easypay",
 			providerName:   "MyProvider",
-			supportedTypes: "alipay,wxpay",
+			supportedTypes: "alipay,wxpay,ustd_usdc",
 			wantErr:        false,
 		},
 		{
@@ -52,11 +52,27 @@ func TestValidateProviderRequest(t *testing.T) {
 			wantErr:        false,
 		},
 		{
-			name:           "valid alipay provider",
+			name:           "reject ustd usdc on stripe provider",
+			providerKey:    payment.TypeStripe,
+			providerName:   "Stripe Provider",
+			supportedTypes: "card,ustd_usdc",
+			wantErr:        true,
+			errContains:    "unsupported payment type ustd_usdc",
+		},
+		{
+			name:           "valid alipay provider with independent ustd usdc type",
 			providerKey:    "alipay",
 			providerName:   "Alipay Direct",
-			supportedTypes: "alipay",
+			supportedTypes: "alipay,ustd_usdc",
 			wantErr:        false,
+		},
+		{
+			name:           "reject ustd usdc on wxpay provider",
+			providerKey:    "wxpay",
+			providerName:   "WeChat Pay",
+			supportedTypes: "wxpay,ustd_usdc",
+			wantErr:        true,
+			errContains:    "unsupported payment type ustd_usdc",
 		},
 		{
 			name:           "valid wxpay provider",

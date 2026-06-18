@@ -35,8 +35,8 @@ export interface CallbackPaths {
 
 /** Maps provider key → available payment types. */
 export const PROVIDER_SUPPORTED_TYPES: Record<string, string[]> = {
-  easypay: ['alipay', 'wxpay'],
-  alipay: ['alipay'],
+  easypay: ['alipay', 'wxpay', 'ustd_usdc'],
+  alipay: ['alipay', 'ustd_usdc'],
   wxpay: ['wxpay'],
   stripe: ['card', 'alipay', 'wxpay', 'link'],
   airwallex: ['airwallex'],
@@ -46,7 +46,7 @@ export const PROVIDER_SUPPORTED_TYPES: Record<string, string[]> = {
 export const EASYPAY_PAYMENT_MODES = ['qrcode', 'popup'] as const
 
 /** Fixed display order for user-facing payment methods */
-export const METHOD_ORDER = ['alipay', 'alipay_direct', 'wxpay', 'wxpay_direct', 'stripe', 'airwallex'] as const
+export const METHOD_ORDER = ['alipay', 'ustd_usdc', 'alipay_direct', 'wxpay', 'wxpay_direct', 'stripe', 'airwallex'] as const
 
 /** Payment mode constants */
 export const PAYMENT_MODE_QRCODE = 'qrcode'
@@ -120,6 +120,7 @@ export const PROVIDER_CONFIG_FIELDS: Record<string, ConfigFieldDef[]> = {
     { key: 'pkey', label: 'PKey', sensitive: true },
     { key: 'apiBase', label: '', sensitive: false },
     { key: 'cidAlipay', label: '', sensitive: false, optional: true },
+    { key: 'cidUstdUsdc', label: '', sensitive: false, optional: true },
     { key: 'cidWxpay', label: '', sensitive: false, optional: true },
   ],
   alipay: [
@@ -175,21 +176,21 @@ export function getAvailableTypes(
   return types.map(t => resolveTypeLabel(t, providerKey, allTypes, redirectLabel))
 }
 
-/** Provider-management display alias for the Alipay slot. */
+/** Provider-management display label. */
 export function resolveProviderTypeDisplayLabel(
   typeVal: string,
   translate: TypeLabelTranslator,
   fallback = typeVal,
 ): string {
-  const key = typeVal === 'alipay' ? 'payment.methods.ustd_usdc' : `payment.methods.${typeVal}`
+  const key = `payment.methods.${typeVal}`
   const resolved = translate(key)
   if (typeof resolved === 'string' && resolved && resolved !== key) return resolved
-  return typeVal === 'alipay' ? 'USTD/USDC' : fallback
+  return fallback
 }
 
-/** Provider-management icon for the Alipay slot. */
+/** Provider-management icon overrides. */
 export function resolveProviderTypeDisplayIcon(typeVal: string): string | null {
-  return typeVal === 'alipay' ? ustdUsdcIcon : null
+  return typeVal === 'ustd_usdc' ? ustdUsdcIcon : null
 }
 
 /** Extract base URL from a full callback URL by removing the known path suffix. */

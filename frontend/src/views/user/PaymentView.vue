@@ -266,6 +266,7 @@ import {
   clearPaymentRecoverySnapshot,
   decidePaymentLaunch,
   getVisibleMethods,
+  isAlipayLikeVisibleMethod,
   normalizeVisibleMethod,
   readPaymentRecoverySnapshot,
   type PaymentRecoverySnapshot,
@@ -630,7 +631,8 @@ watch(() => [validAmount.value, selectedMethod.value] as const, ([amt, method]) 
 const paymentButtonClass = computed(() => {
   const m = selectedMethod.value
   if (!m) return 'btn-primary'
-  if (m.includes('alipay')) return 'btn-alipay'
+  if (m === 'ustd_usdc') return 'btn-ustd-usdc'
+  if (isAlipayLikeVisibleMethod(m) || m.includes('alipay')) return 'btn-alipay'
   if (m.includes('wxpay')) return 'btn-wxpay'
   if (m === 'stripe') return 'btn-stripe'
   if (m === 'airwallex') return 'btn-airwallex'
@@ -698,7 +700,7 @@ async function createOrder(orderAmount: number, orderType: OrderType, planId?: n
       origin: typeof window !== 'undefined' ? window.location.origin : '',
       isMobile: isMobileDevice(),
       isWechatBrowser: typeof window !== 'undefined' && /MicroMessenger/i.test(window.navigator.userAgent),
-      forceQRCode: !!(checkout.value.alipay_force_qrcode && normalizeVisibleMethod(requestType) === 'alipay'),
+      forceQRCode: !!(checkout.value.alipay_force_qrcode && isAlipayLikeVisibleMethod(requestType)),
     })
     if (options.openid) {
       payload.openid = options.openid
@@ -746,7 +748,7 @@ async function createOrder(orderAmount: number, orderType: OrderType, planId?: n
       orderType,
       isMobile: isMobileDevice(),
       isWechatBrowser: typeof window !== 'undefined' && /MicroMessenger/i.test(window.navigator.userAgent),
-      forceQRCode: !!(checkout.value.alipay_force_qrcode && visibleMethod === 'alipay'),
+      forceQRCode: !!(checkout.value.alipay_force_qrcode && isAlipayLikeVisibleMethod(visibleMethod)),
       stripePopupUrl: stripeRouteUrl,
       stripeRouteUrl,
       airwallexRouteUrl,
@@ -902,7 +904,7 @@ function shouldFallbackToDesktopQr(err: unknown, paymentMethod: string, attempte
       || normalizedMessage.includes('wechat_jsapi_unavailable')
   }
 
-  if (normalizedMethod === 'alipay') {
+  if (isAlipayLikeVisibleMethod(normalizedMethod)) {
     return reason === 'PAYMENT_GATEWAY_ERROR' || reason === 'UNHANDLED_PAYMENT_SCENARIO'
   }
 

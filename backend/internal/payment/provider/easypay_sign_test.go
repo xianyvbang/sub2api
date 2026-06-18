@@ -2,6 +2,8 @@ package provider
 
 import (
 	"testing"
+
+	"github.com/Wei-Shaw/sub2api/internal/payment"
 )
 
 func TestEasyPaySignConsistentOutput(t *testing.T) {
@@ -191,5 +193,35 @@ func TestEasyPayMerchantIdentityMetadata(t *testing.T) {
 	metadata := provider.MerchantIdentityMetadata()
 	if metadata["pid"] != "1001" {
 		t.Fatalf("pid = %q, want %q", metadata["pid"], "1001")
+	}
+}
+
+func TestEasyPaySupportedTypesIncludesUstdUsdc(t *testing.T) {
+	t.Parallel()
+
+	provider := &EasyPay{}
+	got := provider.SupportedTypes()
+	for _, want := range []payment.PaymentType{payment.TypeAlipay, payment.TypeWxpay, payment.TypeUstdUsdc} {
+		found := false
+		for _, typ := range got {
+			if typ == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("SupportedTypes() = %v, missing %q", got, want)
+		}
+	}
+}
+
+func TestEasyPayUstdUsdcUsesAlipayUpstreamType(t *testing.T) {
+	t.Parallel()
+
+	if got := easyPayUpstreamPaymentType(string(payment.TypeUstdUsdc)); got != string(payment.TypeAlipay) {
+		t.Fatalf("easyPayUpstreamPaymentType(ustd_usdc) = %q, want %q", got, payment.TypeAlipay)
+	}
+	if got := easyPayUpstreamPaymentType(string(payment.TypeWxpay)); got != string(payment.TypeWxpay) {
+		t.Fatalf("easyPayUpstreamPaymentType(wxpay) = %q, want %q", got, payment.TypeWxpay)
 	}
 }

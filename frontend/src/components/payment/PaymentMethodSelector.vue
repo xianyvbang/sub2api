@@ -40,7 +40,9 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { METHOD_ORDER } from './providerConfig'
+import { isAlipayLikeVisibleMethod } from './paymentFlow'
 import alipayIcon from '@/assets/icons/alipay.svg'
+import ustdUsdcIcon from '@/assets/icons/ustd-usdc.svg'
 import wxpayIcon from '@/assets/icons/wxpay.svg'
 import stripeIcon from '@/assets/icons/stripe.svg'
 import airwallexIcon from '@/assets/icons/airwallex.svg'
@@ -64,6 +66,7 @@ const { t } = useI18n()
 
 const METHOD_ICONS: Record<string, string> = {
   alipay: alipayIcon,
+  ustd_usdc: ustdUsdcIcon,
   wxpay: wxpayIcon,
   stripe: stripeIcon,
   airwallex: airwallexIcon,
@@ -79,14 +82,16 @@ const sortedMethods = computed(() => {
 })
 
 function methodIcon(type: string): string {
-  if (type.includes('alipay')) return METHOD_ICONS.alipay
+  if (type === 'ustd_usdc') return METHOD_ICONS.ustd_usdc
+  if (isAlipayLikeVisibleMethod(type) || type.includes('alipay')) return METHOD_ICONS.alipay
   if (type.includes('wxpay')) return METHOD_ICONS.wxpay
   if (type === 'airwallex') return METHOD_ICONS.airwallex
   return METHOD_ICONS[type] || alipayIcon
 }
 
 function methodSelectedClass(type: string): string {
-  if (type.includes('alipay')) return 'border-[#02A9F1] bg-blue-50 text-gray-900 shadow-sm dark:bg-blue-950 dark:text-gray-100'
+  if (type === 'ustd_usdc') return 'border-[#16A34A] bg-emerald-50 text-gray-900 shadow-sm dark:bg-emerald-950 dark:text-gray-100'
+  if (isAlipayLikeVisibleMethod(type) || type.includes('alipay')) return 'border-[#02A9F1] bg-blue-50 text-gray-900 shadow-sm dark:bg-blue-950 dark:text-gray-100'
   if (type.includes('wxpay')) return 'border-[#09BB07] bg-green-50 text-gray-900 shadow-sm dark:bg-green-950 dark:text-gray-100'
   if (type === 'stripe') return 'border-[#676BE5] bg-indigo-50 text-gray-900 shadow-sm dark:bg-indigo-950 dark:text-gray-100'
   if (type === 'airwallex') return 'border-[#FF6B3D] bg-orange-50 text-gray-900 shadow-sm dark:border-[#FF8E3C] dark:bg-orange-950 dark:text-gray-100'

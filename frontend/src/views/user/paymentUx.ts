@@ -1,4 +1,4 @@
-import { normalizeVisibleMethod } from '@/components/payment/paymentFlow'
+import { isAlipayLikeVisibleMethod, normalizeVisibleMethod } from '@/components/payment/paymentFlow'
 import { extractApiErrorCode } from '@/utils/apiError'
 
 const DISPLAY_METHOD_ALIASES: Record<string, string> = {
@@ -100,7 +100,7 @@ export function describePaymentScenarioError(
     }
   }
 
-  if (method === 'alipay' && (code === 'PAYMENT_GATEWAY_ERROR' || code === 'UNHANDLED_PAYMENT_SCENARIO')) {
+  if (isAlipayLikeVisibleMethod(method) && (code === 'PAYMENT_GATEWAY_ERROR' || code === 'UNHANDLED_PAYMENT_SCENARIO')) {
     return {
       messageKey: context.isMobile
         ? 'payment.errors.alipayMobileUnavailable'

@@ -345,6 +345,25 @@ func TestAlipayMerchantIdentityMetadata(t *testing.T) {
 	}
 }
 
+func TestAlipaySupportedTypesIncludesUstdUsdc(t *testing.T) {
+	t.Parallel()
+
+	provider := &Alipay{}
+	got := provider.SupportedTypes()
+	for _, want := range []payment.PaymentType{payment.TypeAlipay, payment.TypeUstdUsdc} {
+		found := false
+		for _, typ := range got {
+			if typ == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("SupportedTypes() = %v, missing %q", got, want)
+		}
+	}
+}
+
 func TestParseAlipayAmount(t *testing.T) {
 	t.Parallel()
 

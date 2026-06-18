@@ -14,6 +14,7 @@ describe('normalizePaymentMethodForDisplay', () => {
 
   it('leaves non-aliased methods untouched', () => {
     expect(normalizePaymentMethodForDisplay('stripe')).toBe('stripe')
+    expect(normalizePaymentMethodForDisplay('ustd_usdc')).toBe('ustd_usdc')
   })
 })
 

@@ -36,6 +36,7 @@ describe('getVisibleMethods', () => {
   it('normalizes provider aliases and keeps stripe as a top-level method', () => {
     const visible = getVisibleMethods({
       alipay_direct: methodLimit({ single_min: 5 }),
+      ustd_usdc: methodLimit({ fee_rate: 1.5 }),
       wxpay: methodLimit({ single_max: 100 }),
       stripe: methodLimit({ fee_rate: 3 }),
       airwallex: methodLimit({ single_min: 10 }),
@@ -43,6 +44,7 @@ describe('getVisibleMethods', () => {
 
     expect(visible).toEqual({
       alipay: methodLimit({ single_min: 5 }),
+      ustd_usdc: methodLimit({ fee_rate: 1.5 }),
       wxpay: methodLimit({ single_max: 100 }),
       stripe: methodLimit({ fee_rate: 3 }),
       airwallex: methodLimit({ single_min: 10 }),
@@ -301,6 +303,35 @@ describe('buildCreateOrderPayload', () => {
       isWechatBrowser: false,
       forceQRCode: true,
     })).toMatchObject({
+      is_mobile: false,
+    })
+  })
+
+  it('keeps USTD/USDC as its own payment type', () => {
+    expect(buildCreateOrderPayload({
+      amount: 50,
+      paymentType: 'ustd_usdc',
+      orderType: 'balance',
+      origin: 'https://app.example.com',
+      isMobile: true,
+      isWechatBrowser: false,
+    })).toMatchObject({
+      payment_type: 'ustd_usdc',
+      is_mobile: true,
+    })
+  })
+
+  it('keeps USTD/USDC independent while using Alipay-like forceQRCode behavior', () => {
+    expect(buildCreateOrderPayload({
+      amount: 50,
+      paymentType: 'ustd_usdc',
+      orderType: 'balance',
+      origin: 'https://app.example.com',
+      isMobile: true,
+      isWechatBrowser: false,
+      forceQRCode: true,
+    })).toMatchObject({
+      payment_type: 'ustd_usdc',
       is_mobile: false,
     })
   })

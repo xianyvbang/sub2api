@@ -89,7 +89,7 @@ func (a *Alipay) getClient() (*alipay.Client, error) {
 func (a *Alipay) Name() string        { return "Alipay" }
 func (a *Alipay) ProviderKey() string { return payment.TypeAlipay }
 func (a *Alipay) SupportedTypes() []payment.PaymentType {
-	return []payment.PaymentType{payment.TypeAlipay}
+	return []payment.PaymentType{payment.TypeAlipay, payment.TypeUstdUsdc}
 }
 
 func (a *Alipay) MerchantIdentityMetadata() map[string]string {

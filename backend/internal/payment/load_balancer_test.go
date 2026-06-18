@@ -74,6 +74,18 @@ func TestInstanceSupportsType(t *testing.T) {
 			expected:       true,
 		},
 		{
+			name:           "ustd usdc remains distinct from alipay",
+			supportedTypes: "alipay",
+			target:         TypeUstdUsdc,
+			expected:       false,
+		},
+		{
+			name:           "ustd usdc exact match",
+			supportedTypes: "ustd_usdc",
+			target:         TypeUstdUsdc,
+			expected:       true,
+		},
+		{
 			name:           "legacy wxpay direct supports canonical visible method",
 			supportedTypes: "wxpay_direct",
 			target:         "wxpay",

@@ -132,6 +132,28 @@ describe('PaymentStatusPanel', () => {
     openSpy.mockRestore()
   })
 
+  it('shows USTD/USDC copy for USTD/USDC QR payments', async () => {
+    const wrapper = mount(PaymentStatusPanel, {
+      props: {
+        orderId: 42,
+        qrCode: 'https://pay.example.com/qr/ustd',
+        expiresAt: '2099-01-01T12:30:00Z',
+        paymentType: 'ustd_usdc',
+        orderType: 'balance',
+      },
+      global: {
+        stubs: {
+          Icon: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('payment.methods.ustd_usdc')
+    expect(wrapper.text()).not.toContain('payment.qr.scanAlipay')
+  })
+
   it('actively verifies a stuck pending order and settles it when upstream confirms payment', async () => {
     pollOrderStatus.mockResolvedValue(orderFactory('PENDING'))
     verifyOrder.mockResolvedValue({

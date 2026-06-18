@@ -41,8 +41,10 @@ import { usePaymentStore } from '@/stores/payment'
 import { paymentAPI } from '@/api/payment'
 import { extractI18nErrorMessage } from '@/utils/apiError'
 import { useAppStore } from '@/stores'
+import { isAlipayLikeVisibleMethod } from '@/components/payment/paymentFlow'
 import QRCode from 'qrcode'
 import alipayIcon from '@/assets/icons/alipay.svg'
+import ustdUsdcIcon from '@/assets/icons/ustd-usdc.svg'
 import wxpayIcon from '@/assets/icons/wxpay.svg'
 
 const { t } = useI18n()
@@ -69,10 +71,12 @@ const countdownDisplay = computed(() => {
   return m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0')
 })
 
-const isAlipay = computed(() => paymentType.value.includes('alipay'))
+const isUstdUsdc = computed(() => paymentType.value === 'ustd_usdc')
+const isAlipay = computed(() => isAlipayLikeVisibleMethod(paymentType.value) || paymentType.value.includes('alipay'))
 const isWxpay = computed(() => paymentType.value.includes('wxpay'))
 
 const scanTitle = computed(() => {
+  if (isUstdUsdc.value) return t('payment.methods.ustd_usdc')
   if (isAlipay.value) return t('payment.qr.scanAlipay')
   if (isWxpay.value) return t('payment.qr.scanWxpay')
   return t('payment.qr.scanToPay')
@@ -85,6 +89,7 @@ const scanHint = computed(() => {
 })
 
 function getLogoForType(): string | null {
+  if (isUstdUsdc.value) return ustdUsdcIcon
   if (isAlipay.value) return alipayIcon
   if (isWxpay.value) return wxpayIcon
   return null

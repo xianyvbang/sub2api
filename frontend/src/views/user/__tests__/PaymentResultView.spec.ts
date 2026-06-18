@@ -468,4 +468,29 @@ describe('PaymentResultView', () => {
     expect(wrapper.text()).toContain('payment.methods.alipay')
     expect(wrapper.text()).not.toContain('payment.methods.alipay_direct')
   })
+
+  it('renders USTD/USDC as an independent payment method label', async () => {
+    routeState.query = {
+      resume_token: 'resume-ustd',
+    }
+    resolveOrderPublicByResumeToken.mockResolvedValueOnce({
+      data: {
+        ...orderFactory('PAID'),
+        payment_type: 'ustd_usdc',
+      },
+    })
+
+    const wrapper = mount(PaymentResultView, {
+      global: {
+        stubs: {
+          OrderStatusBadge: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('payment.methods.ustd_usdc')
+    expect(wrapper.text()).not.toContain('payment.methods.alipay')
+  })
 })

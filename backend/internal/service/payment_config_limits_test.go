@@ -198,6 +198,18 @@ func TestPcGroupByPaymentType(t *testing.T) {
 			t.Fatalf("stripe with empty types should still be in stripe group, got %v", groups)
 		}
 	})
+
+	t.Run("ustd usdc groups alipay-like instances", func(t *testing.T) {
+		t.Parallel()
+		easypay := makeInstance(1, payment.TypeEasyPay, payment.TypeUstdUsdc, "")
+		alipay := makeInstance(2, payment.TypeAlipay, payment.TypeUstdUsdc, "")
+
+		groups := pcGroupByPaymentType([]*dbent.PaymentProviderInstance{easypay, alipay})
+
+		if len(groups[payment.TypeUstdUsdc]) != 2 {
+			t.Fatalf("ustd_usdc group should contain Alipay-like instances, got %v", groups[payment.TypeUstdUsdc])
+		}
+	})
 }
 
 func TestPcAggregateMethodCurrency(t *testing.T) {
@@ -253,6 +265,40 @@ func TestGetAvailableMethodLimitsOmitsMixedCurrencyMethod(t *testing.T) {
 	require.Error(t, err)
 	appErr := infraerrors.FromError(err)
 	require.Equal(t, "PAYMENT_METHOD_CURRENCY_CONFLICT", appErr.Reason)
+}
+
+func TestGetAvailableMethodLimitsExposesAlipayLikeUstdUsdc(t *testing.T) {
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+
+	_, err := client.PaymentProviderInstance.Create().
+		SetProviderKey(payment.TypeEasyPay).
+		SetName("EasyPay USTD").
+		SetConfig("{}").
+		SetSupportedTypes(payment.TypeUstdUsdc).
+		SetLimits(`{"ustd_usdc":{"singleMin":3,"singleMax":333}}`).
+		SetEnabled(true).
+		Save(ctx)
+	require.NoError(t, err)
+
+	_, err = client.PaymentProviderInstance.Create().
+		SetProviderKey(payment.TypeAlipay).
+		SetName("Official Alipay USTD").
+		SetConfig("{}").
+		SetSupportedTypes(payment.TypeUstdUsdc).
+		SetLimits(`{"ustd_usdc":{"singleMin":1,"singleMax":999}}`).
+		SetEnabled(true).
+		Save(ctx)
+	require.NoError(t, err)
+
+	svc := &PaymentConfigService{entClient: client}
+	resp, err := svc.GetAvailableMethodLimits(ctx)
+	require.NoError(t, err)
+
+	limits, ok := resp.Methods[payment.TypeUstdUsdc]
+	require.True(t, ok, "expected ustd_usdc limits to be exposed")
+	require.Equal(t, 1.0, limits.SingleMin)
+	require.Equal(t, 999.0, limits.SingleMax)
 }
 
 func TestPcComputeGlobalRange(t *testing.T) {

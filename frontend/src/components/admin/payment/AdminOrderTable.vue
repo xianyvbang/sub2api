@@ -210,6 +210,7 @@ const statusFilterOptions = computed(() => [
 const paymentTypeFilterOptions = computed(() => [
   { value: '', label: t('payment.admin.allPaymentTypes') },
   { value: 'alipay', label: t('payment.methods.alipay') },
+  { value: 'ustd_usdc', label: t('payment.methods.ustd_usdc') },
   { value: 'wxpay', label: t('payment.methods.wxpay') },
   { value: 'stripe', label: t('payment.methods.stripe') },
   { value: 'airwallex', label: t('payment.methods.airwallex') },

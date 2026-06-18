@@ -13,11 +13,11 @@ import (
 )
 
 func enabledVisibleMethodsForProvider(providerKey, supportedTypes string) []string {
-	methodSet := make(map[string]struct{}, 2)
+	methodSet := make(map[string]struct{}, 3)
 	addMethod := func(method string) {
 		method = NormalizeVisibleMethod(method)
 		switch method {
-		case payment.TypeAlipay, payment.TypeWxpay:
+		case payment.TypeAlipay, payment.TypeWxpay, payment.TypeUstdUsdc:
 			methodSet[method] = struct{}{}
 		}
 	}
@@ -26,12 +26,15 @@ func enabledVisibleMethodsForProvider(providerKey, supportedTypes string) []stri
 	case payment.TypeAlipay:
 		if strings.TrimSpace(supportedTypes) == "" {
 			addMethod(payment.TypeAlipay)
+			addMethod(payment.TypeUstdUsdc)
 			break
 		}
 		for _, supportedType := range splitTypes(supportedTypes) {
-			if NormalizeVisibleMethod(supportedType) == payment.TypeAlipay {
+			switch NormalizeVisibleMethod(supportedType) {
+			case payment.TypeAlipay:
 				addMethod(payment.TypeAlipay)
-				break
+			case payment.TypeUstdUsdc:
+				addMethod(payment.TypeUstdUsdc)
 			}
 		}
 	case payment.TypeWxpay:
@@ -52,7 +55,7 @@ func enabledVisibleMethodsForProvider(providerKey, supportedTypes string) []stri
 	}
 
 	methods := make([]string, 0, len(methodSet))
-	for _, method := range []string{payment.TypeAlipay, payment.TypeWxpay} {
+	for _, method := range []string{payment.TypeAlipay, payment.TypeWxpay, payment.TypeUstdUsdc} {
 		if _, ok := methodSet[method]; ok {
 			methods = append(methods, method)
 		}

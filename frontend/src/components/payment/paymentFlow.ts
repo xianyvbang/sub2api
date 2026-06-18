@@ -11,6 +11,7 @@ export const PAYMENT_RECOVERY_STORAGE_KEY = 'payment.recovery.current'
 
 const VISIBLE_METHOD_ALIASES = {
   alipay: 'alipay',
+  ustd_usdc: 'ustd_usdc',
   alipay_direct: 'alipay',
   wxpay: 'wxpay',
   wxpay_direct: 'wxpay',
@@ -18,7 +19,7 @@ const VISIBLE_METHOD_ALIASES = {
   airwallex: 'airwallex',
 } as const
 
-export type VisiblePaymentMethod = 'alipay' | 'wxpay' | 'stripe' | 'airwallex'
+export type VisiblePaymentMethod = 'alipay' | 'ustd_usdc' | 'wxpay' | 'stripe' | 'airwallex'
 export type StripeVisibleMethod = 'alipay' | 'wechat_pay'
 export type PaymentLaunchKind =
   | 'qr_waiting'
@@ -95,6 +96,11 @@ export function normalizeVisibleMethod(method: string): VisiblePaymentMethod | '
   return normalized ?? ''
 }
 
+export function isAlipayLikeVisibleMethod(method: string): boolean {
+  const visibleMethod = normalizeVisibleMethod(method) || method.trim()
+  return visibleMethod === 'alipay' || visibleMethod === 'ustd_usdc'
+}
+
 export function getVisibleMethods(methods: Record<string, MethodLimit>): Record<string, MethodLimit> {
   const visible: Record<string, MethodLimit> = {}
 
@@ -115,9 +121,9 @@ export function getVisibleMethods(methods: Record<string, MethodLimit>): Record<
 export function buildCreateOrderPayload(input: BuildCreateOrderPayloadInput): CreateOrderRequest {
   const visibleMethod = normalizeVisibleMethod(input.paymentType) || input.paymentType.trim()
   const normalizedOrigin = (input.origin || '').trim().replace(/\/+$/, '')
-  // When forceQRCode is enabled for alipay, always tell the backend this is not a mobile
+  // When forceQRCode is enabled for Alipay, always tell the backend this is not a mobile
   // request so it generates a QR code instead of a mobile-redirect URL.
-  const effectiveMobile = (input.forceQRCode && visibleMethod === 'alipay')
+  const effectiveMobile = (input.forceQRCode && isAlipayLikeVisibleMethod(visibleMethod))
     ? false
     : input.isMobile
   const payload: CreateOrderRequest = {
@@ -199,9 +205,9 @@ export function decidePaymentLaunch(
   }
 
   const normalizedPaymentMode = baseState.paymentMode.trim().toLowerCase()
-  // When forceQRCode is on for alipay, treat the device as desktop so the mobile-redirect
+  // When forceQRCode is on for Alipay, treat the device as desktop so the mobile-redirect
   // branch is bypassed and we fall through to qr_waiting.
-  const effectiveMobile = (context.forceQRCode && visibleMethod === 'alipay')
+  const effectiveMobile = (context.forceQRCode && isAlipayLikeVisibleMethod(visibleMethod))
     ? false
     : context.isMobile
   const prefersRedirect = normalizedPaymentMode === 'redirect'

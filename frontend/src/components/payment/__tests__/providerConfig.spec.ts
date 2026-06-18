@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   PAYMENT_CURRENCY_OPTIONS,
   PROVIDER_CONFIG_FIELDS,
+  PROVIDER_SUPPORTED_TYPES,
   resolveProviderTypeDisplayIcon,
   resolveProviderTypeDisplayLabel,
 } from '@/components/payment/providerConfig'
@@ -56,11 +57,24 @@ describe('PROVIDER_CONFIG_FIELDS.stripe', () => {
   })
 })
 
-describe('provider type display aliases', () => {
-  it('renders the Alipay slot as USTD/USDC', () => {
-    const t = (key: string) => ({ 'payment.methods.ustd_usdc': 'USTD/USDC' }[key] ?? key)
+describe('provider type display labels', () => {
+  it('exposes USTD/USDC for Alipay-like providers only', () => {
+    expect(PROVIDER_SUPPORTED_TYPES.easypay).toContain('ustd_usdc')
+    expect(PROVIDER_SUPPORTED_TYPES.alipay).toContain('ustd_usdc')
+    expect(PROVIDER_SUPPORTED_TYPES.wxpay).not.toContain('ustd_usdc')
+    expect(PROVIDER_SUPPORTED_TYPES.stripe).not.toContain('ustd_usdc')
+    expect(PROVIDER_SUPPORTED_TYPES.airwallex).not.toContain('ustd_usdc')
+  })
 
-    expect(resolveProviderTypeDisplayLabel('alipay', t)).toBe('USTD/USDC')
-    expect(resolveProviderTypeDisplayIcon('alipay')).toContain('ustd-usdc')
+  it('keeps Alipay and USTD/USDC as separate provider types', () => {
+    const t = (key: string) => ({
+      'payment.methods.alipay': 'Alipay',
+      'payment.methods.ustd_usdc': 'USTD/USDC',
+    }[key] ?? key)
+
+    expect(resolveProviderTypeDisplayLabel('alipay', t)).toBe('Alipay')
+    expect(resolveProviderTypeDisplayIcon('alipay')).toBeNull()
+    expect(resolveProviderTypeDisplayLabel('ustd_usdc', t)).toBe('USTD/USDC')
+    expect(resolveProviderTypeDisplayIcon('ustd_usdc')).toContain('ustd-usdc')
   })
 })

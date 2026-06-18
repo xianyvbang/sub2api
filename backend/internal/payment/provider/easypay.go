@@ -40,7 +40,7 @@ type EasyPay struct {
 }
 
 // NewEasyPay creates a new EasyPay provider.
-// config keys: pid, pkey, apiBase, notifyUrl, returnUrl, cid, cidAlipay, cidWxpay
+// config keys: pid, pkey, apiBase, notifyUrl, returnUrl, cid, cidAlipay, cidUstdUsdc, cidWxpay
 func NewEasyPay(instanceID string, config map[string]string) (*EasyPay, error) {
 	for _, k := range []string{"pid", "pkey", "apiBase", "notifyUrl", "returnUrl"} {
 		if strings.TrimSpace(config[k]) == "" {
@@ -95,7 +95,7 @@ func (e *EasyPay) apiBase() string {
 func (e *EasyPay) Name() string        { return "EasyPay" }
 func (e *EasyPay) ProviderKey() string { return payment.TypeEasyPay }
 func (e *EasyPay) SupportedTypes() []payment.PaymentType {
-	return []payment.PaymentType{payment.TypeAlipay, payment.TypeWxpay}
+	return []payment.PaymentType{payment.TypeAlipay, payment.TypeWxpay, payment.TypeUstdUsdc}
 }
 
 func (e *EasyPay) MerchantIdentityMetadata() map[string]string {
@@ -124,8 +124,9 @@ func (e *EasyPay) CreatePayment(ctx context.Context, req payment.CreatePaymentRe
 // TradeNo is empty; it arrives via the notify callback after payment.
 func (e *EasyPay) createRedirectPayment(req payment.CreatePaymentRequest) (*payment.CreatePaymentResponse, error) {
 	notifyURL, returnURL := e.resolveURLs(req)
+	upstreamType := easyPayUpstreamPaymentType(req.PaymentType)
 	params := map[string]string{
-		"pid": e.config["pid"], "type": req.PaymentType,
+		"pid": e.config["pid"], "type": upstreamType,
 		"out_trade_no": req.OrderID, "notify_url": notifyURL,
 		"return_url": returnURL, "name": req.Subject,
 		"money": req.Amount,
@@ -150,8 +151,9 @@ func (e *EasyPay) createRedirectPayment(req payment.CreatePaymentRequest) (*paym
 // createAPIPayment calls mapi.php to get payurl/qrcode (existing behavior).
 func (e *EasyPay) createAPIPayment(ctx context.Context, req payment.CreatePaymentRequest) (*payment.CreatePaymentResponse, error) {
 	notifyURL, returnURL := e.resolveURLs(req)
+	upstreamType := easyPayUpstreamPaymentType(req.PaymentType)
 	params := map[string]string{
-		"pid": e.config["pid"], "type": req.PaymentType,
+		"pid": e.config["pid"], "type": upstreamType,
 		"out_trade_no": req.OrderID, "notify_url": notifyURL,
 		"return_url": returnURL, "name": req.Subject,
 		"money": req.Amount, "clientip": req.ClientIP,
@@ -434,6 +436,14 @@ func summarizeEasyPayResponse(body []byte) string {
 }
 
 func (e *EasyPay) resolveCID(paymentType string) string {
+	if strings.TrimSpace(paymentType) == string(payment.TypeUstdUsdc) {
+		if v := e.config["cidUstdUsdc"]; v != "" {
+			return v
+		}
+		if v := e.config["cid"]; v != "" {
+			return v
+		}
+	}
 	if strings.HasPrefix(paymentType, "alipay") {
 		if v := e.config["cidAlipay"]; v != "" {
 			return v
@@ -444,6 +454,13 @@ func (e *EasyPay) resolveCID(paymentType string) string {
 		return v
 	}
 	return e.config["cid"]
+}
+
+func easyPayUpstreamPaymentType(paymentType string) string {
+	if strings.TrimSpace(paymentType) == string(payment.TypeUstdUsdc) {
+		return string(payment.TypeAlipay)
+	}
+	return strings.TrimSpace(paymentType)
 }
 
 func (e *EasyPay) post(ctx context.Context, endpoint string, params map[string]string) ([]byte, error) {

@@ -176,14 +176,14 @@ func TestParsePaymentConfig(t *testing.T) {
 	t.Run("enabled types are normalized to visible methods and deduplicated", func(t *testing.T) {
 		t.Parallel()
 		vals := map[string]string{
-			SettingEnabledPaymentTypes: "alipay_direct, alipay, wxpay_direct, wxpay",
+			SettingEnabledPaymentTypes: "alipay_direct, alipay, ustd_usdc, wxpay_direct, wxpay",
 		}
 		cfg := svc.parsePaymentConfig(vals)
-		if len(cfg.EnabledTypes) != 2 {
-			t.Fatalf("EnabledTypes len = %d, want 2", len(cfg.EnabledTypes))
+		if len(cfg.EnabledTypes) != 3 {
+			t.Fatalf("EnabledTypes len = %d, want 3", len(cfg.EnabledTypes))
 		}
-		if cfg.EnabledTypes[0] != "alipay" || cfg.EnabledTypes[1] != "wxpay" {
-			t.Fatalf("EnabledTypes = %v, want [alipay wxpay]", cfg.EnabledTypes)
+		if cfg.EnabledTypes[0] != "alipay" || cfg.EnabledTypes[1] != "ustd_usdc" || cfg.EnabledTypes[2] != "wxpay" {
+			t.Fatalf("EnabledTypes = %v, want [alipay ustd_usdc wxpay]", cfg.EnabledTypes)
 		}
 	})
 
@@ -212,6 +212,7 @@ func TestGetBasePaymentType(t *testing.T) {
 		{payment.TypeLink, payment.TypeStripe},
 		{payment.TypeAlipay, payment.TypeAlipay},
 		{payment.TypeAlipayDirect, payment.TypeAlipay},
+		{payment.TypeUstdUsdc, payment.TypeUstdUsdc},
 		{payment.TypeWxpay, payment.TypeWxpay},
 		{payment.TypeWxpayDirect, payment.TypeWxpay},
 		{"unknown", "unknown"},

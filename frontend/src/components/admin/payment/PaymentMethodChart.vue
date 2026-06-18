@@ -50,6 +50,7 @@ const props = defineProps<{
 
 const colorMap: Record<string, string> = {
   alipay: 'bg-blue-500',
+  ustd_usdc: 'bg-emerald-500',
   wxpay: 'bg-green-500',
   alipay_direct: 'bg-blue-400',
   wxpay_direct: 'bg-green-400',
@@ -58,6 +59,7 @@ const colorMap: Record<string, string> = {
 
 const barColorMap: Record<string, string> = {
   alipay: 'bg-blue-500',
+  ustd_usdc: 'bg-emerald-500',
   wxpay: 'bg-green-500',
   alipay_direct: 'bg-blue-400',
   wxpay_direct: 'bg-green-400',

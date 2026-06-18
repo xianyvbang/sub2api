@@ -5991,6 +5991,7 @@ export default {
         field_accountIdHint: 'Leave this empty unless you use multiple accounts, an organization-level key, or connected-account payments. A single-account scoped API key uses the selected account by default.',
         field_cid: 'Channel ID',
         field_cidAlipay: 'Alipay Channel ID',
+        field_cidUstdUsdc: 'USTD/USDC Channel ID',
         field_cidWxpay: 'WeChat Channel ID',
         stripeWebhookHint: 'Configure the following URL as a Webhook endpoint in Stripe Dashboard:',
         stripeWebhookApiVersionHint: 'Set this Webhook endpoint API version to match the integrated Stripe SDK. Recommended: {version}. A mismatch can cause webhook parsing errors.',
