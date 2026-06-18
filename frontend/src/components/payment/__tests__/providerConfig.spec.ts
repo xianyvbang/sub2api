@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { PAYMENT_CURRENCY_OPTIONS, PROVIDER_CONFIG_FIELDS } from '@/components/payment/providerConfig'
+import {
+  PAYMENT_CURRENCY_OPTIONS,
+  PROVIDER_CONFIG_FIELDS,
+  resolveProviderTypeDisplayIcon,
+  resolveProviderTypeDisplayLabel,
+} from '@/components/payment/providerConfig'
 
 function findField(providerKey: string, key: string) {
   const fields = PROVIDER_CONFIG_FIELDS[providerKey] || []
@@ -48,5 +53,14 @@ describe('PROVIDER_CONFIG_FIELDS.stripe', () => {
     expect(currency?.defaultValue).toBe('CNY')
     expect(currency?.hintKey).toBe('admin.settings.payment.field_paymentCurrencyHint')
     expect(currency?.options).toBe(PAYMENT_CURRENCY_OPTIONS)
+  })
+})
+
+describe('provider type display aliases', () => {
+  it('renders the Alipay slot as USTD/USDC', () => {
+    const t = (key: string) => ({ 'payment.methods.ustd_usdc': 'USTD/USDC' }[key] ?? key)
+
+    expect(resolveProviderTypeDisplayLabel('alipay', t)).toBe('USTD/USDC')
+    expect(resolveProviderTypeDisplayIcon('alipay')).toContain('ustd-usdc')
   })
 })

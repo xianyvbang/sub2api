@@ -2,6 +2,8 @@
  * Shared constants and types for payment provider management.
  */
 
+import ustdUsdcIcon from '@/assets/icons/ustd-usdc.svg'
+
 // --- Types ---
 
 export interface ConfigFieldDef {
@@ -20,6 +22,8 @@ export interface TypeOption {
   label: string
   [key: string]: unknown
 }
+
+export type TypeLabelTranslator = (key: string) => unknown
 
 /** Callback URL paths for a provider. */
 export interface CallbackPaths {
@@ -169,6 +173,23 @@ export function getAvailableTypes(
 ): TypeOption[] {
   const types = PROVIDER_SUPPORTED_TYPES[providerKey] || []
   return types.map(t => resolveTypeLabel(t, providerKey, allTypes, redirectLabel))
+}
+
+/** Provider-management display alias for the Alipay slot. */
+export function resolveProviderTypeDisplayLabel(
+  typeVal: string,
+  translate: TypeLabelTranslator,
+  fallback = typeVal,
+): string {
+  const key = typeVal === 'alipay' ? 'payment.methods.ustd_usdc' : `payment.methods.${typeVal}`
+  const resolved = translate(key)
+  if (typeof resolved === 'string' && resolved && resolved !== key) return resolved
+  return typeVal === 'alipay' ? 'USTD/USDC' : fallback
+}
+
+/** Provider-management icon for the Alipay slot. */
+export function resolveProviderTypeDisplayIcon(typeVal: string): string | null {
+  return typeVal === 'alipay' ? ustdUsdcIcon : null
 }
 
 /** Extract base URL from a full callback URL by removing the known path suffix. */

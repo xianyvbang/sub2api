@@ -344,6 +344,30 @@ If admin password was auto-generated, find it in logs:
 docker compose -f docker-compose.local.yml logs sub2api | grep "admin password"
 ```
 
+#### Replace an Existing Docker Compose Deployment
+
+If Sub2API is already running on the server with Docker Compose and you want to switch to the new GHCR image:
+
+```bash
+# If GHCR is private in your setup, log in first
+docker login ghcr.io -u <your-github-username>
+
+# Pull the new image and recreate only the application container
+docker compose pull sub2api
+docker compose up -d --no-deps --force-recreate sub2api
+```
+
+For `docker-compose.local.yml` or `docker-compose.standalone.yml`, add `-f`:
+
+```bash
+docker compose -f docker-compose.local.yml pull sub2api
+docker compose -f docker-compose.local.yml up -d --no-deps --force-recreate sub2api
+```
+
+This keeps PostgreSQL and Redis untouched. Do not use `docker compose down -v` unless you want to delete the data volumes too.
+
+This applies to `docker-compose.yml`, `docker-compose.local.yml`, and `docker-compose.standalone.yml`. The `docker-compose.dev.yml` file still uses `build:` and should be started with `--build` when you want a local rebuild.
+
 #### Upgrade
 
 ```bash

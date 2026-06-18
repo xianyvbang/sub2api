@@ -33,12 +33,20 @@
             type="button"
             @click="emit('toggleType', pt.value)"
             :class="[
-              'rounded px-2 py-0.5 text-xs font-medium transition-all',
+              'inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium transition-all',
               isSelected(pt.value)
                 ? 'bg-primary-500 text-white'
                 : 'bg-gray-100 text-gray-400 dark:bg-dark-700 dark:text-gray-500',
             ]"
-          >{{ pt.label }}</button>
+          >
+            <img
+              v-if="displayTypeIcon(pt.value)"
+              :src="displayTypeIcon(pt.value) || ''"
+              alt=""
+              class="h-3 w-3 shrink-0"
+            />
+            <span>{{ displayTypeLabel(pt.value, pt.label) }}</span>
+          </button>
         </div>
       </div>
 
@@ -69,7 +77,13 @@ import Icon from '@/components/icons/Icon.vue'
 import ToggleSwitch from './ToggleSwitch.vue'
 import type { ProviderInstance } from '@/types/payment'
 import type { TypeOption } from './providerConfig'
-import { PAYMENT_MODE_QRCODE, PAYMENT_MODE_POPUP, PAYMENT_MODE_REDIRECT } from './providerConfig'
+import {
+  PAYMENT_MODE_QRCODE,
+  PAYMENT_MODE_POPUP,
+  PAYMENT_MODE_REDIRECT,
+  resolveProviderTypeDisplayIcon,
+  resolveProviderTypeDisplayLabel,
+} from './providerConfig'
 
 const PROVIDER_KEY_LABELS: Record<string, string> = {
   easypay: 'admin.settings.payment.providerEasypay',
@@ -105,5 +119,13 @@ const modeLabel = computed(() => {
 
 function isSelected(type: string): boolean {
   return props.provider.supported_types.includes(type)
+}
+
+function displayTypeLabel(type: string, fallback: string): string {
+  return resolveProviderTypeDisplayLabel(type, key => t(key), fallback)
+}
+
+function displayTypeIcon(type: string): string | null {
+  return resolveProviderTypeDisplayIcon(type)
 }
 </script>

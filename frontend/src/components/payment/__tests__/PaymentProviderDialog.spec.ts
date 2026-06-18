@@ -130,6 +130,16 @@ describe('PaymentProviderDialog payment guide', () => {
     expect(wrapper.text()).toContain('/api/v1/payment/webhook/stripe')
   })
 
+  it('renders the Alipay slot as USTD/USDC in the provider editor', async () => {
+    const wrapper = mountDialog()
+
+    ;(wrapper.vm as unknown as { reset: (key: string) => void }).reset('alipay')
+    await nextTick()
+
+    expect(wrapper.text()).toContain('USTD/USDC')
+    expect(wrapper.text()).not.toContain('支付宝')
+  })
+
   it('emits an empty Airwallex accountId when the admin clears it', async () => {
     const provider = providerFactory({
       config: {

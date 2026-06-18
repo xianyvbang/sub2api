@@ -51,7 +51,7 @@
             >{{ mode.label }}</button>
           </div>
         </div>
-        <div v-if="availableTypes.length > 1" class="flex items-center gap-2">
+        <div v-if="availableTypes.length > 1 || form.provider_key === 'alipay'" class="flex items-center gap-2">
           <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('admin.settings.payment.supportedTypes') }}</span>
           <div class="flex flex-wrap gap-1.5">
             <button
@@ -60,12 +60,20 @@
               type="button"
               @click="toggleType(pt.value)"
               :class="[
-                'rounded-lg border px-2.5 py-1 text-xs font-medium transition-all',
+                'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-all',
                 isTypeSelected(pt.value)
                   ? 'border-primary-500 bg-primary-500 text-white shadow-sm'
                   : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-300 dark:hover:border-dark-500',
               ]"
-            >{{ pt.label }}</button>
+            >
+              <img
+                v-if="displayTypeIcon(pt.value)"
+                :src="displayTypeIcon(pt.value) || ''"
+                alt=""
+                class="h-3.5 w-3.5 shrink-0"
+              />
+              <span>{{ displayTypeLabel(pt.value, pt.label) }}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -214,7 +222,7 @@
             :key="lt.value"
             class="rounded-lg border border-gray-100 p-3 dark:border-dark-700"
           >
-            <p class="mb-2 text-xs font-medium text-gray-700 dark:text-gray-300">{{ lt.label }}</p>
+            <p class="mb-2 text-xs font-medium text-gray-700 dark:text-gray-300">{{ displayTypeLabel(lt.value, lt.label) }}</p>
             <div class="grid grid-cols-3 gap-3">
               <div>
                 <label class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.settings.payment.limitSingleMin') }}</label>
@@ -282,6 +290,8 @@ import {
   STRIPE_SDK_API_VERSION,
   getAvailableTypes,
   extractBaseUrl,
+  resolveProviderTypeDisplayIcon,
+  resolveProviderTypeDisplayLabel,
 } from './providerConfig'
 
 /** Default payment_mode per provider key — "" means "no preference, use
@@ -411,6 +421,14 @@ const availableTypes = computed(() => {
       : opt,
   )
 })
+
+function displayTypeLabel(type: string, fallback: string): string {
+  return resolveProviderTypeDisplayLabel(type, key => t(key), fallback)
+}
+
+function displayTypeIcon(type: string): string | null {
+  return resolveProviderTypeDisplayIcon(type)
+}
 
 const resolvedFields = computed(() => {
   const fields = PROVIDER_CONFIG_FIELDS[form.provider_key] || []
