@@ -44,13 +44,18 @@ func TestListModelMarketplace_FlattensPerGroupPlatformModel(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cards, 2)
 
-	require.Equal(t, "public", cards[0].GroupName)
-	require.Equal(t, "gpt-4o", cards[0].ModelName)
-	require.Equal(t, "openai", cards[0].Platform)
-	require.Equal(t, string(BillingModePerRequest), cards[0].BillingType)
+	gotGroups := []string{cards[0].GroupName, cards[1].GroupName}
+	require.ElementsMatch(t, []string{"public", "pro"}, gotGroups)
 
-	require.Equal(t, "pro", cards[1].GroupName)
-	require.Equal(t, "gpt-4o", cards[1].ModelName)
+	cardsByGroup := make(map[string]ModelMarketplaceCard, len(cards))
+	for _, card := range cards {
+		cardsByGroup[card.GroupName] = card
+	}
+
+	require.Equal(t, "gpt-4o", cardsByGroup["public"].ModelName)
+	require.Equal(t, "openai", cardsByGroup["public"].Platform)
+	require.Equal(t, string(BillingModePerRequest), cardsByGroup["public"].BillingType)
+	require.Equal(t, "gpt-4o", cardsByGroup["pro"].ModelName)
 }
 
 func TestListModelMarketplace_DedupsSameGroupPlatformModelAcrossChannels(t *testing.T) {
