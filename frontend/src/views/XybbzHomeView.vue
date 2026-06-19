@@ -119,18 +119,26 @@
                 </div>
               </div>
 
-              <div class="console-grid">
+              <div class="console-grid" :class="{ 'console-grid-single': !showMarketplaceEntry }">
                 <section class="console-card">
                   <div class="label">{{ pageCopy.siteTitleLabel }}</div>
                   <div class="value">{{ siteName }}</div>
                   <div class="desc">{{ pageCopy.siteTitleDescription }}</div>
                 </section>
 
-                <section class="console-card">
+                <router-link
+                  v-if="showMarketplaceEntry"
+                  :to="marketplacePath"
+                  class="console-card console-card-link"
+                >
                   <div class="label">{{ pageCopy.marketplaceLabel }}</div>
-                  <div class="value">{{ marketplaceConsoleValue }}</div>
+                  <div class="value">{{ pageCopy.marketplaceValue }}</div>
                   <div class="desc">{{ pageCopy.marketplaceDescription }}</div>
-                </section>
+                  <div class="console-card-action">
+                    <span>{{ pageCopy.marketplaceAction }}</span>
+                    <Icon name="arrowRight" size="sm" :stroke-width="2" />
+                  </div>
+                </router-link>
               </div>
 
               <div class="console-terminal">
@@ -154,44 +162,9 @@
         </div>
       </section>
 
-      <section class="section-block">
-        <div class="container">
-          <article class="marketplace-strip reveal" style="--delay: 340ms">
-            <div class="marketplace-copy">
-              <span class="eyebrow">{{ pageCopy.marketplaceEyebrow }}</span>
-              <h2>{{ pageCopy.marketplaceTitle }}</h2>
-              <p>{{ pageCopy.marketplaceLead }}</p>
-
-              <div class="marketplace-meta">
-                <span v-for="item in marketplaceMeta" :key="item" class="meta-pill">
-                  {{ item }}
-                </span>
-              </div>
-            </div>
-
-            <div class="marketplace-action">
-              <div class="marketplace-status" :class="marketplaceStatusClass">
-                {{ marketplaceStatusText }}
-              </div>
-
-              <router-link
-                v-if="isMarketplaceEnabled"
-                :to="marketplacePath"
-                class="marketplace-button"
-              >
-                {{ marketplaceButtonLabel }}
-              </router-link>
-              <span v-else class="marketplace-button button-disabled">
-                {{ marketplaceButtonLabel }}
-              </span>
-            </div>
-          </article>
-        </div>
-      </section>
-
       <section id="abilities" class="section-block">
         <div class="container">
-          <div class="section-heading reveal" style="--delay: 420ms">
+          <div class="section-heading reveal" style="--delay: 340ms">
             <div>
               <span class="eyebrow">{{ pageCopy.whyLabel }}</span>
               <h2>{{ pageCopy.featuresTitle }}</h2>
@@ -267,6 +240,7 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore, useAppStore } from '@/stores'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
 
 const { locale } = useI18n()
 
@@ -297,9 +271,7 @@ const isZh = computed(() => locale.value.toLowerCase().startsWith('zh'))
 const currentYear = computed(() => new Date().getFullYear())
 const themeClass = computed(() => (isDark.value ? 'theme-dark' : 'theme-light'))
 
-const isMarketplaceEnabled = computed(
-  () => appStore.cachedPublicSettings?.model_marketplace_enabled === true
-)
+const showMarketplaceEntry = computed(() => isFeatureFlagEnabled(FeatureFlags.modelMarketplace))
 const marketplaceRequiresLogin = computed(
   () => appStore.cachedPublicSettings?.model_marketplace_requires_login !== false
 )
@@ -326,31 +298,15 @@ const pageCopy = computed(() => {
       siteTitleLabel: '站点名称',
       siteTitleDescription: '这里展示当前站点品牌与统一入口，帮助你更快确认访问位置。',
       marketplaceLabel: '模型广场',
-      marketplaceDescription: '这里会提示模型广场当前是否可进入，帮助你快速找到模型能力入口。',
+      marketplaceValue: 'Model Hub',
+      marketplaceDescription: '查看可用模型、能力信息与入口说明，按需进入使用。',
+      marketplaceAction: '进入模型广场',
       terminalBrowse: '浏览模型广场与站点入口',
       terminalHint: '快速查看文档、能力说明和常用入口',
       terminalStart: '登录后即可开始使用',
       authGuest: '未登录，建议先前往登录页开始使用。',
       authAdmin: '已识别管理员，可直接进入管理台。',
       authUser: '已识别用户，可直接前往控制台。',
-      marketplaceEyebrow: 'Model Marketplace',
-      marketplaceTitle: '模型广场入口',
-      marketplaceLead:
-        '快速查看可用模型与能力信息，按需进入模型广场，找到更适合你的使用入口与价格方案。',
-      marketplaceAvailabilityMeta: '聚合可用模型入口',
-      marketplaceAccessMetaClosed: '当前暂未开放',
-      marketplaceAccessMetaPublic: '无需登录即可访问',
-      marketplaceAccessMetaPrivate: '登录后进入模型广场',
-      marketplaceDocMeta: '按需跳转到文档与入口',
-      marketplaceStatusClosed: '模型广场暂未开放',
-      marketplaceStatusLocked: '已开放，访问前需先登录',
-      marketplaceStatusOpen: '模型广场已开放',
-      marketplaceButtonClosed: '模型广场暂未开放',
-      marketplaceButtonLocked: '登录后进入模型广场',
-      marketplaceButtonOpen: '进入模型广场',
-      marketplaceConsoleClosed: '关闭',
-      marketplaceConsoleLocked: '登录后访问',
-      marketplaceConsoleOpen: '开放',
       whyLabel: 'Why Xybbz',
       featuresTitle: '一个入口，轻松连接常用模型',
       featuresLead:
@@ -381,31 +337,15 @@ const pageCopy = computed(() => {
     siteTitleLabel: 'Site Title',
     siteTitleDescription: 'This card reflects the current brand and main entry point for the site.',
     marketplaceLabel: 'Marketplace',
-    marketplaceDescription: 'This area shows whether the model marketplace is currently reachable.',
+    marketplaceValue: 'Model Hub',
+    marketplaceDescription: 'Browse available models, capability notes, and the entry point from one place.',
+    marketplaceAction: 'Enter Marketplace',
     terminalBrowse: 'browse marketplace and entry surfaces',
     terminalHint: 'quick access to docs, capability notes, and common entry points',
     terminalStart: 'sign in to start using the platform',
     authGuest: 'You are not signed in yet. Start from the login page.',
     authAdmin: 'Admin account detected. You can go straight to the admin console.',
     authUser: 'Signed-in user detected. You can go straight to the dashboard.',
-    marketplaceEyebrow: 'Model Marketplace',
-    marketplaceTitle: 'Marketplace Entry',
-    marketplaceLead:
-      'Check available models and capability information quickly, then enter the marketplace when it fits your workflow.',
-    marketplaceAvailabilityMeta: 'Aggregated model entry surface',
-    marketplaceAccessMetaClosed: 'Currently unavailable',
-    marketplaceAccessMetaPublic: 'Open without sign-in',
-    marketplaceAccessMetaPrivate: 'Marketplace after sign-in',
-    marketplaceDocMeta: 'Docs and entry points in one place',
-    marketplaceStatusClosed: 'Marketplace is not open yet',
-    marketplaceStatusLocked: 'Marketplace is open but requires sign-in',
-    marketplaceStatusOpen: 'Marketplace is open',
-    marketplaceButtonClosed: 'Marketplace unavailable',
-    marketplaceButtonLocked: 'Sign in for marketplace',
-    marketplaceButtonOpen: 'Enter Marketplace',
-    marketplaceConsoleClosed: 'Closed',
-    marketplaceConsoleLocked: 'Login First',
-    marketplaceConsoleOpen: 'Open',
     whyLabel: 'Why Xybbz',
     featuresTitle: 'One entry point, easier access to everyday models',
     featuresLead:
@@ -501,51 +441,11 @@ const features = computed(() =>
 )
 
 const marketplacePath = computed(() => {
-  if (!isMarketplaceEnabled.value) return '/model-marketplace'
   if (marketplaceRequiresLogin.value && !isAuthenticated.value) {
     return `/login?redirect=${encodeURIComponent('/model-marketplace')}`
   }
   return '/model-marketplace'
 })
-
-const marketplaceStatusText = computed(() => {
-  if (!isMarketplaceEnabled.value) return pageCopy.value.marketplaceStatusClosed
-  if (marketplaceRequiresLogin.value && !isAuthenticated.value) {
-    return pageCopy.value.marketplaceStatusLocked
-  }
-  return pageCopy.value.marketplaceStatusOpen
-})
-
-const marketplaceStatusClass = computed(() => ({
-  'is-open': isMarketplaceEnabled.value && (!marketplaceRequiresLogin.value || isAuthenticated.value),
-  'is-locked': isMarketplaceEnabled.value && marketplaceRequiresLogin.value && !isAuthenticated.value
-}))
-
-const marketplaceButtonLabel = computed(() => {
-  if (!isMarketplaceEnabled.value) return pageCopy.value.marketplaceButtonClosed
-  if (marketplaceRequiresLogin.value && !isAuthenticated.value) {
-    return pageCopy.value.marketplaceButtonLocked
-  }
-  return pageCopy.value.marketplaceButtonOpen
-})
-
-const marketplaceConsoleValue = computed(() => {
-  if (!isMarketplaceEnabled.value) return pageCopy.value.marketplaceConsoleClosed
-  if (marketplaceRequiresLogin.value && !isAuthenticated.value) {
-    return pageCopy.value.marketplaceConsoleLocked
-  }
-  return pageCopy.value.marketplaceConsoleOpen
-})
-
-const marketplaceMeta = computed(() => [
-  pageCopy.value.marketplaceAvailabilityMeta,
-  !isMarketplaceEnabled.value
-    ? pageCopy.value.marketplaceAccessMetaClosed
-    : marketplaceRequiresLogin.value
-      ? pageCopy.value.marketplaceAccessMetaPrivate
-      : pageCopy.value.marketplaceAccessMetaPublic,
-  pageCopy.value.marketplaceDocMeta
-])
 
 const authConsoleText = computed(() => {
   if (!isAuthenticated.value) return pageCopy.value.authGuest
@@ -888,7 +788,6 @@ onBeforeUnmount(() => {
 .hero-card,
 .hero-panel,
 .feature-card,
-.marketplace-strip,
 .footer-panel {
   position: relative;
   overflow: hidden;
@@ -906,7 +805,6 @@ onBeforeUnmount(() => {
 .hero-card::before,
 .hero-panel::before,
 .feature-card::before,
-.marketplace-strip::before,
 .footer-panel::before {
   content: '';
   position: absolute;
@@ -1077,11 +975,31 @@ onBeforeUnmount(() => {
   gap: 12px;
 }
 
+.console-grid-single {
+  grid-template-columns: 1fr;
+}
+
 .console-card {
   padding: 16px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.console-card-link {
+  color: inherit;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.console-card-link:hover {
+  transform: translateY(-2px);
+  border-color: rgba(96, 216, 242, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 36px rgba(2, 8, 22, 0.2);
 }
 
 .console-card .label {
@@ -1103,6 +1021,16 @@ onBeforeUnmount(() => {
   color: rgba(191, 207, 226, 0.78);
   font-size: 13px;
   line-height: 1.6;
+}
+
+.console-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  color: #7cf0b2;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .console-terminal {
@@ -1145,100 +1073,6 @@ onBeforeUnmount(() => {
 
 .section-block {
   padding: 18px 0;
-}
-
-.marketplace-strip {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 24px;
-  align-items: center;
-  padding: 30px 34px;
-  background:
-    radial-gradient(circle at 0% 50%, rgba(15, 139, 168, 0.12), transparent 30%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(245, 249, 252, 0.86));
-}
-
-.xybbz-home.theme-dark .marketplace-strip {
-  background:
-    radial-gradient(circle at 0% 50%, rgba(93, 204, 230, 0.12), transparent 30%),
-    linear-gradient(135deg, rgba(14, 24, 38, 0.92), rgba(18, 30, 46, 0.88));
-}
-
-.marketplace-copy h2 {
-  margin: 8px 0 0;
-  font-size: clamp(26px, 4vw, 40px);
-  line-height: 1.08;
-  letter-spacing: -0.04em;
-}
-
-.marketplace-copy p {
-  margin: 14px 0 0;
-  max-width: 760px;
-  color: var(--text-soft);
-  font-size: 16px;
-  line-height: 1.8;
-}
-
-.marketplace-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.meta-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(55, 65, 81, 0.08);
-  color: var(--text-soft);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.xybbz-home.theme-dark .meta-pill {
-  background: rgba(12, 21, 34, 0.76);
-  border-color: rgba(148, 163, 184, 0.16);
-}
-
-.marketplace-action {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-  min-width: 220px;
-}
-
-.marketplace-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 20px;
-  color: var(--text-soft);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.marketplace-status::before {
-  content: '';
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--warm);
-  box-shadow: 0 0 0 8px rgba(234, 141, 43, 0.12);
-}
-
-.marketplace-status.is-open::before {
-  background: var(--success);
-  box-shadow: 0 0 0 8px rgba(21, 115, 71, 0.12);
-}
-
-.marketplace-status.is-locked::before {
-  background: var(--accent);
-  box-shadow: 0 0 0 8px rgba(15, 139, 168, 0.12);
 }
 
 .section-heading {
@@ -1394,14 +1228,8 @@ onBeforeUnmount(() => {
 
 @media (max-width: 1080px) {
   .hero-grid,
-  .feature-grid,
-  .marketplace-strip {
+  .feature-grid {
     grid-template-columns: 1fr;
-  }
-
-  .marketplace-action {
-    align-items: flex-start;
-    min-width: 0;
   }
 }
 
@@ -1416,7 +1244,6 @@ onBeforeUnmount(() => {
   .nav-actions,
   .hero-actions,
   .hero-notes,
-  .marketplace-meta,
   .footer-links,
   .nav-tools {
     width: 100%;
@@ -1437,7 +1264,6 @@ onBeforeUnmount(() => {
 
   .hero-card,
   .hero-panel,
-  .marketplace-strip,
   .footer-panel {
     padding-left: 22px;
     padding-right: 22px;
