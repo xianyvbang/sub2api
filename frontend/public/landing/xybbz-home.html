@@ -1660,8 +1660,25 @@
           });
         }
 
+        function resolveAssetUrl(value, fallback) {
+          const candidate = value && value.trim() ? value.trim() : fallback;
+          if (!candidate) return '';
+
+          if (/^(?:data:|blob:|https?:)?\/\//i.test(candidate) || /^[a-z][a-z0-9+.-]*:/i.test(candidate)) {
+            return candidate;
+          }
+
+          const normalizedPath = candidate.charAt(0) === '/' ? candidate : '/' + candidate.replace(/^\.?\//, '');
+
+          try {
+            return new URL(normalizedPath, window.location.origin).toString();
+          } catch (error) {
+            return normalizedPath;
+          }
+        }
+
         function updateFavicon(logoUrl) {
-          const resolved = logoUrl && logoUrl.trim() ? logoUrl.trim() : DEFAULT_SETTINGS.site_logo;
+          const resolved = resolveAssetUrl(logoUrl, DEFAULT_SETTINGS.site_logo);
           let link = document.querySelector('link[rel="icon"]');
 
           if (!link) {
@@ -1675,7 +1692,7 @@
         }
 
         function applyLogo(logoUrl, siteName) {
-          const src = logoUrl && logoUrl.trim() ? logoUrl.trim() : DEFAULT_SETTINGS.site_logo;
+          const src = resolveAssetUrl(logoUrl, DEFAULT_SETTINGS.site_logo);
           updateFavicon(src);
           if (!elements.logo) return;
           elements.logo.src = src;
