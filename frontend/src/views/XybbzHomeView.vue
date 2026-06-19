@@ -121,9 +121,9 @@
 
               <div class="console-grid" :class="{ 'console-grid-single': !showMarketplaceEntry }">
                 <section class="console-card">
-                  <div class="label">{{ pageCopy.siteTitleLabel }}</div>
-                  <div class="value">{{ siteName }}</div>
-                  <div class="desc">{{ pageCopy.siteTitleDescription }}</div>
+                  <div class="label">{{ pageCopy.accessPatternLabel }}</div>
+                  <div class="value">{{ pageCopy.accessPatternValue }}</div>
+                  <div class="desc">{{ pageCopy.accessPatternDescription }}</div>
                 </section>
 
                 <router-link
@@ -295,13 +295,14 @@ const pageCopy = computed(() => {
       goToAdminDashboard: '进入管理台',
       consoleLabel: 'Control Surface',
       consoleStatus: 'Ready To Explore',
-      siteTitleLabel: '站点名称',
-      siteTitleDescription: '这里展示当前站点品牌与统一入口，帮助你更快确认访问位置。',
+      accessPatternLabel: '接入方式',
+      accessPatternValue: 'Web + API',
+      accessPatternDescription: '网页登录、密钥管理和订阅操作走控制台，实际模型请求通过统一 API 入口完成。',
       marketplaceLabel: '模型广场',
       marketplaceValue: 'Model Hub',
       marketplaceDescription: '查看可用模型、能力信息与入口说明，按需进入使用。',
       marketplaceAction: '进入模型广场',
-      terminalBrowse: '浏览模型广场与站点入口',
+      terminalBrowse: '浏览站点入口',
       terminalHint: '快速查看文档、能力说明和常用入口',
       terminalStart: '登录后即可开始使用',
       authGuest: '未登录，建议先前往登录页开始使用。',
@@ -334,13 +335,14 @@ const pageCopy = computed(() => {
     goToAdminDashboard: 'Open Admin',
     consoleLabel: 'Control Surface',
     consoleStatus: 'Ready To Explore',
-    siteTitleLabel: 'Site Title',
-    siteTitleDescription: 'This card reflects the current brand and main entry point for the site.',
+    accessPatternLabel: 'Access Pattern',
+    accessPatternValue: 'Web + API',
+    accessPatternDescription: 'Use the web console for sign-in, key management, and subscriptions, then send model traffic through one unified API entry.',
     marketplaceLabel: 'Marketplace',
     marketplaceValue: 'Model Hub',
     marketplaceDescription: 'Browse available models, capability notes, and the entry point from one place.',
     marketplaceAction: 'Enter Marketplace',
-    terminalBrowse: 'browse marketplace and entry surfaces',
+    terminalBrowse: 'browse site entry points',
     terminalHint: 'quick access to docs, capability notes, and common entry points',
     terminalStart: 'sign in to start using the platform',
     authGuest: 'You are not signed in yet. Start from the login page.',
