@@ -10,7 +10,7 @@
     <div v-else v-html="homeContent"></div>
   </div>
 
-  <div v-else class="xybbz-home">
+  <div v-else class="xybbz-home" :class="themeClass">
     <header class="site-header">
       <div class="container">
         <nav class="site-nav">
@@ -262,7 +262,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore, useAppStore } from '@/stores'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
@@ -295,6 +295,7 @@ const dashboardPath = computed(() => (isAdmin.value ? '/admin/dashboard' : '/das
 const primaryPath = computed(() => (isAuthenticated.value ? dashboardPath.value : '/login'))
 const isZh = computed(() => locale.value.toLowerCase().startsWith('zh'))
 const currentYear = computed(() => new Date().getFullYear())
+const themeClass = computed(() => (isDark.value ? 'theme-dark' : 'theme-light'))
 
 const isMarketplaceEnabled = computed(
   () => appStore.cachedPublicSettings?.model_marketplace_enabled === true
@@ -561,10 +562,16 @@ const contactHref = computed(() => {
 const isContactExternal = computed(() => /^https?:\/\//i.test(contactInfo.value))
 const contactLabel = computed(() => `${pageCopy.value.contactPrefix}${contactInfo.value}`)
 
+let themeObserver: MutationObserver | null = null
+
 function toggleTheme() {
   isDark.value = !isDark.value
   document.documentElement.classList.toggle('dark', isDark.value)
   localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+}
+
+function syncThemeFromDocument() {
+  isDark.value = document.documentElement.classList.contains('dark')
 }
 
 function initTheme() {
@@ -575,16 +582,35 @@ function initTheme() {
   ) {
     isDark.value = true
     document.documentElement.classList.add('dark')
+    return
   }
+
+  isDark.value = false
+  document.documentElement.classList.remove('dark')
 }
 
 onMounted(() => {
   initTheme()
+  syncThemeFromDocument()
   authStore.checkAuth()
 
   if (!appStore.publicSettingsLoaded) {
     appStore.fetchPublicSettings()
   }
+
+  themeObserver = new MutationObserver(() => {
+    syncThemeFromDocument()
+  })
+
+  themeObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class']
+  })
+})
+
+onBeforeUnmount(() => {
+  themeObserver?.disconnect()
+  themeObserver = null
 })
 </script>
 
@@ -629,7 +655,7 @@ onMounted(() => {
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.48), transparent 90%);
 }
 
-:global(html.dark) .xybbz-home {
+.xybbz-home.theme-dark {
   --line: rgba(148, 163, 184, 0.16);
   --text: #edf4fb;
   --text-soft: #b4c1d5;
@@ -649,7 +675,7 @@ onMounted(() => {
     linear-gradient(180deg, #09111d 0%, #0d1726 48%, #111d2f 100%);
 }
 
-:global(html.dark) .xybbz-home::before {
+.xybbz-home.theme-dark::before {
   background-image:
     linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
@@ -669,7 +695,7 @@ onMounted(() => {
   border-bottom: 1px solid rgba(55, 65, 81, 0.08);
 }
 
-:global(html.dark) .site-header {
+.xybbz-home.theme-dark .site-header {
   background: rgba(7, 14, 25, 0.78);
   border-bottom-color: rgba(148, 163, 184, 0.12);
 }
@@ -832,10 +858,10 @@ onMounted(() => {
   border: 1px solid rgba(55, 65, 81, 0.12);
 }
 
-:global(html.dark) .tool-shell,
-:global(html.dark) .icon-control,
-:global(html.dark) .ghost-button,
-:global(html.dark) .footer-link {
+.xybbz-home.theme-dark .tool-shell,
+.xybbz-home.theme-dark .icon-control,
+.xybbz-home.theme-dark .ghost-button,
+.xybbz-home.theme-dark .footer-link {
   background: rgba(12, 21, 34, 0.76);
   border-color: rgba(148, 163, 184, 0.16);
   color: var(--text-soft);
@@ -1132,7 +1158,7 @@ onMounted(() => {
     linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(245, 249, 252, 0.86));
 }
 
-:global(html.dark) .marketplace-strip {
+.xybbz-home.theme-dark .marketplace-strip {
   background:
     radial-gradient(circle at 0% 50%, rgba(93, 204, 230, 0.12), transparent 30%),
     linear-gradient(135deg, rgba(14, 24, 38, 0.92), rgba(18, 30, 46, 0.88));
@@ -1173,7 +1199,7 @@ onMounted(() => {
   font-weight: 700;
 }
 
-:global(html.dark) .meta-pill {
+.xybbz-home.theme-dark .meta-pill {
   background: rgba(12, 21, 34, 0.76);
   border-color: rgba(148, 163, 184, 0.16);
 }
@@ -1308,8 +1334,8 @@ onMounted(() => {
   letter-spacing: 0.04em;
 }
 
-:global(html.dark) .feature-highlight,
-:global(html.dark) .hero-note {
+.xybbz-home.theme-dark .feature-highlight,
+.xybbz-home.theme-dark .hero-note {
   background: rgba(12, 21, 34, 0.76);
   border-color: rgba(148, 163, 184, 0.16);
   color: var(--text-soft);
@@ -1324,7 +1350,7 @@ onMounted(() => {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 251, 253, 0.78));
 }
 
-:global(html.dark) .footer-panel {
+.xybbz-home.theme-dark .footer-panel {
   background: linear-gradient(180deg, rgba(11, 19, 33, 0.86), rgba(16, 28, 44, 0.78));
 }
 
