@@ -10,16 +10,16 @@ import (
 // ModelMarketplaceCard is a flattened, user-facing record for one
 // group + platform + model combination.
 type ModelMarketplaceCard struct {
-	GroupID           int64
-	GroupName         string
-	GroupPlatform     string
-	GroupRate         float64
-	GroupIsExclusive  bool
-	SubscriptionType  string
-	ModelName         string
-	Platform          string
-	BillingType       string
-	Pricing           *ChannelModelPricing
+	GroupID          int64
+	GroupName        string
+	GroupPlatform    string
+	GroupRate        float64
+	GroupIsExclusive bool
+	SubscriptionType string
+	ModelName        string
+	Platform         string
+	BillingType      string
+	Pricing          *ChannelModelPricing
 }
 
 // ModelMarketplaceRuntime is the lightweight view of the public model marketplace switches.
