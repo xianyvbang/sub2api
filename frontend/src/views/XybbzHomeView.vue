@@ -298,10 +298,10 @@ const pageCopy = computed(() => {
       accessPatternLabel: '接入方式',
       accessPatternValue: 'Web + API',
       accessPatternDescription: '网页登录、密钥管理和订阅操作走控制台，实际模型请求通过统一 API 入口完成。',
-      marketplaceLabel: '模型广场',
-      marketplaceValue: 'Model Hub',
-      marketplaceDescription: '查看可用模型、能力信息与入口说明，按需进入使用。',
-      marketplaceAction: '进入模型广场',
+      marketplaceLabel: '模型广场入口',
+      marketplaceValue: '模型广场',
+      marketplaceDescription: '点击进入模型广场，查看可用模型、能力信息与入口说明。',
+      marketplaceAction: '立即进入',
       terminalBrowse: '浏览站点入口',
       terminalHint: '快速查看文档、能力说明和常用入口',
       terminalStart: '登录后即可开始使用',
@@ -339,7 +339,7 @@ const pageCopy = computed(() => {
     accessPatternValue: 'Web + API',
     accessPatternDescription: 'Use the web console for sign-in, key management, and subscriptions, then send model traffic through one unified API entry.',
     marketplaceLabel: 'Marketplace',
-    marketplaceValue: 'Model Hub',
+    marketplaceValue: 'Model Marketplace',
     marketplaceDescription: 'Browse available models, capability notes, and the entry point from one place.',
     marketplaceAction: 'Enter Marketplace',
     terminalBrowse: 'browse site entry points',
@@ -829,6 +829,13 @@ onBeforeUnmount(() => {
   letter-spacing: 0.04em;
 }
 
+.xybbz-home.theme-dark .hero-badge {
+  background: rgba(10, 20, 34, 0.8);
+  border-color: rgba(93, 204, 230, 0.22);
+  color: #d8f6ff;
+  box-shadow: 0 16px 32px rgba(2, 8, 22, 0.24);
+}
+
 .hero-badge::before {
   content: '';
   width: 8px;
@@ -836,6 +843,10 @@ onBeforeUnmount(() => {
   border-radius: 50%;
   background: linear-gradient(135deg, var(--warm), #f3b454);
   box-shadow: 0 0 0 8px rgba(234, 141, 43, 0.14);
+}
+
+.xybbz-home.theme-dark .hero-badge::before {
+  box-shadow: 0 0 0 8px rgba(244, 178, 79, 0.1);
 }
 
 .hero-title {

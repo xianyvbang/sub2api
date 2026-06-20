@@ -9,7 +9,9 @@
             <img :src="siteLogo || '/logo.png'" alt="Logo" class="h-full w-full object-contain" />
           </div>
           <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700/80">Model Hub</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700/80">
+              {{ t('nav.modelMarketplace', '模型广场') }}
+            </p>
             <h1 class="text-lg font-semibold text-slate-900">{{ siteName }}</h1>
           </div>
         </router-link>
