@@ -93,6 +93,21 @@ func newMarketplaceHandler() *ModelMarketplaceHandler {
 						PerRequestPrice: &price,
 					},
 				},
+				{
+					GroupID:          3,
+					GroupName:        "public-subscription",
+					GroupPlatform:    "openai",
+					GroupRate:        1.5,
+					GroupIsExclusive: false,
+					SubscriptionType: service.SubscriptionTypeSubscription,
+					ModelName:        "gpt-4o-mini",
+					Platform:         "openai",
+					BillingType:      string(service.BillingModePerRequest),
+					Pricing: &service.ChannelModelPricing{
+						BillingMode:     service.BillingModePerRequest,
+						PerRequestPrice: &price,
+					},
+				},
 			},
 		},
 		apiKeyService: &marketplaceAPIKeyServiceStub{
@@ -104,6 +119,7 @@ func newMarketplaceHandler() *ModelMarketplaceHandler {
 		groupService: &marketplaceGroupServiceStub{
 			groups: []service.Group{
 				{ID: 1, Name: "public", Platform: "openai", IsExclusive: false},
+				{ID: 3, Name: "public-subscription", Platform: "openai", IsExclusive: false, SubscriptionType: service.SubscriptionTypeSubscription},
 			},
 		},
 		settingService: &marketplaceSettingServiceStub{
@@ -137,11 +153,11 @@ func TestModelMarketplace_AnonymousOnlySeesPublicGroups(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, w.Code)
 	rows := decodeMarketplaceRows(t, w.Body.Bytes())
-	require.Len(t, rows, 1)
+	require.Len(t, rows, 2)
 	require.Equal(t, "public", rows[0]["group_name"])
 }
 
-func TestModelMarketplace_AuthenticatedSeesAllowedExclusiveGroups(t *testing.T) {
+func TestModelMarketplace_AuthenticatedSeesPublicGroupsAndAllowedExclusiveGroups(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := newMarketplaceHandler()
 
@@ -154,7 +170,7 @@ func TestModelMarketplace_AuthenticatedSeesAllowedExclusiveGroups(t *testing.T) 
 
 	require.Equal(t, http.StatusOK, w.Code)
 	rows := decodeMarketplaceRows(t, w.Body.Bytes())
-	require.Len(t, rows, 2)
+	require.Len(t, rows, 3)
 }
 
 func TestModelMarketplace_DisabledReturnsEmptyList(t *testing.T) {

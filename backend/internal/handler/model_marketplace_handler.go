@@ -87,17 +87,20 @@ func (h *ModelMarketplaceHandler) List(c *gin.Context) {
 		return
 	}
 
-	var visibleGroups []service.Group
-	var err error
-
-	if subject, ok := middleware.GetAuthSubjectFromContext(c); ok {
-		visibleGroups, err = h.apiKeyService.GetAvailableGroups(c.Request.Context(), subject.UserID)
-	} else {
-		visibleGroups, err = h.groupService.ListPublicMarketplaceGroups(c.Request.Context())
-	}
+	publicGroups, err := h.groupService.ListPublicMarketplaceGroups(c.Request.Context())
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
+	}
+
+	visibleGroups := publicGroups
+	if subject, ok := middleware.GetAuthSubjectFromContext(c); ok {
+		allowedGroups, err := h.apiKeyService.GetAvailableGroups(c.Request.Context(), subject.UserID)
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		visibleGroups = mergeMarketplaceGroups(publicGroups, allowedGroups)
 	}
 
 	cards, err := h.channelService.ListModelMarketplace(c.Request.Context(), visibleGroups)
@@ -133,6 +136,21 @@ func (h *ModelMarketplaceHandler) List(c *gin.Context) {
 	})
 
 	response.Success(c, out)
+}
+
+func mergeMarketplaceGroups(groupLists ...[]service.Group) []service.Group {
+	seen := make(map[int64]struct{})
+	merged := make([]service.Group, 0)
+	for _, groups := range groupLists {
+		for _, group := range groups {
+			if _, ok := seen[group.ID]; ok {
+				continue
+			}
+			seen[group.ID] = struct{}{}
+			merged = append(merged, group)
+		}
+	}
+	return merged
 }
 
 func toMarketplacePricing(p *service.ChannelModelPricing) *modelMarketplacePricingDTO {
