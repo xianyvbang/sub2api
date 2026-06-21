@@ -7,6 +7,33 @@ import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { i18n } from '@/i18n'
 
+const { copyToClipboardMock } = vi.hoisted(() => ({
+  copyToClipboardMock: vi.fn().mockResolvedValue(true),
+}))
+
+vi.mock('vue-i18n', async () => {
+  const actual = await vi.importActual<typeof import('vue-i18n')>('vue-i18n')
+  return {
+    ...actual,
+    useI18n: () => ({
+      t: (key: string, fallback?: string) => {
+        const translations: Record<string, string> = {
+          'common.copy': '复制',
+          'common.copied': '已复制',
+          'common.copiedToClipboard': '已复制到剪贴板',
+        }
+        return translations[key] ?? fallback ?? key
+      },
+    }),
+  }
+})
+
+vi.mock('@/composables/useClipboard', () => ({
+  useClipboard: () => ({
+    copyToClipboard: copyToClipboardMock,
+  }),
+}))
+
 vi.mock('@/api/modelMarketplace', () => ({
   default: {
     getModelMarketplace: vi.fn().mockResolvedValue([
@@ -59,6 +86,7 @@ vi.mock('@/api/modelMarketplace', () => ({
 describe('ModelMarketplaceView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    i18n.global.locale.value = 'zh'
   })
 
   it('filters cards by model name and group', async () => {
@@ -154,5 +182,53 @@ describe('ModelMarketplaceView', () => {
     await selects[0].setValue('Pro')
     await flushPromises()
     expect(wrapper.text()).toContain('claude-sonnet-4')
+  })
+
+  it('shows token prices per 1M tokens and supports copying model names', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/home', component: { template: '<div />' } },
+        { path: '/login', component: { template: '<div />' } },
+        { path: '/model-marketplace', component: ModelMarketplaceView },
+      ],
+    })
+    await router.push('/model-marketplace')
+    await router.isReady()
+
+    const appStore = useAppStore()
+    appStore.publicSettingsLoaded = true
+    appStore.siteName = 'Sub2API'
+    appStore.siteLogo = ''
+
+    const authStore = useAuthStore()
+    authStore.$patch({
+      token: null,
+      user: null,
+    } as never)
+
+    const wrapper = mount(ModelMarketplaceView, {
+      global: {
+        plugins: [router, i18n],
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a><slot /></a>',
+          },
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('$3 / 1M Tokens')
+    expect(wrapper.text()).toContain('分组')
+
+    const copyButton = wrapper.find('[data-testid="copy-model-name-gpt-4o"]')
+    expect(copyButton.exists()).toBe(true)
+    await copyButton.trigger('click')
+    await flushPromises()
+    expect(copyToClipboardMock).toHaveBeenCalledWith('gpt-4o', '已复制到剪贴板')
+    expect(copyButton.attributes('aria-label')).toBe('已复制')
   })
 })

@@ -1111,6 +1111,7 @@ export default {
     heroDescription: 'Each card shows one group + provider + model, including billing type and explicit pricing.',
     searchPlaceholder: 'Search model names',
     billingType: 'Billing Type',
+    groupLabel: 'Group',
     groupRate: 'Rate',
     pricing: 'Pricing',
     inputPrice: 'Input',

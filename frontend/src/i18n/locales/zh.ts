@@ -1115,6 +1115,7 @@ export default {
     heroDescription: '每张卡片展示一个分组 + 供应商 + 模型，并给出计费类型与明确价格。',
     searchPlaceholder: '搜索模型名称',
     billingType: '计费类型',
+    groupLabel: '分组',
     groupRate: '倍率',
     pricing: '价格',
     inputPrice: '输入',

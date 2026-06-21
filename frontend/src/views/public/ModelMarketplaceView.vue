@@ -74,7 +74,7 @@
               </div>
               <div class="rounded-2xl border border-sky-100 bg-sky-50/90 p-4 dark:border-sky-500/20 dark:bg-sky-500/10">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700 dark:text-sky-300">
-                  {{ t('common.groups', 'Groups') }}
+                  {{ t('modelMarketplace.groupLabel', '分组') }}
                 </p>
                 <p class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{{ groupOptions.length }}</p>
               </div>
@@ -148,7 +148,7 @@
                 <summary
                   class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white"
                 >
-                  <span>{{ t('common.groups', 'Groups') }}</span>
+                  <span>{{ t('modelMarketplace.groupLabel', '分组') }}</span>
                   <span class="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500 dark:bg-dark-800 dark:text-dark-300">
                     {{ groupOptions.length }}
                   </span>
@@ -264,7 +264,7 @@
 
             <div class="hidden">
               <label>
-                Group
+                {{ t('modelMarketplace.groupLabel', '分组') }}
                 <select v-model="selectedGroup">
                   <option value="">{{ t('common.all', 'All') }}</option>
                   <option v-for="group in groupOptions" :key="group" :value="group">{{ group }}</option>
@@ -321,9 +321,22 @@
                     <p class="truncate text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-dark-400">
                       {{ card.platform }}
                     </p>
-                    <h3 class="mt-2 break-words text-2xl font-bold text-slate-950 dark:text-white">
-                      {{ card.model_name }}
-                    </h3>
+                    <div class="mt-2 flex min-w-0 items-start gap-2">
+                      <h3 class="min-w-0 break-words text-[1.125rem] font-bold leading-snug text-slate-950 dark:text-white">
+                        {{ card.model_name }}
+                      </h3>
+                      <button
+                        type="button"
+                        :data-testid="`copy-model-name-${card.model_name}`"
+                        class="shrink-0 rounded-full border border-slate-200/80 bg-white/90 p-1.5 text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-900 dark:border-dark-700 dark:bg-dark-800/90 dark:text-dark-300 dark:hover:border-dark-600 dark:hover:text-white"
+                        :title="copiedModelName === card.model_name ? t('common.copied') : t('common.copy')"
+                        :aria-label="copiedModelName === card.model_name ? t('common.copied') : t('common.copy')"
+                        @click.stop="copyModelName(card.model_name)"
+                      >
+                        <Icon v-if="copiedModelName === card.model_name" name="check" size="xs" :stroke-width="2" />
+                        <Icon v-else name="copy" size="xs" :stroke-width="2" />
+                      </button>
+                    </div>
                   </div>
                   <span
                     class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold"
@@ -343,7 +356,7 @@
 
                 <div class="mt-5 flex flex-wrap gap-2">
                   <span
-                    class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                    class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
                   >
                     {{ card.group_name }}
                   </span>
@@ -365,7 +378,7 @@
                     <dd class="font-medium text-slate-900 dark:text-white">{{ card.platform }}</dd>
                   </div>
                   <div class="flex items-center justify-between gap-4">
-                    <dt class="text-slate-500 dark:text-dark-400">{{ t('common.groups', 'Groups') }}</dt>
+                    <dt class="text-slate-500 dark:text-dark-400">{{ t('modelMarketplace.groupLabel', '分组') }}</dt>
                     <dd class="font-medium text-slate-900 dark:text-white">{{ card.group_name }}</dd>
                   </div>
                   <div class="flex items-center justify-between gap-4">
@@ -380,26 +393,26 @@
                   </p>
                   <div v-if="card.pricing" class="mt-3 space-y-2 text-sm text-slate-700 dark:text-dark-200">
                     <p v-if="card.pricing.input_price != null">
-                      {{ t('modelMarketplace.inputPrice', 'Input') }}: {{ formatPrice(card.pricing.input_price) }}
+                      {{ t('modelMarketplace.inputPrice', 'Input') }}: {{ formatTokenPrice(card.pricing.input_price) }}
                     </p>
                     <p v-if="card.pricing.output_price != null">
-                      {{ t('modelMarketplace.outputPrice', 'Output') }}: {{ formatPrice(card.pricing.output_price) }}
+                      {{ t('modelMarketplace.outputPrice', 'Output') }}: {{ formatTokenPrice(card.pricing.output_price) }}
                     </p>
                     <p v-if="card.pricing.cache_write_price != null">
                       {{ t('modelMarketplace.cacheWritePrice', 'Cache Write') }}:
-                      {{ formatPrice(card.pricing.cache_write_price) }}
+                      {{ formatTokenPrice(card.pricing.cache_write_price) }}
                     </p>
                     <p v-if="card.pricing.cache_read_price != null">
                       {{ t('modelMarketplace.cacheReadPrice', 'Cache Read') }}:
-                      {{ formatPrice(card.pricing.cache_read_price) }}
+                      {{ formatTokenPrice(card.pricing.cache_read_price) }}
                     </p>
                     <p v-if="card.pricing.per_request_price != null">
                       {{ t('modelMarketplace.requestPrice', 'Per Request') }}:
-                      {{ formatPrice(card.pricing.per_request_price) }}
+                      {{ formatTokenPrice(card.pricing.per_request_price) }}
                     </p>
                     <p v-if="card.pricing.image_output_price != null">
                       {{ t('modelMarketplace.imagePrice', 'Image Output') }}:
-                      {{ formatPrice(card.pricing.image_output_price) }}
+                      {{ formatTokenPrice(card.pricing.image_output_price) }}
                     </p>
                     <details
                       v-if="card.pricing.intervals.length > 0"
@@ -435,8 +448,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Icon from '@/components/icons/Icon.vue'
+import { useClipboard } from '@/composables/useClipboard'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
+import { formatScaled } from '@/utils/pricing'
 import modelMarketplaceAPI, {
   type ModelMarketplaceCard,
   type ModelMarketplacePricingInterval,
@@ -451,6 +467,7 @@ type FilterEntry = {
 const { t } = useI18n()
 const appStore = useAppStore()
 const authStore = useAuthStore()
+const { copyToClipboard } = useClipboard()
 
 const loading = ref(false)
 const cards = ref<ModelMarketplaceCard[]>([])
@@ -458,6 +475,7 @@ const searchQuery = ref('')
 const selectedGroup = ref('')
 const selectedPlatform = ref('')
 const selectedBillingType = ref('')
+const copiedModelName = ref('')
 
 const siteName = computed(() => appStore.siteName || 'Sub2API')
 const siteLogo = computed(() => appStore.siteLogo || '')
@@ -590,9 +608,9 @@ function resetCategoryFilters() {
   selectedBillingType.value = ''
 }
 
-function formatPrice(value: number | null): string {
+function formatTokenPrice(value: number | null): string {
   if (value == null) return '-'
-  return `$${value.toFixed(value < 0.01 ? 6 : 4)}`
+  return `${formatScaled(value, 1_000_000)} / 1M Tokens`
 }
 
 function formatRate(value: number): string {
@@ -607,8 +625,18 @@ function describeInterval(interval: ModelMarketplacePricingInterval): string {
     interval.output_price ??
     interval.cache_write_price ??
     interval.cache_read_price
+  return `${interval.tier_label || `${interval.min_tokens}-${upper}`} - ${formatTokenPrice(price ?? null)}`
+}
 
-  return `${interval.tier_label || `${interval.min_tokens}-${upper}`} - ${formatPrice(price ?? null)}`
+async function copyModelName(modelName: string) {
+  const success = await copyToClipboard(modelName, t('common.copiedToClipboard'))
+  if (!success) return
+  copiedModelName.value = modelName
+  window.setTimeout(() => {
+    if (copiedModelName.value === modelName) {
+      copiedModelName.value = ''
+    }
+  }, 1800)
 }
 
 async function loadMarketplace() {
