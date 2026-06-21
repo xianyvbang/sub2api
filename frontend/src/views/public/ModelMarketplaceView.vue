@@ -46,86 +46,7 @@
 
     <main class="relative z-10 px-6 pb-16 pt-6">
       <div class="w-full">
-        <section
-          class="w-full rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-[0_25px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur dark:border-dark-700/70 dark:bg-dark-900/75 dark:shadow-[0_25px_80px_-40px_rgba(0,0,0,0.55)]"
-        >
-          <div class="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
-            <div class="max-w-3xl">
-              <p class="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-amber-700/80 dark:text-amber-300/80">
-                {{ t('nav.modelMarketplace', 'Model Marketplace') }}
-              </p>
-              <h2 class="text-4xl font-black leading-tight text-slate-950 dark:text-white md:text-5xl">
-                {{ t('modelMarketplace.heroTitle', '按模型聚合浏览可用能力与最低展示价') }}
-              </h2>
-              <p class="mt-4 max-w-2xl text-base leading-7 text-slate-600 dark:text-dark-300">
-                {{
-                  t(
-                    'modelMarketplace.heroDescription',
-                    '每张卡片只保留一个模型，并展示当前最低价、原价对比，以及该模型所在分组的完整明细。',
-                  )
-                }}
-              </p>
-            </div>
-
-            <div class="grid gap-4 sm:grid-cols-3 xl:min-w-[24rem]">
-              <div class="rounded-2xl border border-amber-100 bg-amber-50/90 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300">
-                  {{ t('modelMarketplace.cardCount', 'Cards') }}
-                </p>
-                <p class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{{ filteredCards.length }}</p>
-              </div>
-              <div class="rounded-2xl border border-sky-100 bg-sky-50/90 p-4 dark:border-sky-500/20 dark:bg-sky-500/10">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700 dark:text-sky-300">
-                  {{ t('modelMarketplace.groupLabel', '分组') }}
-                </p>
-                <p class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{{ groupOptions.length }}</p>
-              </div>
-              <div
-                class="rounded-2xl border border-violet-100 bg-violet-50/90 p-4 dark:border-violet-500/20 dark:bg-violet-500/10"
-              >
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-violet-700 dark:text-violet-300">
-                  {{ t('availableChannels.columns.platform', 'Platforms') }}
-                </p>
-                <p class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{{ platformOptions.length }}</p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            class="mt-8 flex flex-col gap-4 rounded-[1.75rem] border border-slate-200/80 bg-white/85 p-5 shadow-sm dark:border-dark-700 dark:bg-dark-950/50 lg:flex-row lg:items-center"
-          >
-            <div class="min-w-0 flex-1">
-              <label class="mb-2 block text-sm font-medium text-slate-700 dark:text-dark-200">
-                {{ t('common.search', 'Search') }}
-              </label>
-              <input
-                v-model="searchQuery"
-                type="text"
-                :placeholder="t('modelMarketplace.searchPlaceholder', '搜索模型名称')"
-                class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-amber-400 dark:border-dark-600 dark:bg-dark-900 dark:text-white dark:placeholder:text-dark-400 dark:focus:border-amber-400"
-              />
-            </div>
-
-            <div class="flex flex-wrap items-center gap-3">
-              <button
-                v-if="hasCategoryFilters"
-                @click="resetCategoryFilters"
-                class="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 dark:border-dark-600 dark:bg-dark-900 dark:text-dark-200 dark:hover:border-dark-500 dark:hover:text-white"
-              >
-                {{ t('common.reset', 'Reset') }}
-              </button>
-              <button
-                @click="loadMarketplace"
-                :disabled="loading"
-                class="inline-flex items-center rounded-full bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {{ loading ? t('common.loading', 'Loading...') : t('common.refresh', 'Refresh') }}
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <section class="mt-8 grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <section class="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)] xl:items-start">
           <aside
             class="h-fit rounded-[1.75rem] border border-white/70 bg-white/85 p-4 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.55)] backdrop-blur dark:border-dark-700/70 dark:bg-dark-900/80 dark:shadow-[0_20px_60px_-45px_rgba(0,0,0,0.6)] xl:sticky xl:top-6"
           >
@@ -292,7 +213,47 @@
           </aside>
 
           <div class="min-w-0 w-full">
-            <section v-if="loading" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <section
+              class="rounded-[2rem] border border-white/70 bg-white/80 p-6 shadow-[0_25px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur dark:border-dark-700/70 dark:bg-dark-900/75 dark:shadow-[0_25px_80px_-40px_rgba(0,0,0,0.55)]"
+            >
+              <div class="flex flex-col gap-6">
+                <div class="max-w-3xl">
+                  <p class="text-3xl font-black tracking-[0.08em] text-slate-950 dark:text-white md:text-4xl">
+                    {{ t('nav.modelMarketplace', 'Model Marketplace') }}
+                  </p>
+                </div>
+
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
+                  <div class="min-w-0 flex-1">
+                    <input
+                      v-model="searchQuery"
+                      type="text"
+                      :placeholder="t('modelMarketplace.searchPlaceholder', '搜索模型名称')"
+                      class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-amber-400 dark:border-dark-600 dark:bg-dark-900 dark:text-white dark:placeholder:text-dark-400 dark:focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-3">
+                    <button
+                      v-if="hasCategoryFilters"
+                      @click="resetCategoryFilters"
+                      class="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 dark:border-dark-600 dark:bg-dark-900 dark:text-dark-200 dark:hover:border-dark-500 dark:hover:text-white"
+                    >
+                      {{ t('common.reset', 'Reset') }}
+                    </button>
+                    <button
+                      @click="loadMarketplace"
+                      :disabled="loading"
+                      class="inline-flex items-center rounded-full bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {{ loading ? t('common.loading', 'Loading...') : t('common.refresh', 'Refresh') }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section v-if="loading" class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               <div
                 v-for="index in 6"
                 :key="index"
@@ -302,7 +263,7 @@
 
             <section
               v-else-if="filteredCards.length === 0"
-              class="rounded-[2rem] border border-dashed border-slate-300 bg-white/70 px-8 py-20 text-center shadow-sm dark:border-dark-700 dark:bg-dark-900/60"
+              class="mt-8 rounded-[2rem] border border-dashed border-slate-300 bg-white/70 px-8 py-20 text-center shadow-sm dark:border-dark-700 dark:bg-dark-900/60"
             >
               <h3 class="text-2xl font-bold text-slate-900 dark:text-white">
                 {{ t('modelMarketplace.emptyTitle', 'No matching models') }}
@@ -312,7 +273,7 @@
               </p>
             </section>
 
-            <section v-else class="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <section v-else class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               <article
                 v-for="card in filteredCards"
                 :key="cardKey(card)"
