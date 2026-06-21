@@ -9,6 +9,7 @@ import (
 const (
 	ModelMarketplacePricingSourceChannel = "channel"
 	ModelMarketplacePricingSourceGroup   = "group"
+	marketplaceDefaultImageBasePrice     = 0.134
 )
 
 // ModelMarketplaceGroupOffer is one concrete group offer for a model.
@@ -239,6 +240,24 @@ func (s *ModelMarketplaceService) buildMarketplaceGroupOffer(
 ) ModelMarketplaceGroupOffer {
 	channelPricing := s.channelService.GetChannelModelPricing(ctx, group.ID, modelName)
 
+	if s.marketplaceUsesImagePricing(modelName, channelPricing) {
+		pricingSource, originalPricing, currentPricing := s.marketplaceImagePricing(group, modelName, channelPricing)
+		return ModelMarketplaceGroupOffer{
+			GroupID:          group.ID,
+			GroupName:        group.Name,
+			GroupPlatform:    group.Platform,
+			GroupRate:        group.RateMultiplier,
+			GroupIsExclusive: group.IsExclusive,
+			SubscriptionType: group.SubscriptionType,
+			ModelName:        modelName,
+			Supplier:         s.marketplaceSupplierForModel(modelName),
+			BillingType:      string(BillingModeImage),
+			PricingSource:    pricingSource,
+			OriginalPricing:  originalPricing,
+			CurrentPricing:   currentPricing,
+		}
+	}
+
 	pricingSource := ModelMarketplacePricingSourceGroup
 	var originalPricing *ChannelModelPricing
 	var currentPricing *ChannelModelPricing
@@ -268,6 +287,97 @@ func (s *ModelMarketplaceService) buildMarketplaceGroupOffer(
 		PricingSource:    pricingSource,
 		OriginalPricing:  originalPricing,
 		CurrentPricing:   currentPricing,
+	}
+}
+
+func (s *ModelMarketplaceService) marketplaceUsesImagePricing(modelName string, channelPricing *ChannelModelPricing) bool {
+	if channelPricing != nil && channelPricing.BillingMode == BillingModeImage {
+		return true
+	}
+	if s == nil || s.pricingService == nil {
+		return false
+	}
+	pricing := s.pricingService.GetModelPricing(modelName)
+	return pricing != nil && pricing.Mode == "image_generation"
+}
+
+func (s *ModelMarketplaceService) marketplaceImagePricing(
+	group Group,
+	modelName string,
+	channelPricing *ChannelModelPricing,
+) (string, *ChannelModelPricing, *ChannelModelPricing) {
+	if marketplaceHasExplicitChannelPricing(channelPricing) {
+		original := sanitizeMarketplaceImagePricing(normalizeMarketplacePricing(channelPricing))
+		return ModelMarketplacePricingSourceChannel, original, cloneMarketplacePricing(original)
+	}
+
+	original := s.marketplaceGroupImagePricing(group, modelName)
+	current := scaleMarketplacePricing(original, group.RateMultiplier)
+	return ModelMarketplacePricingSourceGroup, original, current
+}
+
+func sanitizeMarketplaceImagePricing(pricing *ChannelModelPricing) *ChannelModelPricing {
+	if pricing == nil {
+		return nil
+	}
+
+	cp := pricing.Clone()
+	cp.BillingMode = BillingModeImage
+	cp.InputPrice = nil
+	cp.OutputPrice = nil
+	cp.CacheWritePrice = nil
+	cp.CacheReadPrice = nil
+	return &cp
+}
+
+func (s *ModelMarketplaceService) marketplaceGroupImagePricing(group Group, modelName string) *ChannelModelPricing {
+	pricing := &ChannelModelPricing{
+		BillingMode: BillingModeImage,
+		Intervals:   make([]PricingInterval, 0, 3),
+	}
+
+	for idx, tier := range []string{"1K", "2K", "4K"} {
+		unitPrice := s.marketplaceImageUnitPrice(group, modelName, tier)
+		if unitPrice <= 0 {
+			continue
+		}
+		price := unitPrice
+		pricing.Intervals = append(pricing.Intervals, PricingInterval{
+			TierLabel:       tier,
+			PerRequestPrice: &price,
+			SortOrder:       idx,
+		})
+	}
+
+	return normalizeMarketplacePricing(pricing)
+}
+
+func (s *ModelMarketplaceService) marketplaceImageUnitPrice(group Group, modelName string, tier string) float64 {
+	tier = NormalizeImageBillingTierOrDefault(tier)
+	if configured := group.GetImagePrice(tier); configured != nil {
+		return *configured
+	}
+	return s.marketplaceDefaultImagePrice(modelName, tier)
+}
+
+func (s *ModelMarketplaceService) marketplaceDefaultImagePrice(modelName string, tier string) float64 {
+	basePrice := 0.0
+	if s != nil && s.pricingService != nil {
+		if pricing := s.pricingService.GetModelPricing(modelName); pricing != nil && pricing.OutputCostPerImage > 0 {
+			basePrice = pricing.OutputCostPerImage
+		}
+	}
+	if basePrice <= 0 {
+		basePrice = marketplaceDefaultImageBasePrice
+	}
+
+	switch NormalizeImageBillingTierOrDefault(tier) {
+	case "2K":
+		return basePrice * 1.5
+	case "4K":
+		return basePrice * 2
+	default:
+		return basePrice
 	}
 }
 

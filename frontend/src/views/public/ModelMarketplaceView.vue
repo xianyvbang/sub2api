@@ -324,11 +324,11 @@
 
                 <div class="mt-6 rounded-[1.5rem] border border-slate-200/80 bg-slate-50/90 p-4 dark:border-dark-700 dark:bg-dark-950/70">
                   <div
-                    v-if="buildPricingComparisonLines(cardDisplayOffer(card).current_pricing, cardDisplayOffer(card).original_pricing).length > 0"
+                    v-if="buildPricingComparisonLines(cardDisplayOffer(card).current_pricing, cardDisplayOffer(card).original_pricing, cardDisplayOffer(card).billing_type).length > 0"
                     class="space-y-3"
                   >
                     <div
-                      v-for="line in buildPricingComparisonLines(cardDisplayOffer(card).current_pricing, cardDisplayOffer(card).original_pricing)"
+                      v-for="line in buildPricingComparisonLines(cardDisplayOffer(card).current_pricing, cardDisplayOffer(card).original_pricing, cardDisplayOffer(card).billing_type)"
                       :key="`${cardKey(card)}-comparison-${line.label}`"
                       class="rounded-2xl bg-white/80 px-4 py-3 dark:bg-dark-900/70"
                     >
@@ -488,11 +488,11 @@
 
                   <div class="mt-5 rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
                     <div
-                      v-if="buildPricingComparisonLines(group.current_pricing, group.original_pricing).length > 0"
+                      v-if="buildPricingComparisonLines(group.current_pricing, group.original_pricing, group.billing_type).length > 0"
                       class="space-y-3"
                     >
                       <div
-                        v-for="line in buildPricingComparisonLines(group.current_pricing, group.original_pricing)"
+                        v-for="line in buildPricingComparisonLines(group.current_pricing, group.original_pricing, group.billing_type)"
                         :key="`${group.group_id}-comparison-${line.label}`"
                         class="rounded-2xl bg-white/85 px-4 py-3 dark:bg-dark-900/70"
                       >
@@ -560,6 +560,8 @@ type PriceComparisonLine = {
   currentValue: string | null
   originalValue: string | null
 }
+
+type PricingDisplayMode = 'default' | 'per_request' | 'image_output'
 
 type PriceDescriptor = {
   field: 'input_price' | 'output_price' | 'cache_write_price' | 'cache_read_price' | 'image_output_price' | 'per_request_price'
@@ -885,13 +887,42 @@ function formatFieldPrice(field: PriceDescriptor['field'], value: number): strin
   return formatTokenPrice(value)
 }
 
+function pricingHasPerRequestPrice(pricing: ModelMarketplacePricing | null): boolean {
+  if (!pricing) return false
+  if (pricing.per_request_price != null) return true
+  return pricing.intervals.some((interval) => interval.per_request_price != null)
+}
+
+function pricingHasImageOutputPrice(pricing: ModelMarketplacePricing | null): boolean {
+  return pricing?.image_output_price != null
+}
+
+function shouldPreferPerRequestPricing(
+  billingType: string | null | undefined,
+  ...pricings: Array<ModelMarketplacePricing | null>
+): boolean {
+  if (normalizeBillingType(billingType) === BILLING_MODE_PER_REQUEST) return true
+  return pricings.some((pricing) => pricingHasPerRequestPrice(pricing))
+}
+
+function shouldPreferImageOutputPricing(
+  billingType: string | null | undefined,
+  ...pricings: Array<ModelMarketplacePricing | null>
+): boolean {
+  if (normalizeBillingType(billingType) !== BILLING_MODE_IMAGE) return false
+  return !shouldPreferPerRequestPricing(billingType, ...pricings) && pricings.some((pricing) => pricingHasImageOutputPrice(pricing))
+}
+
 function primaryPriceDescriptor(pricing: ModelMarketplacePricing | null, billingType: string): PriceDescriptor | null {
   if (!pricing) return null
 
-  const directFields =
-    normalizeBillingType(billingType) === BILLING_MODE_TOKEN
-      ? ['input_price', 'output_price', 'cache_write_price', 'cache_read_price', 'image_output_price']
-      : ['per_request_price']
+  const preferPerRequest = shouldPreferPerRequestPricing(billingType, pricing)
+  const preferImageOutput = shouldPreferImageOutputPricing(billingType, pricing)
+  const directFields = preferPerRequest
+    ? ['per_request_price']
+    : preferImageOutput
+      ? ['image_output_price']
+      : ['input_price', 'output_price', 'cache_write_price', 'cache_read_price', 'image_output_price']
 
   for (const field of directFields as PriceDescriptor['field'][]) {
     const value = pricing[field]
@@ -901,12 +932,16 @@ function primaryPriceDescriptor(pricing: ModelMarketplacePricing | null, billing
   }
 
   const intervalCandidate = pricing.intervals
-    .map((interval) => intervalPriceDescriptor(interval, billingType))
+    .map((interval) => intervalPriceDescriptor(interval, billingType, preferPerRequest))
     .filter((entry): entry is PriceDescriptor => entry !== null)
     .sort((left, right) => left.value - right.value)[0]
 
   if (intervalCandidate) {
     return intervalCandidate
+  }
+
+  if (preferPerRequest || preferImageOutput) {
+    return null
   }
 
   for (const field of ['output_price', 'cache_write_price', 'cache_read_price', 'image_output_price'] as PriceDescriptor['field'][]) {
@@ -922,9 +957,18 @@ function primaryPriceDescriptor(pricing: ModelMarketplacePricing | null, billing
 function intervalPriceDescriptor(
   interval: ModelMarketplacePricingInterval,
   billingType: string,
+  preferPerRequest = false,
 ): PriceDescriptor | null {
-  if (normalizeBillingType(billingType) !== BILLING_MODE_TOKEN && interval.per_request_price != null) {
+  if (preferPerRequest && interval.per_request_price != null) {
     return { field: 'per_request_price', value: interval.per_request_price }
+  }
+
+  if (!preferPerRequest && normalizeBillingType(billingType) !== BILLING_MODE_TOKEN && interval.per_request_price != null) {
+    return { field: 'per_request_price', value: interval.per_request_price }
+  }
+
+  if (preferPerRequest) {
+    return null
   }
 
   for (const field of ['input_price', 'output_price', 'cache_write_price', 'cache_read_price', 'per_request_price'] as const) {
@@ -961,18 +1005,22 @@ function formatCardPriceLabel(label: string): string {
   return `${label}${t('modelMarketplace.pricing', '价格')}`
 }
 
-function buildPricingLines(pricing: ModelMarketplacePricing | null): PriceSummaryLine[] {
+function buildPricingLines(pricing: ModelMarketplacePricing | null, displayMode: PricingDisplayMode = 'default'): PriceSummaryLine[] {
   if (!pricing) return []
 
   const lines: PriceSummaryLine[] = []
-  const directFields: PriceDescriptor['field'][] = [
-    'input_price',
-    'output_price',
-    'cache_write_price',
-    'cache_read_price',
-    'per_request_price',
-    'image_output_price',
-  ]
+  const directFields: PriceDescriptor['field'][] = displayMode === 'per_request'
+    ? ['per_request_price']
+    : displayMode === 'image_output'
+      ? ['image_output_price']
+      : [
+        'input_price',
+        'output_price',
+        'cache_write_price',
+        'cache_read_price',
+        'per_request_price',
+        'image_output_price',
+      ]
 
   directFields.forEach((field) => {
     const value = pricing[field]
@@ -988,7 +1036,7 @@ function buildPricingLines(pricing: ModelMarketplacePricing | null): PriceSummar
   }
 
   pricing.intervals.forEach((interval) => {
-    const descriptor = intervalPriceDescriptor(interval, pricing.billing_mode)
+    const descriptor = intervalPriceDescriptor(interval, pricing.billing_mode, displayMode === 'per_request')
     if (!descriptor) return
     lines.push({
       label: `${t('modelMarketplace.intervalPricing', '区间价格')} ${intervalLabel(interval)}`,
@@ -1002,9 +1050,17 @@ function buildPricingLines(pricing: ModelMarketplacePricing | null): PriceSummar
 function buildPricingComparisonLines(
   currentPricing: ModelMarketplacePricing | null,
   originalPricing: ModelMarketplacePricing | null,
+  billingType: string | null | undefined,
 ): PriceComparisonLine[] {
-  const currentLines = buildPricingLines(currentPricing)
-  const originalLines = buildPricingLines(originalPricing)
+  const preferPerRequest = shouldPreferPerRequestPricing(billingType, currentPricing, originalPricing)
+  const preferImageOutput = shouldPreferImageOutputPricing(billingType, currentPricing, originalPricing)
+  const displayMode: PricingDisplayMode = preferPerRequest
+    ? 'per_request'
+    : preferImageOutput
+      ? 'image_output'
+      : 'default'
+  const currentLines = buildPricingLines(currentPricing, displayMode)
+  const originalLines = buildPricingLines(originalPricing, displayMode)
   const currentByLabel = new Map(currentLines.map((line) => [line.label, line.value]))
   const originalByLabel = new Map(originalLines.map((line) => [line.label, line.value]))
   const orderedLabels = Array.from(new Set([...currentLines.map((line) => line.label), ...originalLines.map((line) => line.label)]))

@@ -230,6 +230,129 @@ func TestListModelMarketplace_FallsBackSupplierToPricingProvider(t *testing.T) {
 	require.Equal(t, "openai", cards[0].Supplier)
 }
 
+func TestListModelMarketplace_ImageModelUsesGroupImagePricing(t *testing.T) {
+	groupImage1K := 0.2
+	groupImage4K := 0.4
+
+	channelSvc := NewChannelService(&mockChannelRepository{}, &stubGroupRepoForAvailable{}, nil, &PricingService{
+		pricingData: map[string]*LiteLLMModelPricing{
+			"gpt-image-1.5": {
+				LiteLLMProvider: "openai",
+				Mode:            "image_generation",
+			},
+		},
+	})
+	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
+		accountsByGroup: map[int64][]Account{
+			21: {
+				{Platform: "openai", Credentials: map[string]any{"model_mapping": map[string]any{"gpt-image-1.5": "gpt-image-1.5"}}},
+			},
+		},
+	}, channelSvc, channelSvc.pricingService)
+
+	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
+		{
+			ID:             21,
+			Name:           "images",
+			Platform:       "openai",
+			RateMultiplier: 2.0,
+			ImagePrice1K:   &groupImage1K,
+			ImagePrice4K:   &groupImage4K,
+			Status:         StatusActive,
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, cards, 1)
+
+	card := cards[0]
+	require.Equal(t, ModelMarketplacePricingSourceGroup, card.PricingSource)
+	require.Equal(t, string(BillingModeImage), card.BillingType)
+	require.NotNil(t, card.OriginalPricing)
+	require.NotNil(t, card.CurrentPricing)
+	require.Len(t, card.OriginalPricing.Intervals, 3)
+	require.Len(t, card.CurrentPricing.Intervals, 3)
+
+	originalByTier := make(map[string]float64, len(card.OriginalPricing.Intervals))
+	for _, interval := range card.OriginalPricing.Intervals {
+		require.NotNil(t, interval.PerRequestPrice)
+		originalByTier[interval.TierLabel] = *interval.PerRequestPrice
+	}
+	require.InDelta(t, 0.2, originalByTier["1K"], 1e-12)
+	require.InDelta(t, 0.201, originalByTier["2K"], 1e-12)
+	require.InDelta(t, 0.4, originalByTier["4K"], 1e-12)
+
+	currentByTier := make(map[string]float64, len(card.CurrentPricing.Intervals))
+	for _, interval := range card.CurrentPricing.Intervals {
+		require.NotNil(t, interval.PerRequestPrice)
+		currentByTier[interval.TierLabel] = *interval.PerRequestPrice
+	}
+	require.InDelta(t, 0.4, currentByTier["1K"], 1e-12)
+	require.InDelta(t, 0.402, currentByTier["2K"], 1e-12)
+	require.InDelta(t, 0.8, currentByTier["4K"], 1e-12)
+	require.Nil(t, card.CurrentPricing.InputPrice)
+	require.Nil(t, card.CurrentPricing.OutputPrice)
+}
+
+func TestListModelMarketplace_ImageModelChannelImagePriceWins(t *testing.T) {
+	channel := Channel{
+		ID:       1,
+		Status:   StatusActive,
+		GroupIDs: []int64{22},
+		ModelPricing: []ChannelModelPricing{
+			{
+				ID:               100,
+				Platform:         "openai",
+				Models:           []string{"gpt-image-1.5"},
+				BillingMode:      BillingModeToken,
+				InputPrice:       testPtrFloat64(5e-6),
+				OutputPrice:      testPtrFloat64(1e-5),
+				ImageOutputPrice: testPtrFloat64(3.2e-5),
+			},
+		},
+	}
+
+	channelSvc := NewChannelService(
+		makeStandardRepo(channel, map[int64]string{22: "openai"}),
+		&stubGroupRepoForAvailable{},
+		nil,
+		&PricingService{
+			pricingData: map[string]*LiteLLMModelPricing{
+				"gpt-image-1.5": {
+					LiteLLMProvider:         "openai",
+					Mode:                    "image_generation",
+					OutputCostPerImage:      0.25,
+					OutputCostPerToken:      1e-5,
+					InputCostPerToken:       5e-6,
+					OutputCostPerImageToken: 3.2e-5,
+				},
+			},
+		},
+	)
+	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
+		accountsByGroup: map[int64][]Account{
+			22: {
+				{Platform: "openai", Credentials: map[string]any{"model_mapping": map[string]any{"gpt-image-1.5": "gpt-image-1.5"}}},
+			},
+		},
+	}, channelSvc, channelSvc.pricingService)
+
+	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
+		{ID: 22, Name: "images", Platform: "openai", RateMultiplier: 3.0, Status: StatusActive},
+	})
+	require.NoError(t, err)
+	require.Len(t, cards, 1)
+
+	card := cards[0]
+	require.Equal(t, ModelMarketplacePricingSourceChannel, card.PricingSource)
+	require.Equal(t, string(BillingModeImage), card.BillingType)
+	require.NotNil(t, card.CurrentPricing)
+	require.NotNil(t, card.CurrentPricing.ImageOutputPrice)
+	require.InDelta(t, 3.2e-5, *card.CurrentPricing.ImageOutputPrice, 1e-12)
+	require.Nil(t, card.CurrentPricing.InputPrice)
+	require.Nil(t, card.CurrentPricing.OutputPrice)
+	require.Nil(t, card.CurrentPricing.PerRequestPrice)
+}
+
 func TestListPublicMarketplaceGroups_AnonymousOnlySeesNonExclusive(t *testing.T) {
 	groupSvc := NewGroupService(&stubGroupRepoForAvailable{
 		activeGroups: []Group{

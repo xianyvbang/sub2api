@@ -157,8 +157,8 @@ vi.mock('@/api/modelMarketplace', () => ({
         pricing_source: 'channel',
         original_pricing: {
           billing_mode: 'per_request',
-          input_price: null,
-          output_price: null,
+          input_price: 0.00001,
+          output_price: 0.00002,
           cache_write_price: null,
           cache_read_price: null,
           image_output_price: null,
@@ -167,8 +167,8 @@ vi.mock('@/api/modelMarketplace', () => ({
         },
         current_pricing: {
           billing_mode: 'per_request',
-          input_price: null,
-          output_price: null,
+          input_price: 0.000008,
+          output_price: 0.000016,
           cache_write_price: null,
           cache_read_price: null,
           image_output_price: null,
@@ -189,8 +189,8 @@ vi.mock('@/api/modelMarketplace', () => ({
             pricing_source: 'channel',
             original_pricing: {
               billing_mode: 'per_request',
-              input_price: null,
-              output_price: null,
+              input_price: 0.00001,
+              output_price: 0.00002,
               cache_write_price: null,
               cache_read_price: null,
               image_output_price: null,
@@ -199,12 +199,78 @@ vi.mock('@/api/modelMarketplace', () => ({
             },
             current_pricing: {
               billing_mode: 'per_request',
-              input_price: null,
-              output_price: null,
+              input_price: 0.000008,
+              output_price: 0.000016,
               cache_write_price: null,
               cache_read_price: null,
               image_output_price: null,
               per_request_price: 0.02,
+              intervals: [],
+            },
+          },
+        ],
+      },
+      {
+        group_id: 4,
+        group_name: 'Images',
+        group_platform: 'openai',
+        group_rate: 1.5,
+        group_is_exclusive: false,
+        subscription_type: 'standard',
+        model_name: 'gpt-image-1.5',
+        supplier: 'openai',
+        billing_type: 'image',
+        pricing_source: 'channel',
+        original_pricing: {
+          billing_mode: 'image',
+          input_price: 0.000005,
+          output_price: 0.00001,
+          cache_write_price: null,
+          cache_read_price: null,
+          image_output_price: 0.000032,
+          per_request_price: null,
+          intervals: [],
+        },
+        current_pricing: {
+          billing_mode: 'image',
+          input_price: 0.000005,
+          output_price: 0.00001,
+          cache_write_price: null,
+          cache_read_price: null,
+          image_output_price: 0.000032,
+          per_request_price: null,
+          intervals: [],
+        },
+        groups: [
+          {
+            group_id: 4,
+            group_name: 'Images',
+            group_platform: 'openai',
+            group_rate: 1.5,
+            group_is_exclusive: false,
+            subscription_type: 'standard',
+            model_name: 'gpt-image-1.5',
+            supplier: 'openai',
+            billing_type: 'image',
+            pricing_source: 'channel',
+            original_pricing: {
+              billing_mode: 'image',
+              input_price: 0.000005,
+              output_price: 0.00001,
+              cache_write_price: null,
+              cache_read_price: null,
+              image_output_price: 0.000032,
+              per_request_price: null,
+              intervals: [],
+            },
+            current_pricing: {
+              billing_mode: 'image',
+              input_price: 0.000005,
+              output_price: 0.00001,
+              cache_write_price: null,
+              cache_read_price: null,
+              image_output_price: 0.000032,
+              per_request_price: null,
               intervals: [],
             },
           },
@@ -374,5 +440,53 @@ describe('ModelMarketplaceView', () => {
 
     expect(copyToClipboardMock).toHaveBeenCalledWith('gpt-4o', '已复制到剪贴板')
     expect(copyButton.attributes('aria-label')).toBe('已复制')
+  })
+
+  it('prefers per-request pricing over token pricing when both are present', async () => {
+    const wrapper = await mountView()
+
+    const perRequestCard = wrapper.get('[data-testid="marketplace-card-anthropic-claude-sonnet-4"]')
+    expect(perRequestCard.text()).toContain('按次价格')
+    expect(perRequestCard.text()).toContain('$0.02 / 次')
+    expect(perRequestCard.text()).not.toContain('输入价格')
+    expect(perRequestCard.text()).not.toContain('输出价格')
+    expect(perRequestCard.text()).not.toContain('$8 / 1M Tokens')
+    expect(perRequestCard.text()).not.toContain('$16 / 1M Tokens')
+    expect(perRequestCard.text()).not.toContain('$10 / 1M Tokens')
+    expect(perRequestCard.text()).not.toContain('$20 / 1M Tokens')
+
+    await perRequestCard.trigger('click')
+    await flushPromises()
+
+    const drawer = wrapper.get('[data-testid="marketplace-detail-drawer"]')
+    expect(drawer.text()).toContain('按次价格')
+    expect(drawer.text()).toContain('$0.02 / 次')
+    expect(drawer.text()).not.toContain('输入价格')
+    expect(drawer.text()).not.toContain('输出价格')
+    expect(drawer.text()).not.toContain('$8 / 1M Tokens')
+    expect(drawer.text()).not.toContain('$16 / 1M Tokens')
+    expect(drawer.text()).not.toContain('$10 / 1M Tokens')
+    expect(drawer.text()).not.toContain('$20 / 1M Tokens')
+  })
+
+  it('shows image output pricing for image billing instead of token input or output pricing', async () => {
+    const wrapper = await mountView()
+
+    const imageCard = wrapper.get('[data-testid="marketplace-card-openai-gpt-image-1.5"]')
+    expect(imageCard.text()).toContain('图片输出价格')
+    expect(imageCard.text()).toContain('$32 / 1M Tokens')
+    expect(imageCard.text()).not.toContain('输入价格')
+    expect(imageCard.text()).not.toContain('$5 / 1M Tokens')
+    expect(imageCard.text()).not.toContain('$10 / 1M Tokens')
+
+    await imageCard.trigger('click')
+    await flushPromises()
+
+    const drawer = wrapper.get('[data-testid="marketplace-detail-drawer"]')
+    expect(drawer.text()).toContain('图片输出价格')
+    expect(drawer.text()).toContain('$32 / 1M Tokens')
+    expect(drawer.text()).not.toContain('输入价格')
+    expect(drawer.text()).not.toContain('$5 / 1M Tokens')
+    expect(drawer.text()).not.toContain('$10 / 1M Tokens')
   })
 })
