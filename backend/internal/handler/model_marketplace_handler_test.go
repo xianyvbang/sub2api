@@ -46,7 +46,7 @@ type marketplaceGroupServiceStub struct {
 	groups []service.Group
 }
 
-func (s *marketplaceGroupServiceStub) ListActive(_ context.Context) ([]service.Group, error) {
+func (s *marketplaceGroupServiceStub) ListPublicMarketplaceGroups(_ context.Context) ([]service.Group, error) {
 	return s.groups, nil
 }
 
@@ -119,7 +119,6 @@ func newMarketplaceHandler() *ModelMarketplaceHandler {
 		groupService: &marketplaceGroupServiceStub{
 			groups: []service.Group{
 				{ID: 1, Name: "public", Platform: "openai", IsExclusive: false},
-				{ID: 2, Name: "exclusive", Platform: "openai", IsExclusive: true},
 				{ID: 3, Name: "public-subscription", Platform: "openai", IsExclusive: false, SubscriptionType: service.SubscriptionTypeSubscription},
 			},
 		},
@@ -154,10 +153,9 @@ func TestModelMarketplace_AnonymousSeesAllActiveGroups(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, w.Code)
 	rows := decodeMarketplaceRows(t, w.Body.Bytes())
-	require.Len(t, rows, 3)
-	require.Equal(t, "exclusive", rows[0]["group_name"])
-	require.Equal(t, "public", rows[1]["group_name"])
-	require.Equal(t, "public-subscription", rows[2]["group_name"])
+	require.Len(t, rows, 2)
+	require.Equal(t, "public", rows[0]["group_name"])
+	require.Equal(t, "public-subscription", rows[1]["group_name"])
 }
 
 func TestModelMarketplace_AuthenticatedSeesAllActiveGroups(t *testing.T) {

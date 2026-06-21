@@ -9,95 +9,72 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestListModelMarketplace_FlattensPerGroupPlatformModel(t *testing.T) {
-	repo := &mockChannelRepository{
-		listAllFn: func(ctx context.Context) ([]Channel, error) {
-			price := 0.01
-			return []Channel{{
-				ID:     1,
-				Name:   "channel-a",
-				Status: StatusActive,
-				GroupIDs: []int64{
-					1, 2,
-				},
-				ModelPricing: []ChannelModelPricing{{
-					Platform:        "openai",
-					Models:          []string{"gpt-4o"},
-					BillingMode:     BillingModePerRequest,
-					PerRequestPrice: &price,
-				}},
-			}}, nil
+func TestListModelMarketplace_GroupsByPlatformAndUsesCatalogModels(t *testing.T) {
+	svc := NewChannelService(&mockChannelRepository{}, &stubGroupRepoForAvailable{}, nil, &PricingService{
+		pricingData: map[string]*LiteLLMModelPricing{
+			"gpt-4o": {
+				InputCostPerToken:           1,
+				OutputCostPerToken:          2,
+				LiteLLMProvider:             "openai",
+				Mode:                        "chat",
+				SupportsPromptCaching:       true,
+				OutputCostPerImageToken:     0.03,
+				CacheReadInputTokenCost:     0.04,
+				CacheCreationInputTokenCost: 0.05,
+			},
+			"claude-sonnet-4": {
+				InputCostPerToken:     3,
+				OutputCostPerToken:    4,
+				LiteLLMProvider:       "anthropic",
+				Mode:                  "chat",
+				SupportsPromptCaching: true,
+			},
 		},
-	}
-	groupRepo := &stubGroupRepoForAvailable{
-		activeGroups: []Group{
-			{ID: 1, Name: "public", Platform: "openai", IsExclusive: false, RateMultiplier: 1.2, SubscriptionType: SubscriptionTypeStandard},
-			{ID: 2, Name: "pro", Platform: "openai", IsExclusive: true, RateMultiplier: 1.8, SubscriptionType: SubscriptionTypeSubscription},
-		},
-	}
-	svc := NewChannelService(repo, groupRepo, nil, nil)
+	})
 
 	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
-		{ID: 1, Name: "public", Platform: "openai", IsExclusive: false, RateMultiplier: 1.2, SubscriptionType: SubscriptionTypeStandard},
-		{ID: 2, Name: "pro", Platform: "openai", IsExclusive: true, RateMultiplier: 1.8, SubscriptionType: SubscriptionTypeSubscription},
+		{ID: 1, Name: "openai-public", Platform: "openai", IsExclusive: false, RateMultiplier: 1.1, SubscriptionType: SubscriptionTypeStandard, Status: StatusActive},
+		{ID: 2, Name: "anthropic-pro", Platform: "anthropic", IsExclusive: true, RateMultiplier: 1.8, SubscriptionType: SubscriptionTypeSubscription, Status: StatusActive},
 	})
 	require.NoError(t, err)
 	require.Len(t, cards, 2)
-
-	gotGroups := []string{cards[0].GroupName, cards[1].GroupName}
-	require.ElementsMatch(t, []string{"public", "pro"}, gotGroups)
 
 	cardsByGroup := make(map[string]ModelMarketplaceCard, len(cards))
 	for _, card := range cards {
 		cardsByGroup[card.GroupName] = card
 	}
 
-	require.Equal(t, "gpt-4o", cardsByGroup["public"].ModelName)
-	require.Equal(t, "openai", cardsByGroup["public"].Platform)
-	require.Equal(t, string(BillingModePerRequest), cardsByGroup["public"].BillingType)
-	require.Equal(t, "gpt-4o", cardsByGroup["pro"].ModelName)
+	require.Contains(t, cardsByGroup, "openai-public")
+	require.Contains(t, cardsByGroup, "anthropic-pro")
+	require.Equal(t, "gpt-4o", cardsByGroup["openai-public"].ModelName)
+	require.Equal(t, "openai", cardsByGroup["openai-public"].Platform)
+	require.Equal(t, string(BillingModeToken), cardsByGroup["openai-public"].BillingType)
+	require.NotNil(t, cardsByGroup["openai-public"].Pricing)
+	require.Equal(t, "claude-sonnet-4", cardsByGroup["anthropic-pro"].ModelName)
+	require.Equal(t, "anthropic", cardsByGroup["anthropic-pro"].Platform)
+	require.NotNil(t, cardsByGroup["anthropic-pro"].Pricing)
 }
 
-func TestListModelMarketplace_DedupsSameGroupPlatformModelAcrossChannels(t *testing.T) {
-	price := 0.01
-	repo := &mockChannelRepository{
-		listAllFn: func(ctx context.Context) ([]Channel, error) {
-			return []Channel{
-				{
-					ID:       1,
-					Name:     "a",
-					Status:   StatusActive,
-					GroupIDs: []int64{1},
-					ModelPricing: []ChannelModelPricing{{
-						Platform:        "openai",
-						Models:          []string{"gpt-4o"},
-						BillingMode:     BillingModePerRequest,
-						PerRequestPrice: &price,
-					}},
-				},
-				{
-					ID:       2,
-					Name:     "b",
-					Status:   StatusActive,
-					GroupIDs: []int64{1},
-					ModelPricing: []ChannelModelPricing{{
-						Platform:        "openai",
-						Models:          []string{"GPT-4O"},
-						BillingMode:     BillingModePerRequest,
-						PerRequestPrice: &price,
-					}},
-				},
-			}, nil
+func TestListModelMarketplace_SkipsPlatformsWithoutCatalogModels(t *testing.T) {
+	svc := NewChannelService(&mockChannelRepository{}, &stubGroupRepoForAvailable{}, nil, &PricingService{
+		pricingData: map[string]*LiteLLMModelPricing{
+			"gpt-4o": {
+				InputCostPerToken:     1,
+				OutputCostPerToken:    2,
+				LiteLLMProvider:       "openai",
+				Mode:                  "chat",
+				SupportsPromptCaching: true,
+			},
 		},
-	}
-	groupRepo := &stubGroupRepoForAvailable{
-		activeGroups: []Group{{ID: 1, Name: "public", Platform: "openai"}},
-	}
-	svc := NewChannelService(repo, groupRepo, nil, nil)
+	})
 
-	cards, err := svc.ListModelMarketplace(context.Background(), []Group{{ID: 1, Name: "public", Platform: "openai"}})
+	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
+		{ID: 1, Name: "openai-public", Platform: "openai", Status: StatusActive},
+		{ID: 2, Name: "unknown-platform", Platform: "mystery", Status: StatusActive},
+	})
 	require.NoError(t, err)
 	require.Len(t, cards, 1)
+	require.Equal(t, "openai-public", cards[0].GroupName)
 }
 
 func TestListPublicMarketplaceGroups_AnonymousOnlySeesNonExclusive(t *testing.T) {

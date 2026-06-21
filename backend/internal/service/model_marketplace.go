@@ -48,65 +48,98 @@ func (s *SettingService) GetModelMarketplaceRuntime(ctx context.Context) ModelMa
 }
 
 // ListModelMarketplace returns one record per group + platform + model.
-// Anonymous users only see public groups; authenticated users see the groups they may access.
+//
+// The marketplace is group-driven: it enumerates the visible groups, groups them by
+// platform, then expands all catalog models for each platform. Pricing is sourced from
+// the global pricing catalog, not channel pricing rows.
 func (s *ChannelService) ListModelMarketplace(
 	ctx context.Context,
 	visibleGroups []Group,
 ) ([]ModelMarketplaceCard, error) {
-	channels, err := s.ListAvailable(ctx)
-	if err != nil {
-		return nil, err
+	if s.pricingService == nil {
+		return []ModelMarketplaceCard{}, nil
 	}
 
-	groupByID := make(map[int64]Group, len(visibleGroups))
-	for i := range visibleGroups {
-		groupByID[visibleGroups[i].ID] = visibleGroups[i]
+	groupsByPlatform := make(map[string][]Group)
+	platforms := make([]string, 0)
+	seenPlatforms := make(map[string]struct{})
+	for _, group := range visibleGroups {
+		if group.Status != "" && group.Status != StatusActive {
+			continue
+		}
+		platform := strings.ToLower(strings.TrimSpace(group.Platform))
+		if platform == "" || strings.TrimSpace(group.Name) == "" {
+			continue
+		}
+		groupsByPlatform[platform] = append(groupsByPlatform[platform], group)
+		if _, ok := seenPlatforms[platform]; ok {
+			continue
+		}
+		seenPlatforms[platform] = struct{}{}
+		platforms = append(platforms, platform)
+	}
+	if len(groupsByPlatform) == 0 {
+		return []ModelMarketplaceCard{}, nil
+	}
+
+	sort.Strings(platforms)
+
+	modelNamesByPlatform := make(map[string][]string, len(platforms))
+	pricingByModelName := make(map[string]*ChannelModelPricing)
+	for _, platform := range platforms {
+		provider := marketplacePricingProviderForPlatform(platform)
+		modelNames := s.pricingService.ListModelNamesByProvider(provider)
+		if len(modelNames) == 0 {
+			continue
+		}
+		modelNamesByPlatform[platform] = modelNames
+		for _, modelName := range modelNames {
+			modelKey := strings.ToLower(strings.TrimSpace(modelName))
+			if modelKey == "" {
+				continue
+			}
+			if _, exists := pricingByModelName[modelKey]; exists {
+				continue
+			}
+			lp := s.pricingService.GetModelPricing(modelName)
+			if lp == nil {
+				continue
+			}
+			pricingByModelName[modelKey] = synthesizePricingFromLiteLLM(lp, nil)
+		}
 	}
 
 	type dedupKey struct {
 		groupID   int64
-		platform  string
 		modelName string
 	}
 	seen := make(map[dedupKey]struct{})
 	out := make([]ModelMarketplaceCard, 0)
 
-	for _, ch := range channels {
-		if ch.Status != StatusActive {
+	for _, platform := range platforms {
+		modelNames := modelNamesByPlatform[platform]
+		if len(modelNames) == 0 {
 			continue
 		}
-
-		modelsByPlatform := make(map[string][]SupportedModel, 4)
-		for _, model := range ch.SupportedModels {
-			if strings.TrimSpace(model.Platform) == "" || strings.TrimSpace(model.Name) == "" {
-				continue
-			}
-			modelsByPlatform[model.Platform] = append(modelsByPlatform[model.Platform], model)
-		}
-
-		for _, ref := range ch.Groups {
-			group, ok := groupByID[ref.ID]
-			if !ok {
-				continue
-			}
-			models := modelsByPlatform[group.Platform]
-			if len(models) == 0 {
-				continue
-			}
-			for _, model := range models {
-				key := dedupKey{
-					groupID:   group.ID,
-					platform:  strings.ToLower(strings.TrimSpace(model.Platform)),
-					modelName: strings.ToLower(strings.TrimSpace(model.Name)),
+		for _, group := range groupsByPlatform[platform] {
+			for _, modelName := range modelNames {
+				modelKey := strings.ToLower(strings.TrimSpace(modelName))
+				if modelKey == "" {
+					continue
 				}
+				key := dedupKey{groupID: group.ID, modelName: modelKey}
 				if _, exists := seen[key]; exists {
 					continue
 				}
 				seen[key] = struct{}{}
 
+				pricing := pricingByModelName[modelKey]
 				billingType := ""
-				if model.Pricing != nil {
-					billingType = string(model.Pricing.BillingMode)
+				if pricing != nil {
+					billingType = string(pricing.BillingMode)
+					if billingType == "" {
+						billingType = string(BillingModeToken)
+					}
 				}
 
 				out = append(out, ModelMarketplaceCard{
@@ -116,10 +149,10 @@ func (s *ChannelService) ListModelMarketplace(
 					GroupRate:        group.RateMultiplier,
 					GroupIsExclusive: group.IsExclusive,
 					SubscriptionType: group.SubscriptionType,
-					ModelName:        model.Name,
-					Platform:         model.Platform,
+					ModelName:        modelName,
+					Platform:         group.Platform,
 					BillingType:      billingType,
-					Pricing:          model.Pricing,
+					Pricing:          pricing,
 				})
 			}
 		}
@@ -136,6 +169,21 @@ func (s *ChannelService) ListModelMarketplace(
 	})
 
 	return out, nil
+}
+
+func marketplacePricingProviderForPlatform(platform string) string {
+	switch strings.ToLower(strings.TrimSpace(platform)) {
+	case PlatformAnthropic:
+		return "anthropic"
+	case PlatformOpenAI:
+		return "openai"
+	case PlatformGemini:
+		return "google"
+	case PlatformAntigravity:
+		return "anthropic"
+	default:
+		return strings.ToLower(strings.TrimSpace(platform))
+	}
 }
 
 // ListPublicMarketplaceGroups returns the groups visible to anonymous marketplace visitors.
