@@ -153,7 +153,7 @@ func (s *ModelMarketplaceService) ListModelMarketplace(
 func (s *ModelMarketplaceService) listMarketplaceModelNamesForGroup(
 	ctx context.Context,
 	group Group,
-	) ([]string, error) {
+) ([]string, error) {
 	platform := strings.ToLower(strings.TrimSpace(group.Platform))
 	if platform == "" {
 		return nil, nil
