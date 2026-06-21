@@ -16,14 +16,22 @@ vi.mock('vue-i18n', async () => {
   return {
     ...actual,
     useI18n: () => ({
-      t: (key: string, fallback?: string) => {
+      t: (key: string, arg2?: unknown, arg3?: string) => {
         const translations: Record<string, string> = {
           'common.copy': '复制',
           'common.copied': '已复制',
           'common.copiedToClipboard': '已复制到剪贴板',
           'common.close': '关闭',
+          'modelMarketplace.groupCount': '{count} 个分组',
         }
-        return translations[key] ?? fallback ?? key
+        const template = translations[key] ?? (typeof arg2 === 'string' ? arg2 : arg3) ?? key
+        if (arg2 && typeof arg2 === 'object' && !Array.isArray(arg2)) {
+          return Object.entries(arg2 as Record<string, unknown>).reduce(
+            (message, [token, value]) => message.replace(`{${token}}`, String(value)),
+            template,
+          )
+        }
+        return template
       },
     }),
   }
@@ -334,6 +342,7 @@ describe('ModelMarketplaceView', () => {
 
     const aggregatedCard = wrapper.get('[data-testid="marketplace-card-openai-gpt-4o"]')
     expect(wrapper.findAll('[data-testid="marketplace-card-openai-gpt-4o"]').length).toBe(1)
+    expect(aggregatedCard.text()).toContain('2 个分组')
     expect(aggregatedCard.text()).toContain('输入价格')
     expect(aggregatedCard.text()).toContain('输出价格')
     expect(aggregatedCard.text()).toContain('原价')
@@ -348,6 +357,7 @@ describe('ModelMarketplaceView', () => {
     await flushPromises()
 
     const drawer = wrapper.get('[data-testid="marketplace-detail-drawer"]')
+    expect(drawer.text()).toContain('2 个分组')
     expect(drawer.text()).toContain('Public')
     expect(drawer.text()).toContain('Pro')
     expect(drawer.text()).toContain('输入价格')

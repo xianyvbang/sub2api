@@ -312,7 +312,7 @@
                   <span
                     class="rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-800 dark:bg-violet-500/15 dark:text-violet-300"
                   >
-                    {{ t('modelMarketplace.groupCount', '{count} 个分组').replace('{count}', String(card.groups.length)) }}
+                    {{ t('modelMarketplace.groupCount', { count: card.groups.length }) }}
                   </span>
                 </div>
 
@@ -424,7 +424,7 @@
                   <span
                     class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
                   >
-                    {{ t('modelMarketplace.groupCount', '{count} 个分组').replace('{count}', String(activeCard.groups.length)) }}
+                    {{ t('modelMarketplace.groupCount', { count: activeCard.groups.length }) }}
                   </span>
                   <span
                     class="rounded-full px-3 py-1 text-xs font-medium"
