@@ -9,72 +9,124 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestListModelMarketplace_GroupsByPlatformAndUsesCatalogModels(t *testing.T) {
+func TestListModelMarketplace_AggregatesModelsAndChoosesLowestCurrentPrice(t *testing.T) {
 	svc := NewChannelService(&mockChannelRepository{}, &stubGroupRepoForAvailable{}, nil, &PricingService{
 		pricingData: map[string]*LiteLLMModelPricing{
 			"gpt-4o": {
-				InputCostPerToken:           1,
-				OutputCostPerToken:          2,
-				LiteLLMProvider:             "openai",
-				Mode:                        "chat",
-				SupportsPromptCaching:       true,
-				OutputCostPerImageToken:     0.03,
-				CacheReadInputTokenCost:     0.04,
-				CacheCreationInputTokenCost: 0.05,
-			},
-			"claude-sonnet-4": {
-				InputCostPerToken:     3,
-				OutputCostPerToken:    4,
-				LiteLLMProvider:       "anthropic",
-				Mode:                  "chat",
-				SupportsPromptCaching: true,
+				InputCostPerToken:  1e-6,
+				OutputCostPerToken: 2e-6,
+				LiteLLMProvider:    "openai",
+				Mode:               "chat",
 			},
 		},
 	})
 
 	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
-		{ID: 1, Name: "openai-public", Platform: "openai", IsExclusive: false, RateMultiplier: 1.1, SubscriptionType: SubscriptionTypeStandard, Status: StatusActive},
-		{ID: 2, Name: "anthropic-pro", Platform: "anthropic", IsExclusive: true, RateMultiplier: 1.8, SubscriptionType: SubscriptionTypeSubscription, Status: StatusActive},
-	})
-	require.NoError(t, err)
-	require.Len(t, cards, 2)
-
-	cardsByGroup := make(map[string]ModelMarketplaceCard, len(cards))
-	for _, card := range cards {
-		cardsByGroup[card.GroupName] = card
-	}
-
-	require.Contains(t, cardsByGroup, "openai-public")
-	require.Contains(t, cardsByGroup, "anthropic-pro")
-	require.Equal(t, "gpt-4o", cardsByGroup["openai-public"].ModelName)
-	require.Equal(t, "openai", cardsByGroup["openai-public"].Platform)
-	require.Equal(t, string(BillingModeToken), cardsByGroup["openai-public"].BillingType)
-	require.NotNil(t, cardsByGroup["openai-public"].Pricing)
-	require.Equal(t, "claude-sonnet-4", cardsByGroup["anthropic-pro"].ModelName)
-	require.Equal(t, "anthropic", cardsByGroup["anthropic-pro"].Platform)
-	require.NotNil(t, cardsByGroup["anthropic-pro"].Pricing)
-}
-
-func TestListModelMarketplace_SkipsPlatformsWithoutCatalogModels(t *testing.T) {
-	svc := NewChannelService(&mockChannelRepository{}, &stubGroupRepoForAvailable{}, nil, &PricingService{
-		pricingData: map[string]*LiteLLMModelPricing{
-			"gpt-4o": {
-				InputCostPerToken:     1,
-				OutputCostPerToken:    2,
-				LiteLLMProvider:       "openai",
-				Mode:                  "chat",
-				SupportsPromptCaching: true,
-			},
-		},
-	})
-
-	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
-		{ID: 1, Name: "openai-public", Platform: "openai", Status: StatusActive},
-		{ID: 2, Name: "unknown-platform", Platform: "mystery", Status: StatusActive},
+		{ID: 1, Name: "public", Platform: "openai", IsExclusive: false, RateMultiplier: 1.2, SubscriptionType: SubscriptionTypeStandard, Status: StatusActive},
+		{ID: 2, Name: "promo", Platform: "openai", IsExclusive: false, RateMultiplier: 0.8, SubscriptionType: SubscriptionTypeStandard, Status: StatusActive},
 	})
 	require.NoError(t, err)
 	require.Len(t, cards, 1)
-	require.Equal(t, "openai-public", cards[0].GroupName)
+
+	card := cards[0]
+	require.Equal(t, "gpt-4o", card.ModelName)
+	require.Equal(t, "promo", card.GroupName)
+	require.Equal(t, ModelMarketplacePricingSourceGroup, card.PricingSource)
+	require.Len(t, card.Groups, 2)
+	require.NotNil(t, card.OriginalPricing)
+	require.NotNil(t, card.CurrentPricing)
+	require.NotNil(t, card.OriginalPricing.InputPrice)
+	require.NotNil(t, card.CurrentPricing.InputPrice)
+	require.InDelta(t, 1e-6, *card.OriginalPricing.InputPrice, 1e-12)
+	require.InDelta(t, 0.8e-6, *card.CurrentPricing.InputPrice, 1e-12)
+}
+
+func TestListModelMarketplace_ChannelPricingWinsWithoutApplyingGroupMultiplier(t *testing.T) {
+	channel := Channel{
+		ID:       1,
+		Status:   StatusActive,
+		GroupIDs: []int64{10},
+		ModelPricing: []ChannelModelPricing{
+			{
+				ID:          100,
+				Platform:    "openai",
+				Models:      []string{"gpt-4o"},
+				BillingMode: BillingModeToken,
+				InputPrice:  testPtrFloat64(9.9e-5),
+				OutputPrice: testPtrFloat64(1.99e-4),
+			},
+		},
+	}
+
+	svc := NewChannelService(
+		makeStandardRepo(channel, map[int64]string{10: "openai"}),
+		&stubGroupRepoForAvailable{},
+		nil,
+		&PricingService{
+			pricingData: map[string]*LiteLLMModelPricing{
+				"gpt-4o": {
+					InputCostPerToken:  1e-6,
+					OutputCostPerToken: 2e-6,
+					LiteLLMProvider:    "openai",
+					Mode:               "chat",
+				},
+			},
+		},
+	)
+
+	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
+		{ID: 10, Name: "enterprise", Platform: "openai", RateMultiplier: 3.5, Status: StatusActive},
+	})
+	require.NoError(t, err)
+	require.Len(t, cards, 1)
+
+	card := cards[0]
+	require.Equal(t, ModelMarketplacePricingSourceChannel, card.PricingSource)
+	require.NotNil(t, card.OriginalPricing)
+	require.NotNil(t, card.CurrentPricing)
+	require.NotNil(t, card.OriginalPricing.InputPrice)
+	require.NotNil(t, card.CurrentPricing.InputPrice)
+	require.InDelta(t, 9.9e-5, *card.OriginalPricing.InputPrice, 1e-12)
+	require.InDelta(t, 9.9e-5, *card.CurrentPricing.InputPrice, 1e-12)
+}
+
+func TestListModelMarketplace_ModelsWithoutPricingRemainVisibleAndSortLast(t *testing.T) {
+	channel := Channel{
+		ID:       1,
+		Status:   StatusActive,
+		GroupIDs: []int64{10},
+		ModelMapping: map[string]map[string]string{
+			"openai": {
+				"mystery-model": "mystery-model",
+			},
+		},
+	}
+
+	svc := NewChannelService(
+		makeStandardRepo(channel, map[int64]string{10: "openai"}),
+		&stubGroupRepoForAvailable{},
+		nil,
+		&PricingService{
+			pricingData: map[string]*LiteLLMModelPricing{
+				"gpt-4o": {
+					InputCostPerToken:  1e-6,
+					OutputCostPerToken: 2e-6,
+					LiteLLMProvider:    "openai",
+					Mode:               "chat",
+				},
+			},
+		},
+	)
+
+	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
+		{ID: 10, Name: "public", Platform: "openai", RateMultiplier: 1.0, Status: StatusActive},
+	})
+	require.NoError(t, err)
+	require.Len(t, cards, 2)
+	require.Equal(t, "gpt-4o", cards[0].ModelName)
+	require.Equal(t, "mystery-model", cards[1].ModelName)
+	require.Nil(t, cards[1].OriginalPricing)
+	require.Nil(t, cards[1].CurrentPricing)
 }
 
 func TestListPublicMarketplaceGroups_AnonymousOnlySeesNonExclusive(t *testing.T) {

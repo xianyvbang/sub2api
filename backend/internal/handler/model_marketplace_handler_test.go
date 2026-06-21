@@ -21,15 +21,35 @@ type marketplaceChannelServiceStub struct {
 }
 
 func (s *marketplaceChannelServiceStub) ListModelMarketplace(_ context.Context, visibleGroups []service.Group) ([]service.ModelMarketplaceCard, error) {
-	out := make([]service.ModelMarketplaceCard, 0, len(visibleGroups))
 	allowed := make(map[int64]struct{}, len(visibleGroups))
 	for _, group := range visibleGroups {
 		allowed[group.ID] = struct{}{}
 	}
+
+	out := make([]service.ModelMarketplaceCard, 0, len(s.cards))
 	for _, card := range s.cards {
-		if _, ok := allowed[card.GroupID]; ok {
-			out = append(out, card)
+		filteredGroups := make([]service.ModelMarketplaceGroupOffer, 0, len(card.Groups))
+		for _, group := range card.Groups {
+			if _, ok := allowed[group.GroupID]; ok {
+				filteredGroups = append(filteredGroups, group)
+			}
 		}
+		if len(filteredGroups) == 0 {
+			continue
+		}
+		cp := card
+		cp.GroupID = filteredGroups[0].GroupID
+		cp.GroupName = filteredGroups[0].GroupName
+		cp.GroupPlatform = filteredGroups[0].GroupPlatform
+		cp.GroupRate = filteredGroups[0].GroupRate
+		cp.GroupIsExclusive = filteredGroups[0].GroupIsExclusive
+		cp.SubscriptionType = filteredGroups[0].SubscriptionType
+		cp.BillingType = filteredGroups[0].BillingType
+		cp.PricingSource = filteredGroups[0].PricingSource
+		cp.OriginalPricing = filteredGroups[0].OriginalPricing
+		cp.CurrentPricing = filteredGroups[0].CurrentPricing
+		cp.Groups = filteredGroups
+		out = append(out, cp)
 	}
 	return out, nil
 }
@@ -59,7 +79,11 @@ func (s *marketplaceSettingServiceStub) GetModelMarketplaceRuntime(_ context.Con
 }
 
 func newMarketplaceHandler() *ModelMarketplaceHandler {
-	price := 0.02
+	publicOriginal := 0.01
+	publicCurrent := 0.012
+	exclusiveCurrent := 0.009
+	subscriptionPrice := 0.02
+
 	return &ModelMarketplaceHandler{
 		channelService: &marketplaceChannelServiceStub{
 			cards: []service.ModelMarketplaceCard{
@@ -73,24 +97,56 @@ func newMarketplaceHandler() *ModelMarketplaceHandler {
 					ModelName:        "gpt-4o",
 					Platform:         "openai",
 					BillingType:      string(service.BillingModePerRequest),
-					Pricing: &service.ChannelModelPricing{
+					PricingSource:    service.ModelMarketplacePricingSourceGroup,
+					OriginalPricing: &service.ChannelModelPricing{
 						BillingMode:     service.BillingModePerRequest,
-						PerRequestPrice: &price,
+						PerRequestPrice: &publicOriginal,
 					},
-				},
-				{
-					GroupID:          2,
-					GroupName:        "exclusive",
-					GroupPlatform:    "openai",
-					GroupRate:        1.8,
-					GroupIsExclusive: true,
-					SubscriptionType: service.SubscriptionTypeStandard,
-					ModelName:        "gpt-4o",
-					Platform:         "openai",
-					BillingType:      string(service.BillingModePerRequest),
-					Pricing: &service.ChannelModelPricing{
+					CurrentPricing: &service.ChannelModelPricing{
 						BillingMode:     service.BillingModePerRequest,
-						PerRequestPrice: &price,
+						PerRequestPrice: &publicCurrent,
+					},
+					Groups: []service.ModelMarketplaceGroupOffer{
+						{
+							GroupID:          1,
+							GroupName:        "public",
+							GroupPlatform:    "openai",
+							GroupRate:        1.2,
+							GroupIsExclusive: false,
+							SubscriptionType: service.SubscriptionTypeStandard,
+							ModelName:        "gpt-4o",
+							Platform:         "openai",
+							BillingType:      string(service.BillingModePerRequest),
+							PricingSource:    service.ModelMarketplacePricingSourceGroup,
+							OriginalPricing: &service.ChannelModelPricing{
+								BillingMode:     service.BillingModePerRequest,
+								PerRequestPrice: &publicOriginal,
+							},
+							CurrentPricing: &service.ChannelModelPricing{
+								BillingMode:     service.BillingModePerRequest,
+								PerRequestPrice: &publicCurrent,
+							},
+						},
+						{
+							GroupID:          2,
+							GroupName:        "exclusive",
+							GroupPlatform:    "openai",
+							GroupRate:        1.8,
+							GroupIsExclusive: true,
+							SubscriptionType: service.SubscriptionTypeStandard,
+							ModelName:        "gpt-4o",
+							Platform:         "openai",
+							BillingType:      string(service.BillingModePerRequest),
+							PricingSource:    service.ModelMarketplacePricingSourceChannel,
+							OriginalPricing: &service.ChannelModelPricing{
+								BillingMode:     service.BillingModePerRequest,
+								PerRequestPrice: &exclusiveCurrent,
+							},
+							CurrentPricing: &service.ChannelModelPricing{
+								BillingMode:     service.BillingModePerRequest,
+								PerRequestPrice: &exclusiveCurrent,
+							},
+						},
 					},
 				},
 				{
@@ -103,9 +159,36 @@ func newMarketplaceHandler() *ModelMarketplaceHandler {
 					ModelName:        "gpt-4o-mini",
 					Platform:         "openai",
 					BillingType:      string(service.BillingModePerRequest),
-					Pricing: &service.ChannelModelPricing{
+					PricingSource:    service.ModelMarketplacePricingSourceGroup,
+					OriginalPricing: &service.ChannelModelPricing{
 						BillingMode:     service.BillingModePerRequest,
-						PerRequestPrice: &price,
+						PerRequestPrice: &subscriptionPrice,
+					},
+					CurrentPricing: &service.ChannelModelPricing{
+						BillingMode:     service.BillingModePerRequest,
+						PerRequestPrice: &subscriptionPrice,
+					},
+					Groups: []service.ModelMarketplaceGroupOffer{
+						{
+							GroupID:          3,
+							GroupName:        "public-subscription",
+							GroupPlatform:    "openai",
+							GroupRate:        1.5,
+							GroupIsExclusive: false,
+							SubscriptionType: service.SubscriptionTypeSubscription,
+							ModelName:        "gpt-4o-mini",
+							Platform:         "openai",
+							BillingType:      string(service.BillingModePerRequest),
+							PricingSource:    service.ModelMarketplacePricingSourceGroup,
+							OriginalPricing: &service.ChannelModelPricing{
+								BillingMode:     service.BillingModePerRequest,
+								PerRequestPrice: &subscriptionPrice,
+							},
+							CurrentPricing: &service.ChannelModelPricing{
+								BillingMode:     service.BillingModePerRequest,
+								PerRequestPrice: &subscriptionPrice,
+							},
+						},
 					},
 				},
 			},
@@ -141,7 +224,7 @@ func decodeMarketplaceRows(t *testing.T, body []byte) []map[string]any {
 	return payload.Data
 }
 
-func TestModelMarketplace_AnonymousSeesAllActiveGroups(t *testing.T) {
+func TestModelMarketplace_AnonymousSeesOnlyPublicCards(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := newMarketplaceHandler()
 
@@ -156,9 +239,17 @@ func TestModelMarketplace_AnonymousSeesAllActiveGroups(t *testing.T) {
 	require.Len(t, rows, 2)
 	require.Equal(t, "public", rows[0]["group_name"])
 	require.Equal(t, "public-subscription", rows[1]["group_name"])
+
+	first := rows[0]
+	require.Equal(t, "group", first["pricing_source"])
+	require.Contains(t, first, "original_pricing")
+	require.Contains(t, first, "current_pricing")
+	groups, ok := first["groups"].([]any)
+	require.True(t, ok)
+	require.Len(t, groups, 1)
 }
 
-func TestModelMarketplace_AuthenticatedSeesAllActiveGroups(t *testing.T) {
+func TestModelMarketplace_AuthenticatedCanSeeExclusiveGroupOffer(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := newMarketplaceHandler()
 
@@ -171,7 +262,11 @@ func TestModelMarketplace_AuthenticatedSeesAllActiveGroups(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, w.Code)
 	rows := decodeMarketplaceRows(t, w.Body.Bytes())
-	require.Len(t, rows, 3)
+	require.Len(t, rows, 2)
+
+	firstGroups, ok := rows[0]["groups"].([]any)
+	require.True(t, ok)
+	require.Len(t, firstGroups, 2)
 }
 
 func TestModelMarketplace_DisabledReturnsEmptyList(t *testing.T) {

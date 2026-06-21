@@ -23,6 +23,21 @@ export interface ModelMarketplacePricing {
   intervals: ModelMarketplacePricingInterval[]
 }
 
+export interface ModelMarketplaceGroupOffer {
+  group_id: number
+  group_name: string
+  group_platform: string
+  group_rate: number
+  group_is_exclusive: boolean
+  subscription_type: string
+  model_name: string
+  platform: string
+  billing_type: string
+  pricing_source: string
+  original_pricing: ModelMarketplacePricing | null
+  current_pricing: ModelMarketplacePricing | null
+}
+
 export interface ModelMarketplaceCard {
   group_id: number
   group_name: string
@@ -33,7 +48,10 @@ export interface ModelMarketplaceCard {
   model_name: string
   platform: string
   billing_type: string
-  pricing: ModelMarketplacePricing | null
+  pricing_source: string
+  original_pricing: ModelMarketplacePricing | null
+  current_pricing: ModelMarketplacePricing | null
+  groups: ModelMarketplaceGroupOffer[]
 }
 
 export async function getModelMarketplace(options?: { signal?: AbortSignal }): Promise<ModelMarketplaceCard[]> {

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"sort"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
@@ -38,6 +37,21 @@ type modelMarketplacePricingDTO struct {
 	Intervals        []userPricingIntervalDTO `json:"intervals"`
 }
 
+type modelMarketplaceGroupDTO struct {
+	GroupID          int64                       `json:"group_id"`
+	GroupName        string                      `json:"group_name"`
+	GroupPlatform    string                      `json:"group_platform"`
+	GroupRate        float64                     `json:"group_rate"`
+	GroupIsExclusive bool                        `json:"group_is_exclusive"`
+	SubscriptionType string                      `json:"subscription_type"`
+	ModelName        string                      `json:"model_name"`
+	Platform         string                      `json:"platform"`
+	BillingType      string                      `json:"billing_type"`
+	PricingSource    string                      `json:"pricing_source"`
+	OriginalPricing  *modelMarketplacePricingDTO `json:"original_pricing"`
+	CurrentPricing   *modelMarketplacePricingDTO `json:"current_pricing"`
+}
+
 type modelMarketplaceCardDTO struct {
 	GroupID          int64                       `json:"group_id"`
 	GroupName        string                      `json:"group_name"`
@@ -48,7 +62,10 @@ type modelMarketplaceCardDTO struct {
 	ModelName        string                      `json:"model_name"`
 	Platform         string                      `json:"platform"`
 	BillingType      string                      `json:"billing_type"`
-	Pricing          *modelMarketplacePricingDTO `json:"pricing"`
+	PricingSource    string                      `json:"pricing_source"`
+	OriginalPricing  *modelMarketplacePricingDTO `json:"original_pricing"`
+	CurrentPricing   *modelMarketplacePricingDTO `json:"current_pricing"`
+	Groups           []modelMarketplaceGroupDTO  `json:"groups"`
 }
 
 // ModelMarketplaceHandler serves the public model marketplace API.
@@ -73,7 +90,7 @@ func NewModelMarketplaceHandler(
 	}
 }
 
-// List returns a flattened card wall payload for the public model marketplace.
+// List returns one aggregated marketplace card per platform + model.
 // GET /api/v1/model-marketplace
 func (h *ModelMarketplaceHandler) List(c *gin.Context) {
 	if h.settingService == nil {
@@ -111,6 +128,24 @@ func (h *ModelMarketplaceHandler) List(c *gin.Context) {
 
 	out := make([]modelMarketplaceCardDTO, 0, len(cards))
 	for _, card := range cards {
+		groups := make([]modelMarketplaceGroupDTO, 0, len(card.Groups))
+		for _, group := range card.Groups {
+			groups = append(groups, modelMarketplaceGroupDTO{
+				GroupID:          group.GroupID,
+				GroupName:        group.GroupName,
+				GroupPlatform:    group.GroupPlatform,
+				GroupRate:        group.GroupRate,
+				GroupIsExclusive: group.GroupIsExclusive,
+				SubscriptionType: group.SubscriptionType,
+				ModelName:        group.ModelName,
+				Platform:         group.Platform,
+				BillingType:      group.BillingType,
+				PricingSource:    group.PricingSource,
+				OriginalPricing:  toMarketplacePricing(group.OriginalPricing),
+				CurrentPricing:   toMarketplacePricing(group.CurrentPricing),
+			})
+		}
+
 		out = append(out, modelMarketplaceCardDTO{
 			GroupID:          card.GroupID,
 			GroupName:        card.GroupName,
@@ -121,19 +156,12 @@ func (h *ModelMarketplaceHandler) List(c *gin.Context) {
 			ModelName:        card.ModelName,
 			Platform:         card.Platform,
 			BillingType:      card.BillingType,
-			Pricing:          toMarketplacePricing(card.Pricing),
+			PricingSource:    card.PricingSource,
+			OriginalPricing:  toMarketplacePricing(card.OriginalPricing),
+			CurrentPricing:   toMarketplacePricing(card.CurrentPricing),
+			Groups:           groups,
 		})
 	}
-
-	sort.SliceStable(out, func(i, j int) bool {
-		if out[i].GroupName != out[j].GroupName {
-			return out[i].GroupName < out[j].GroupName
-		}
-		if out[i].Platform != out[j].Platform {
-			return out[i].Platform < out[j].Platform
-		}
-		return out[i].ModelName < out[j].ModelName
-	})
 
 	response.Success(c, out)
 }

@@ -55,13 +55,13 @@
                 {{ t('nav.modelMarketplace', 'Model Marketplace') }}
               </p>
               <h2 class="text-4xl font-black leading-tight text-slate-950 dark:text-white md:text-5xl">
-                {{ t('modelMarketplace.heroTitle', 'Browse available models by provider and group') }}
+                {{ t('modelMarketplace.heroTitle', '按模型聚合浏览可用能力与最低展示价') }}
               </h2>
               <p class="mt-4 max-w-2xl text-base leading-7 text-slate-600 dark:text-dark-300">
                 {{
                   t(
                     'modelMarketplace.heroDescription',
-                    'Each card shows one group, provider, and model with billing type and explicit pricing.',
+                    '每张卡片只保留一个模型，并展示当前最低价、原价对比，以及该模型所在分组的完整明细。',
                   )
                 }}
               </p>
@@ -69,7 +69,9 @@
 
             <div class="grid gap-4 sm:grid-cols-3 xl:min-w-[24rem]">
               <div class="rounded-2xl border border-amber-100 bg-amber-50/90 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300">Cards</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300">
+                  {{ t('modelMarketplace.cardCount', 'Cards') }}
+                </p>
                 <p class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{{ filteredCards.length }}</p>
               </div>
               <div class="rounded-2xl border border-sky-100 bg-sky-50/90 p-4 dark:border-sky-500/20 dark:bg-sky-500/10">
@@ -99,7 +101,7 @@
               <input
                 v-model="searchQuery"
                 type="text"
-                :placeholder="t('modelMarketplace.searchPlaceholder', 'Search model names')"
+                :placeholder="t('modelMarketplace.searchPlaceholder', '搜索模型名称')"
                 class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-amber-400 dark:border-dark-600 dark:bg-dark-900 dark:text-white dark:placeholder:text-dark-400 dark:focus:border-amber-400"
               />
             </div>
@@ -255,7 +257,7 @@
                         : 'text-slate-600 hover:bg-white hover:text-slate-900 dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-white'
                     "
                   >
-                    <span class="truncate pr-3">{{ billingType.value }}</span>
+                    <span class="truncate pr-3">{{ billingTypeLabel(billingType.value) }}</span>
                     <span class="text-xs opacity-75">{{ billingType.count }}</span>
                   </button>
                 </div>
@@ -282,7 +284,7 @@
                 <select v-model="selectedBillingType">
                   <option value="">{{ t('common.all', 'All') }}</option>
                   <option v-for="billingType in billingTypeOptions" :key="billingType" :value="billingType">
-                    {{ billingType }}
+                    {{ billingTypeLabel(billingType) }}
                   </option>
                 </select>
               </label>
@@ -313,44 +315,25 @@
             <section v-else class="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               <article
                 v-for="card in filteredCards"
-                :key="`${card.group_id}-${card.platform}-${card.model_name}`"
-                class="rounded-[1.75rem] border border-white/70 bg-white/88 p-6 shadow-[0_20px_70px_-45px_rgba(15,23,42,0.5)] backdrop-blur transition hover:-translate-y-1 hover:shadow-[0_30px_80px_-45px_rgba(15,23,42,0.55)] dark:border-dark-700/70 dark:bg-dark-900/82 dark:shadow-[0_20px_70px_-45px_rgba(0,0,0,0.6)] dark:hover:shadow-[0_30px_80px_-45px_rgba(0,0,0,0.7)]"
+                :key="cardKey(card)"
+                :data-testid="`marketplace-card-${card.platform}-${card.model_name}`"
+                class="group cursor-pointer rounded-[1.75rem] border border-white/70 bg-white/88 p-6 shadow-[0_20px_70px_-45px_rgba(15,23,42,0.5)] backdrop-blur transition hover:-translate-y-1 hover:shadow-[0_30px_80px_-45px_rgba(15,23,42,0.55)] dark:border-dark-700/70 dark:bg-dark-900/82 dark:shadow-[0_20px_70px_-45px_rgba(0,0,0,0.6)] dark:hover:shadow-[0_30px_80px_-45px_rgba(0,0,0,0.7)]"
+                @click="openCard(card)"
               >
                 <div class="flex items-start justify-between gap-4">
                   <div class="min-w-0">
                     <p class="truncate text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-dark-400">
                       {{ card.platform }}
                     </p>
-                    <div class="mt-2 flex min-w-0 items-start gap-2">
-                      <h3 class="min-w-0 break-words text-[1.125rem] font-bold leading-snug text-slate-950 dark:text-white">
-                        {{ card.model_name }}
-                      </h3>
-                      <button
-                        type="button"
-                        :data-testid="`copy-model-name-${card.model_name}`"
-                        class="shrink-0 rounded-full border border-slate-200/80 bg-white/90 p-1.5 text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-900 dark:border-dark-700 dark:bg-dark-800/90 dark:text-dark-300 dark:hover:border-dark-600 dark:hover:text-white"
-                        :title="copiedModelName === card.model_name ? t('common.copied') : t('common.copy')"
-                        :aria-label="copiedModelName === card.model_name ? t('common.copied') : t('common.copy')"
-                        @click.stop="copyModelName(card.model_name)"
-                      >
-                        <Icon v-if="copiedModelName === card.model_name" name="check" size="xs" :stroke-width="2" />
-                        <Icon v-else name="copy" size="xs" :stroke-width="2" />
-                      </button>
-                    </div>
+                    <h3 class="mt-2 min-w-0 break-words text-[1.125rem] font-bold leading-snug text-slate-950 dark:text-white">
+                      {{ card.model_name }}
+                    </h3>
                   </div>
                   <span
                     class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold"
-                    :class="
-                      card.group_is_exclusive
-                        ? 'bg-slate-900 text-white dark:bg-primary-500 dark:text-white'
-                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
-                    "
+                    :class="pricingSourceBadgeClass(card.pricing_source)"
                   >
-                    {{
-                      card.group_is_exclusive
-                        ? t('modelMarketplace.exclusiveGroup', 'Exclusive')
-                        : t('modelMarketplace.publicGroup', 'Public')
-                    }}
+                    {{ pricingSourceLabel(card.pricing_source) }}
                   </span>
                 </div>
 
@@ -363,22 +346,45 @@
                   <span
                     class="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-800 dark:bg-sky-500/15 dark:text-sky-300"
                   >
-                    {{ card.subscription_type || '-' }}
+                    {{ billingTypeLabel(card.billing_type) }}
                   </span>
                   <span
                     class="rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-800 dark:bg-violet-500/15 dark:text-violet-300"
                   >
-                    {{ card.billing_type || t('modelMarketplace.unknownBilling', 'Unknown') }}
+                    {{ t('modelMarketplace.groupCount', '{count} 个分组').replace('{count}', String(card.groups.length)) }}
                   </span>
+                </div>
+
+                <div class="mt-6 rounded-[1.5rem] border border-slate-200/80 bg-slate-50/90 p-4 dark:border-dark-700 dark:bg-dark-950/70">
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-dark-400">
+                        {{ t('modelMarketplace.currentPrice', '现价') }}
+                      </p>
+                      <p class="mt-2 text-lg font-bold text-slate-950 dark:text-white">
+                        {{ formatPrimaryPrice(card.current_pricing, card.billing_type) }}
+                      </p>
+                      <p class="mt-1 text-xs text-slate-500 dark:text-dark-400">
+                        {{ primaryPriceLabel(card.current_pricing, card.billing_type) }}
+                      </p>
+                    </div>
+                    <div>
+                      <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-dark-400">
+                        {{ t('modelMarketplace.originalPrice', '原价') }}
+                      </p>
+                      <p class="mt-2 text-lg font-semibold text-slate-500 line-through dark:text-dark-400">
+                        {{ formatPrimaryPrice(card.original_pricing, card.billing_type) }}
+                      </p>
+                      <p class="mt-1 text-xs text-slate-500 dark:text-dark-400">
+                        {{ primaryPriceLabel(card.original_pricing, card.billing_type) }}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <dl class="mt-6 space-y-3 text-sm">
                   <div class="flex items-center justify-between gap-4">
-                    <dt class="text-slate-500 dark:text-dark-400">{{ t('availableChannels.columns.platform', 'Platform') }}</dt>
-                    <dd class="font-medium text-slate-900 dark:text-white">{{ card.platform }}</dd>
-                  </div>
-                  <div class="flex items-center justify-between gap-4">
-                    <dt class="text-slate-500 dark:text-dark-400">{{ t('modelMarketplace.groupLabel', '分组') }}</dt>
+                    <dt class="text-slate-500 dark:text-dark-400">{{ t('modelMarketplace.lowestPriceGroup', '最低展示价分组') }}</dt>
                     <dd class="font-medium text-slate-900 dark:text-white">{{ card.group_name }}</dd>
                   </div>
                   <div class="flex items-center justify-between gap-4">
@@ -387,54 +393,11 @@
                   </div>
                 </dl>
 
-                <div class="mt-6 rounded-2xl bg-slate-50 p-4 dark:bg-dark-950/70">
-                  <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-dark-400">
-                    {{ t('modelMarketplace.pricing', 'Pricing') }}
-                  </p>
-                  <div v-if="card.pricing" class="mt-3 space-y-2 text-sm text-slate-700 dark:text-dark-200">
-                    <p v-if="card.pricing.input_price != null">
-                      {{ t('modelMarketplace.inputPrice', 'Input') }}: {{ formatTokenPrice(card.pricing.input_price) }}
-                    </p>
-                    <p v-if="card.pricing.output_price != null">
-                      {{ t('modelMarketplace.outputPrice', 'Output') }}: {{ formatTokenPrice(card.pricing.output_price) }}
-                    </p>
-                    <p v-if="card.pricing.cache_write_price != null">
-                      {{ t('modelMarketplace.cacheWritePrice', 'Cache Write') }}:
-                      {{ formatTokenPrice(card.pricing.cache_write_price) }}
-                    </p>
-                    <p v-if="card.pricing.cache_read_price != null">
-                      {{ t('modelMarketplace.cacheReadPrice', 'Cache Read') }}:
-                      {{ formatTokenPrice(card.pricing.cache_read_price) }}
-                    </p>
-                    <p v-if="card.pricing.per_request_price != null">
-                      {{ t('modelMarketplace.requestPrice', 'Per Request') }}:
-                      {{ formatTokenPrice(card.pricing.per_request_price) }}
-                    </p>
-                    <p v-if="card.pricing.image_output_price != null">
-                      {{ t('modelMarketplace.imagePrice', 'Image Output') }}:
-                      {{ formatTokenPrice(card.pricing.image_output_price) }}
-                    </p>
-                    <details
-                      v-if="card.pricing.intervals.length > 0"
-                      class="group rounded-xl border border-slate-200 bg-white p-3 dark:border-dark-700 dark:bg-dark-900"
-                    >
-                      <summary class="cursor-pointer list-none text-sm font-medium text-slate-800 dark:text-white">
-                        {{ t('modelMarketplace.intervalPricing', 'Tier Pricing') }}
-                      </summary>
-                      <div class="mt-3 space-y-2 text-xs text-slate-600 dark:text-dark-300">
-                        <div
-                          v-for="interval in card.pricing.intervals"
-                          :key="`${interval.min_tokens}-${interval.max_tokens}-${interval.tier_label || ''}`"
-                          class="rounded-xl bg-slate-50 px-3 py-2 dark:bg-dark-950"
-                        >
-                          <p>{{ describeInterval(interval) }}</p>
-                        </div>
-                      </div>
-                    </details>
-                  </div>
-                  <p v-else class="mt-3 text-sm text-slate-500 dark:text-dark-400">
-                    {{ t('availableChannels.noPricing', 'No pricing configured') }}
-                  </p>
+                <div
+                  class="mt-6 flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 text-sm font-medium text-slate-700 transition group-hover:border-slate-300 group-hover:text-slate-900 dark:border-dark-700 dark:bg-dark-900/90 dark:text-dark-200 dark:group-hover:border-dark-500 dark:group-hover:text-white"
+                >
+                  <span>{{ t('modelMarketplace.viewDetails', '查看分组明细') }}</span>
+                  <Icon name="chevronRight" size="sm" />
                 </div>
               </article>
             </section>
@@ -442,12 +405,169 @@
         </section>
       </div>
     </main>
+
+    <transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="activeCard" class="fixed inset-0 z-[120]" @keydown.esc="closeCard">
+        <div class="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" @click="closeCard" />
+        <transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="translate-x-full"
+          enter-to-class="translate-x-0"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="translate-x-0"
+          leave-to-class="translate-x-full"
+        >
+          <aside
+            v-if="activeCard"
+            data-testid="marketplace-detail-drawer"
+            class="absolute inset-y-0 right-0 flex h-full w-full max-w-2xl flex-col border-l border-white/70 bg-white/96 shadow-[0_24px_80px_rgba(15,23,42,0.28)] backdrop-blur-xl dark:border-dark-700 dark:bg-dark-900/96 dark:shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
+            @click.stop
+          >
+            <div class="flex items-start justify-between gap-4 border-b border-slate-200/80 px-6 py-5 dark:border-dark-700">
+              <div class="min-w-0">
+                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-dark-400">
+                  {{ activeCard.platform }}
+                </p>
+                <div class="mt-2 flex items-start gap-2">
+                  <h3 class="break-words text-2xl font-bold text-slate-950 dark:text-white">
+                    {{ activeCard.model_name }}
+                  </h3>
+                  <button
+                    type="button"
+                    :data-testid="`copy-model-name-${activeCard.model_name}`"
+                    class="mt-1 shrink-0 rounded-full border border-slate-200/80 bg-white/90 p-1.5 text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-900 dark:border-dark-700 dark:bg-dark-800/90 dark:text-dark-300 dark:hover:border-dark-600 dark:hover:text-white"
+                    :title="copiedModelName === activeCard.model_name ? t('common.copied') : t('common.copy')"
+                    :aria-label="copiedModelName === activeCard.model_name ? t('common.copied') : t('common.copy')"
+                    @click.stop="copyModelName(activeCard.model_name)"
+                  >
+                    <Icon v-if="copiedModelName === activeCard.model_name" name="check" size="xs" :stroke-width="2" />
+                    <Icon v-else name="copy" size="xs" :stroke-width="2" />
+                  </button>
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <span
+                    class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                  >
+                    {{ t('modelMarketplace.groupCount', '{count} 个分组').replace('{count}', String(activeCard.groups.length)) }}
+                  </span>
+                  <span
+                    class="rounded-full px-3 py-1 text-xs font-medium"
+                    :class="billingTypeBadgeClass(activeCard.billing_type)"
+                  >
+                    {{ billingTypeLabel(activeCard.billing_type) }}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="rounded-full border border-slate-200/80 bg-white/90 p-2 text-slate-500 shadow-sm transition hover:border-slate-300 hover:text-slate-900 dark:border-dark-700 dark:bg-dark-800/90 dark:text-dark-300 dark:hover:border-dark-600 dark:hover:text-white"
+                :aria-label="t('common.close', 'Close')"
+                @click="closeCard"
+              >
+                <Icon name="x" size="sm" />
+              </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto px-6 py-5">
+              <div class="space-y-4">
+                <article
+                  v-for="group in activeCard.groups"
+                  :key="`${group.group_id}-${group.model_name}`"
+                  class="rounded-[1.5rem] border border-slate-200/80 bg-white/92 p-5 shadow-sm dark:border-dark-700 dark:bg-dark-950/70"
+                >
+                  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h4 class="text-lg font-semibold text-slate-950 dark:text-white">{{ group.group_name }}</h4>
+                      <div class="mt-3 flex flex-wrap gap-2">
+                        <span
+                          class="rounded-full px-3 py-1 text-xs font-medium"
+                          :class="billingTypeBadgeClass(group.billing_type)"
+                        >
+                          {{ billingTypeLabel(group.billing_type) }}
+                        </span>
+                        <span
+                          class="rounded-full px-3 py-1 text-xs font-medium"
+                          :class="pricingSourceBadgeClass(group.pricing_source)"
+                        >
+                          {{ pricingSourceLabel(group.pricing_source) }}
+                        </span>
+                        <span
+                          class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-dark-800 dark:text-dark-200"
+                        >
+                          {{ group.subscription_type || '-' }}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="text-sm text-slate-500 dark:text-dark-400">
+                      {{ t('modelMarketplace.groupRate', 'Rate') }}: {{ formatRate(group.group_rate) }}
+                    </div>
+                  </div>
+
+                  <div class="mt-5 grid gap-3 md:grid-cols-2">
+                    <section class="rounded-2xl border border-slate-200/80 bg-slate-50/90 p-4 dark:border-dark-700 dark:bg-dark-900/70">
+                      <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-dark-400">
+                        {{ t('modelMarketplace.originalPrice', '原价') }}
+                      </p>
+                      <div v-if="buildPricingLines(group.original_pricing).length > 0" class="mt-3 space-y-2 text-sm">
+                        <div
+                          v-for="line in buildPricingLines(group.original_pricing)"
+                          :key="`${group.group_id}-original-${line.label}`"
+                          class="flex items-center justify-between gap-4"
+                        >
+                          <span class="text-slate-500 dark:text-dark-400">{{ line.label }}</span>
+                          <span class="text-right font-medium text-slate-900 dark:text-white">{{ line.value }}</span>
+                        </div>
+                      </div>
+                      <p v-else class="mt-3 text-sm text-slate-500 dark:text-dark-400">
+                        {{ t('availableChannels.noPricing', 'No pricing configured') }}
+                      </p>
+                    </section>
+
+                    <section class="rounded-2xl border border-amber-200/80 bg-amber-50/80 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
+                      <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
+                        {{ t('modelMarketplace.currentPrice', '现价') }}
+                      </p>
+                      <div v-if="buildPricingLines(group.current_pricing).length > 0" class="mt-3 space-y-2 text-sm">
+                        <div
+                          v-for="line in buildPricingLines(group.current_pricing)"
+                          :key="`${group.group_id}-current-${line.label}`"
+                          class="flex items-center justify-between gap-4"
+                        >
+                          <span class="text-amber-700/80 dark:text-amber-200/80">{{ line.label }}</span>
+                          <span class="text-right font-semibold text-slate-950 dark:text-white">{{ line.value }}</span>
+                        </div>
+                      </div>
+                      <p v-else class="mt-3 text-sm text-amber-700/80 dark:text-amber-200/80">
+                        {{ t('modelMarketplace.priceUnavailable', '暂无价格') }}
+                      </p>
+                    </section>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </aside>
+        </transition>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import {
+  BILLING_MODE_IMAGE,
+  BILLING_MODE_PER_REQUEST,
+  BILLING_MODE_TOKEN,
+} from '@/constants/channel'
 import Icon from '@/components/icons/Icon.vue'
 import { useClipboard } from '@/composables/useClipboard'
 import { useAppStore } from '@/stores/app'
@@ -455,6 +575,7 @@ import { useAuthStore } from '@/stores/auth'
 import { formatScaled } from '@/utils/pricing'
 import modelMarketplaceAPI, {
   type ModelMarketplaceCard,
+  type ModelMarketplacePricing,
   type ModelMarketplacePricingInterval,
 } from '@/api/modelMarketplace'
 import { extractApiErrorMessage } from '@/utils/apiError'
@@ -462,6 +583,16 @@ import { extractApiErrorMessage } from '@/utils/apiError'
 type FilterEntry = {
   value: string
   count: number
+}
+
+type PriceSummaryLine = {
+  label: string
+  value: string
+}
+
+type PriceDescriptor = {
+  field: 'input_price' | 'output_price' | 'cache_write_price' | 'cache_read_price' | 'image_output_price' | 'per_request_price'
+  value: number
 }
 
 const { t } = useI18n()
@@ -476,6 +607,7 @@ const selectedGroup = ref('')
 const selectedPlatform = ref('')
 const selectedBillingType = ref('')
 const copiedModelName = ref('')
+const activeCardKey = ref('')
 
 const siteName = computed(() => appStore.siteName || 'Sub2API')
 const siteLogo = computed(() => appStore.siteLogo || '')
@@ -483,13 +615,17 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
 const dashboardPath = computed(() => (authStore.isAdmin ? '/admin/dashboard' : '/dashboard'))
 
 const groupOptions = computed(() =>
-  Array.from(new Set(cards.value.map((card) => card.group_name))).sort((a, b) => a.localeCompare(b)),
+  Array.from(
+    new Set(cards.value.flatMap((card) => card.groups.map((group) => group.group_name))),
+  ).sort((a, b) => a.localeCompare(b)),
 )
 const platformOptions = computed(() =>
   Array.from(new Set(cards.value.map((card) => card.platform))).sort((a, b) => a.localeCompare(b)),
 )
 const billingTypeOptions = computed(() =>
-  Array.from(new Set(cards.value.map((card) => card.billing_type).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+  Array.from(
+    new Set(cards.value.flatMap((card) => card.groups.map((group) => normalizeBillingType(group.billing_type))).filter(Boolean)),
+  ).sort((a, b) => a.localeCompare(b)),
 )
 
 const hasCategoryFilters = computed(
@@ -507,23 +643,21 @@ const normalizedSearchQuery = computed(() => searchQuery.value.trim().toLowerCas
 const searchedCards = computed(() => {
   const query = normalizedSearchQuery.value
   if (!query) return cards.value
-  return cards.value.filter((card) => card.model_name.toLowerCase().includes(query))
+  return cards.value.filter((card) => marketplaceSearchText(card).includes(query))
 })
 
 const filteredCards = computed(() =>
-  searchedCards.value.filter((card) => {
-    if (selectedGroup.value && card.group_name !== selectedGroup.value) return false
-    if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
-    if (selectedBillingType.value && card.billing_type !== selectedBillingType.value) return false
-    return true
-  }),
+  searchedCards.value
+    .filter((card) => cardMatchesSelectedFilters(card))
+    .slice()
+    .sort((left, right) => compareCardsByDisplayPrice(left, right)),
 )
 
 const groupAllCount = computed(
   () =>
     searchedCards.value.filter((card) => {
       if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
-      if (selectedBillingType.value && card.billing_type !== selectedBillingType.value) return false
+      if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
       return true
     }).length,
 )
@@ -531,8 +665,8 @@ const groupAllCount = computed(
 const platformAllCount = computed(
   () =>
     searchedCards.value.filter((card) => {
-      if (selectedGroup.value && card.group_name !== selectedGroup.value) return false
-      if (selectedBillingType.value && card.billing_type !== selectedBillingType.value) return false
+      if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
+      if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
       return true
     }).length,
 )
@@ -540,54 +674,139 @@ const platformAllCount = computed(
 const billingTypeAllCount = computed(
   () =>
     searchedCards.value.filter((card) => {
-      if (selectedGroup.value && card.group_name !== selectedGroup.value) return false
+      if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
       if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
       return true
     }).length,
 )
 
 const groupEntries = computed<FilterEntry[]>(() =>
-  buildEntries(groupOptions.value, (card) => {
-    if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
-    if (selectedBillingType.value && card.billing_type !== selectedBillingType.value) return false
-    return true
-  }, 'group_name'),
+  groupOptions.value.map((value) => ({
+    value,
+    count: searchedCards.value.filter((card) => {
+      if (!cardBelongsToGroup(card, value)) return false
+      if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
+      if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
+      return true
+    }).length,
+  })),
 )
 
 const platformEntries = computed<FilterEntry[]>(() =>
-  buildEntries(platformOptions.value, (card) => {
-    if (selectedGroup.value && card.group_name !== selectedGroup.value) return false
-    if (selectedBillingType.value && card.billing_type !== selectedBillingType.value) return false
-    return true
-  }, 'platform'),
+  platformOptions.value.map((value) => ({
+    value,
+    count: searchedCards.value.filter((card) => {
+      if (card.platform !== value) return false
+      if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
+      if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
+      return true
+    }).length,
+  })),
 )
 
 const billingTypeEntries = computed<FilterEntry[]>(() =>
-  buildEntries(billingTypeOptions.value, (card) => {
-    if (selectedGroup.value && card.group_name !== selectedGroup.value) return false
-    if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
-    return true
-  }, 'billing_type'),
+  billingTypeOptions.value.map((value) => ({
+    value,
+    count: searchedCards.value.filter((card) => {
+      if (!cardHasBillingType(card, value)) return false
+      if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
+      if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
+      return true
+    }).length,
+  })),
 )
 
-function buildEntries(
-  options: string[],
-  predicate: (card: ModelMarketplaceCard) => boolean,
-  field: 'group_name' | 'platform' | 'billing_type',
-): FilterEntry[] {
-  const countMap = new Map<string, number>()
+const activeCard = computed(() => {
+  if (!activeCardKey.value) return null
+  return cards.value.find((card) => cardKey(card) === activeCardKey.value) ?? null
+})
 
-  searchedCards.value.forEach((card) => {
-    if (!predicate(card)) return
-    const value = card[field]
-    if (!value) return
-    countMap.set(value, (countMap.get(value) || 0) + 1)
-  })
+function cardKey(card: Pick<ModelMarketplaceCard, 'platform' | 'model_name'>): string {
+  return `${card.platform}::${card.model_name}`.toLowerCase()
+}
 
-  return options.map((value) => ({
-    value,
-    count: countMap.get(value) || 0,
-  }))
+function marketplaceSearchText(card: ModelMarketplaceCard): string {
+  return [
+    card.model_name,
+    card.platform,
+    card.group_name,
+    ...card.groups.map((group) => group.group_name),
+  ]
+    .join(' ')
+    .toLowerCase()
+}
+
+function cardMatchesSelectedFilters(card: ModelMarketplaceCard): boolean {
+  if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
+  if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
+  if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
+  return true
+}
+
+function cardBelongsToGroup(card: ModelMarketplaceCard, groupName: string): boolean {
+  return card.groups.some((group) => group.group_name === groupName)
+}
+
+function cardHasBillingType(card: ModelMarketplaceCard, billingType: string): boolean {
+  return card.groups.some((group) => normalizeBillingType(group.billing_type) === billingType)
+}
+
+function compareCardsByDisplayPrice(left: ModelMarketplaceCard, right: ModelMarketplaceCard): number {
+  const leftPrice = primaryPriceDescriptor(left.current_pricing, left.billing_type)?.value
+  const rightPrice = primaryPriceDescriptor(right.current_pricing, right.billing_type)?.value
+
+  if (leftPrice == null && rightPrice != null) return 1
+  if (leftPrice != null && rightPrice == null) return -1
+  if (leftPrice != null && rightPrice != null && leftPrice !== rightPrice) {
+    return leftPrice - rightPrice
+  }
+  if (left.platform !== right.platform) return left.platform.localeCompare(right.platform)
+  return left.model_name.localeCompare(right.model_name)
+}
+
+function normalizeBillingType(mode: string | null | undefined): string {
+  switch (mode) {
+    case BILLING_MODE_PER_REQUEST:
+      return BILLING_MODE_PER_REQUEST
+    case BILLING_MODE_IMAGE:
+      return BILLING_MODE_IMAGE
+    default:
+      return BILLING_MODE_TOKEN
+  }
+}
+
+function billingTypeLabel(mode: string | null | undefined): string {
+  switch (normalizeBillingType(mode)) {
+    case BILLING_MODE_PER_REQUEST:
+      return t('modelMarketplace.billingModePerRequest', '按次计费')
+    case BILLING_MODE_IMAGE:
+      return t('modelMarketplace.billingModeImage', '按次计费(图片)')
+    default:
+      return t('modelMarketplace.billingModeToken', '按量计费(tokens)')
+  }
+}
+
+function billingTypeBadgeClass(mode: string | null | undefined): string {
+  switch (normalizeBillingType(mode)) {
+    case BILLING_MODE_PER_REQUEST:
+      return 'bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300'
+    case BILLING_MODE_IMAGE:
+      return 'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300'
+    default:
+      return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300'
+  }
+}
+
+function pricingSourceLabel(source: string): string {
+  return source === 'channel'
+    ? t('modelMarketplace.pricingSourceChannel', '渠道定价')
+    : t('modelMarketplace.pricingSourceGroup', '分组现价')
+}
+
+function pricingSourceBadgeClass(source: string): string {
+  return source === 'channel'
+    ? 'bg-slate-900 text-white dark:bg-primary-500 dark:text-white'
+    : 'bg-white text-slate-700 ring-1 ring-inset ring-slate-200 dark:bg-dark-800 dark:text-dark-200 dark:ring-dark-600'
 }
 
 function toggleGroup(value: string) {
@@ -608,24 +827,158 @@ function resetCategoryFilters() {
   selectedBillingType.value = ''
 }
 
-function formatTokenPrice(value: number | null): string {
+function formatTokenPrice(value: number | null | undefined): string {
   if (value == null) return '-'
   return `${formatScaled(value, 1_000_000)} / 1M Tokens`
+}
+
+function formatRequestPrice(value: number | null | undefined): string {
+  if (value == null) return '-'
+  return `${formatScaled(value, 1)} ${t('modelMarketplace.unitPerRequest', '/ 次')}`
+}
+
+function formatFieldPrice(field: PriceDescriptor['field'], value: number): string {
+  if (field === 'per_request_price') {
+    return formatRequestPrice(value)
+  }
+  return formatTokenPrice(value)
+}
+
+function formatPrimaryPrice(pricing: ModelMarketplacePricing | null, billingType: string): string {
+  const descriptor = primaryPriceDescriptor(pricing, billingType)
+  if (!descriptor) return t('modelMarketplace.priceUnavailable', '暂无价格')
+  return formatFieldPrice(descriptor.field, descriptor.value)
+}
+
+function primaryPriceLabel(pricing: ModelMarketplacePricing | null, billingType: string): string {
+  const descriptor = primaryPriceDescriptor(pricing, billingType)
+  if (!descriptor) return t('modelMarketplace.priceUnavailable', '暂无价格')
+  return fieldLabel(descriptor.field)
+}
+
+function primaryPriceDescriptor(pricing: ModelMarketplacePricing | null, billingType: string): PriceDescriptor | null {
+  if (!pricing) return null
+
+  const directFields =
+    normalizeBillingType(billingType) === BILLING_MODE_TOKEN
+      ? ['input_price', 'output_price', 'cache_write_price', 'cache_read_price', 'image_output_price']
+      : ['per_request_price']
+
+  for (const field of directFields as PriceDescriptor['field'][]) {
+    const value = pricing[field]
+    if (value != null) {
+      return { field, value }
+    }
+  }
+
+  const intervalCandidate = pricing.intervals
+    .map((interval) => intervalPriceDescriptor(interval, billingType))
+    .filter((entry): entry is PriceDescriptor => entry !== null)
+    .sort((left, right) => left.value - right.value)[0]
+
+  if (intervalCandidate) {
+    return intervalCandidate
+  }
+
+  for (const field of ['output_price', 'cache_write_price', 'cache_read_price', 'image_output_price'] as PriceDescriptor['field'][]) {
+    const value = pricing[field]
+    if (value != null) {
+      return { field, value }
+    }
+  }
+
+  return null
+}
+
+function intervalPriceDescriptor(
+  interval: ModelMarketplacePricingInterval,
+  billingType: string,
+): PriceDescriptor | null {
+  if (normalizeBillingType(billingType) !== BILLING_MODE_TOKEN && interval.per_request_price != null) {
+    return { field: 'per_request_price', value: interval.per_request_price }
+  }
+
+  for (const field of ['input_price', 'output_price', 'cache_write_price', 'cache_read_price', 'per_request_price'] as const) {
+    const value = interval[field]
+    if (value != null) {
+      return { field, value }
+    }
+  }
+
+  return null
+}
+
+function fieldLabel(field: PriceDescriptor['field']): string {
+  switch (field) {
+    case 'output_price':
+      return t('modelMarketplace.outputPrice', '输出')
+    case 'cache_write_price':
+      return t('modelMarketplace.cacheWritePrice', '缓存写入')
+    case 'cache_read_price':
+      return t('modelMarketplace.cacheReadPrice', '缓存读取')
+    case 'image_output_price':
+      return t('modelMarketplace.imagePrice', '图片输出')
+    case 'per_request_price':
+      return t('modelMarketplace.requestPrice', '按次')
+    default:
+      return t('modelMarketplace.inputPrice', '输入')
+  }
+}
+
+function buildPricingLines(pricing: ModelMarketplacePricing | null): PriceSummaryLine[] {
+  if (!pricing) return []
+
+  const lines: PriceSummaryLine[] = []
+  const directFields: PriceDescriptor['field'][] = [
+    'input_price',
+    'output_price',
+    'cache_write_price',
+    'cache_read_price',
+    'per_request_price',
+    'image_output_price',
+  ]
+
+  directFields.forEach((field) => {
+    const value = pricing[field]
+    if (value == null) return
+    lines.push({
+      label: fieldLabel(field),
+      value: formatFieldPrice(field, value),
+    })
+  })
+
+  if (pricing.intervals.length === 0) {
+    return lines
+  }
+
+  pricing.intervals.forEach((interval) => {
+    const descriptor = intervalPriceDescriptor(interval, pricing.billing_mode)
+    if (!descriptor) return
+    lines.push({
+      label: `${t('modelMarketplace.intervalPricing', '区间价格')} ${intervalLabel(interval)}`,
+      value: formatFieldPrice(descriptor.field, descriptor.value),
+    })
+  })
+
+  return lines
+}
+
+function intervalLabel(interval: ModelMarketplacePricingInterval): string {
+  if (interval.tier_label) return interval.tier_label
+  const upper = interval.max_tokens == null ? 'max' : String(interval.max_tokens)
+  return `${interval.min_tokens}-${upper}`
 }
 
 function formatRate(value: number): string {
   return `${value.toFixed(2)}x`
 }
 
-function describeInterval(interval: ModelMarketplacePricingInterval): string {
-  const upper = interval.max_tokens == null ? 'max' : interval.max_tokens
-  const price =
-    interval.per_request_price ??
-    interval.input_price ??
-    interval.output_price ??
-    interval.cache_write_price ??
-    interval.cache_read_price
-  return `${interval.tier_label || `${interval.min_tokens}-${upper}`} - ${formatTokenPrice(price ?? null)}`
+function openCard(card: ModelMarketplaceCard) {
+  activeCardKey.value = cardKey(card)
+}
+
+function closeCard() {
+  activeCardKey.value = ''
 }
 
 async function copyModelName(modelName: string) {
@@ -643,6 +996,9 @@ async function loadMarketplace() {
   loading.value = true
   try {
     cards.value = await modelMarketplaceAPI.getModelMarketplace()
+    if (activeCardKey.value && !cards.value.some((card) => cardKey(card) === activeCardKey.value)) {
+      activeCardKey.value = ''
+    }
   } catch (error) {
     appStore.showError(extractApiErrorMessage(error, t('common.error')))
   } finally {

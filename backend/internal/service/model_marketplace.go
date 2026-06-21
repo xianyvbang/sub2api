@@ -2,13 +2,38 @@ package service
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 )
 
-// ModelMarketplaceCard is a flattened, user-facing record for one
-// group + platform + model combination.
+const (
+	ModelMarketplacePricingSourceChannel = "channel"
+	ModelMarketplacePricingSourceGroup   = "group"
+)
+
+// ModelMarketplaceGroupOffer is one concrete group offer for a model.
+// It carries both the original/base price and the displayed current price.
+type ModelMarketplaceGroupOffer struct {
+	GroupID          int64
+	GroupName        string
+	GroupPlatform    string
+	GroupRate        float64
+	GroupIsExclusive bool
+	SubscriptionType string
+	ModelName        string
+	Platform         string
+	BillingType      string
+	PricingSource    string
+	OriginalPricing  *ChannelModelPricing
+	CurrentPricing   *ChannelModelPricing
+}
+
+// ModelMarketplaceCard is the aggregated marketplace card for one
+// platform + model pair.
+//
+// The top-level group fields always point at the representative offer,
+// which is selected by the lowest displayed current price.
 type ModelMarketplaceCard struct {
 	GroupID          int64
 	GroupName        string
@@ -19,7 +44,10 @@ type ModelMarketplaceCard struct {
 	ModelName        string
 	Platform         string
 	BillingType      string
-	Pricing          *ChannelModelPricing
+	PricingSource    string
+	OriginalPricing  *ChannelModelPricing
+	CurrentPricing   *ChannelModelPricing
+	Groups           []ModelMarketplaceGroupOffer
 }
 
 // ModelMarketplaceRuntime is the lightweight view of the public model marketplace switches.
@@ -47,11 +75,10 @@ func (s *SettingService) GetModelMarketplaceRuntime(ctx context.Context) ModelMa
 	}
 }
 
-// ListModelMarketplace returns one record per group + platform + model.
+// ListModelMarketplace returns one aggregated card per platform + model.
 //
-// The marketplace is group-driven: it enumerates the visible groups, groups them by
-// platform, then expands all catalog models for each platform. Pricing is sourced from
-// the global pricing catalog, not channel pricing rows.
+// Each card keeps the cheapest offer as its representative row and includes
+// every matched group in Groups for the detail drawer.
 func (s *ChannelService) ListModelMarketplace(
 	ctx context.Context,
 	visibleGroups []Group,
@@ -60,9 +87,15 @@ func (s *ChannelService) ListModelMarketplace(
 		return []ModelMarketplaceCard{}, nil
 	}
 
-	groupsByPlatform := make(map[string][]Group)
-	platforms := make([]string, 0)
-	seenPlatforms := make(map[string]struct{})
+	globalModelNamesByPlatform := make(map[string][]string)
+
+	type rowKey struct {
+		groupID   int64
+		modelName string
+	}
+	seenRows := make(map[rowKey]struct{})
+	rows := make([]ModelMarketplaceGroupOffer, 0)
+
 	for _, group := range visibleGroups {
 		if group.Status != "" && group.Status != StatusActive {
 			continue
@@ -71,104 +104,404 @@ func (s *ChannelService) ListModelMarketplace(
 		if platform == "" || strings.TrimSpace(group.Name) == "" {
 			continue
 		}
-		groupsByPlatform[platform] = append(groupsByPlatform[platform], group)
-		if _, ok := seenPlatforms[platform]; ok {
-			continue
-		}
-		seenPlatforms[platform] = struct{}{}
-		platforms = append(platforms, platform)
-	}
-	if len(groupsByPlatform) == 0 {
-		return []ModelMarketplaceCard{}, nil
-	}
 
-	sort.Strings(platforms)
-
-	modelNamesByPlatform := make(map[string][]string, len(platforms))
-	pricingByModelName := make(map[string]*ChannelModelPricing)
-	for _, platform := range platforms {
-		provider := marketplacePricingProviderForPlatform(platform)
-		modelNames := s.pricingService.ListModelNamesByProvider(provider)
-		if len(modelNames) == 0 {
-			continue
-		}
-		modelNamesByPlatform[platform] = modelNames
+		modelNames := s.listMarketplaceModelNamesForGroup(ctx, group, globalModelNamesByPlatform)
 		for _, modelName := range modelNames {
 			modelKey := strings.ToLower(strings.TrimSpace(modelName))
 			if modelKey == "" {
 				continue
 			}
-			if _, exists := pricingByModelName[modelKey]; exists {
+			key := rowKey{groupID: group.ID, modelName: modelKey}
+			if _, exists := seenRows[key]; exists {
 				continue
 			}
-			lp := s.pricingService.GetModelPricing(modelName)
-			if lp == nil {
-				continue
-			}
-			pricingByModelName[modelKey] = synthesizePricingFromLiteLLM(lp, nil)
+			seenRows[key] = struct{}{}
+			rows = append(rows, s.buildMarketplaceGroupOffer(ctx, group, modelName))
 		}
 	}
 
-	type dedupKey struct {
-		groupID   int64
-		modelName string
+	if len(rows) == 0 {
+		return []ModelMarketplaceCard{}, nil
 	}
-	seen := make(map[dedupKey]struct{})
-	out := make([]ModelMarketplaceCard, 0)
 
-	for _, platform := range platforms {
-		modelNames := modelNamesByPlatform[platform]
-		if len(modelNames) == 0 {
+	return aggregateMarketplaceRows(rows), nil
+}
+
+func (s *ChannelService) listMarketplaceModelNamesForGroup(
+	ctx context.Context,
+	group Group,
+	globalModelNamesByPlatform map[string][]string,
+) []string {
+	platform := strings.ToLower(strings.TrimSpace(group.Platform))
+	if platform == "" {
+		return nil
+	}
+
+	globalNames, ok := globalModelNamesByPlatform[platform]
+	if !ok {
+		provider := marketplacePricingProviderForPlatform(platform)
+		globalNames = s.pricingService.ListModelNamesByProvider(provider)
+		globalModelNamesByPlatform[platform] = globalNames
+	}
+
+	ch, err := s.GetChannelForGroup(ctx, group.ID)
+	if err != nil {
+		slog.Warn("list marketplace group models: failed to load group channel",
+			"group_id", group.ID,
+			"group_name", group.Name,
+			"error", err)
+	}
+
+	channelNames := make([]string, 0)
+	if ch != nil {
+		supported := ch.SupportedModels()
+		s.fillGlobalPricingFallback(supported)
+		for _, model := range supported {
+			if !strings.EqualFold(strings.TrimSpace(model.Platform), platform) {
+				continue
+			}
+			channelNames = append(channelNames, model.Name)
+		}
+	}
+
+	if ch != nil && ch.RestrictModels && len(channelNames) > 0 {
+		return dedupeAndSortMarketplaceNames(channelNames)
+	}
+
+	combined := make([]string, 0, len(globalNames)+len(channelNames))
+	combined = append(combined, globalNames...)
+	combined = append(combined, channelNames...)
+	return dedupeAndSortMarketplaceNames(combined)
+}
+
+func dedupeAndSortMarketplaceNames(names []string) []string {
+	seen := make(map[string]string)
+	for _, name := range names {
+		trimmed := strings.TrimSpace(name)
+		if trimmed == "" {
 			continue
 		}
-		for _, group := range groupsByPlatform[platform] {
-			for _, modelName := range modelNames {
-				modelKey := strings.ToLower(strings.TrimSpace(modelName))
-				if modelKey == "" {
-					continue
-				}
-				key := dedupKey{groupID: group.ID, modelName: modelKey}
-				if _, exists := seen[key]; exists {
-					continue
-				}
-				seen[key] = struct{}{}
+		lower := strings.ToLower(trimmed)
+		if _, exists := seen[lower]; exists {
+			continue
+		}
+		seen[lower] = trimmed
+	}
 
-				pricing := pricingByModelName[modelKey]
-				billingType := ""
-				if pricing != nil {
-					billingType = string(pricing.BillingMode)
-					if billingType == "" {
-						billingType = string(BillingModeToken)
-					}
-				}
+	out := make([]string, 0, len(seen))
+	for _, original := range seen {
+		out = append(out, original)
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		return strings.ToLower(out[i]) < strings.ToLower(out[j])
+	})
+	return out
+}
 
-				out = append(out, ModelMarketplaceCard{
-					GroupID:          group.ID,
-					GroupName:        group.Name,
-					GroupPlatform:    group.Platform,
-					GroupRate:        group.RateMultiplier,
-					GroupIsExclusive: group.IsExclusive,
-					SubscriptionType: group.SubscriptionType,
-					ModelName:        modelName,
-					Platform:         group.Platform,
-					BillingType:      billingType,
-					Pricing:          pricing,
-				})
-			}
+func (s *ChannelService) buildMarketplaceGroupOffer(
+	ctx context.Context,
+	group Group,
+	modelName string,
+) ModelMarketplaceGroupOffer {
+	channelPricing := s.GetChannelModelPricing(ctx, group.ID, modelName)
+
+	pricingSource := ModelMarketplacePricingSourceGroup
+	var originalPricing *ChannelModelPricing
+	var currentPricing *ChannelModelPricing
+
+	switch {
+	case marketplaceHasExplicitChannelPricing(channelPricing):
+		pricingSource = ModelMarketplacePricingSourceChannel
+		originalPricing = normalizeMarketplacePricing(channelPricing)
+		currentPricing = cloneMarketplacePricing(originalPricing)
+	default:
+		originalPricing = s.marketplaceBasePricing(modelName, channelPricing)
+		currentPricing = scaleMarketplacePricing(originalPricing, group.RateMultiplier)
+	}
+
+	billingType := marketplaceBillingType(channelPricing, originalPricing, currentPricing)
+
+	return ModelMarketplaceGroupOffer{
+		GroupID:          group.ID,
+		GroupName:        group.Name,
+		GroupPlatform:    group.Platform,
+		GroupRate:        group.RateMultiplier,
+		GroupIsExclusive: group.IsExclusive,
+		SubscriptionType: group.SubscriptionType,
+		ModelName:        modelName,
+		Platform:         group.Platform,
+		BillingType:      billingType,
+		PricingSource:    pricingSource,
+		OriginalPricing:  originalPricing,
+		CurrentPricing:   currentPricing,
+	}
+}
+
+func marketplaceHasExplicitChannelPricing(pricing *ChannelModelPricing) bool {
+	return pricing != nil && !pricingNeedsFallback(pricing)
+}
+
+func (s *ChannelService) marketplaceBasePricing(modelName string, existing *ChannelModelPricing) *ChannelModelPricing {
+	var lp *LiteLLMModelPricing
+	if s.pricingService != nil {
+		lp = s.pricingService.GetModelPricing(modelName)
+	}
+	return normalizeMarketplacePricing(synthesizePricingFromLiteLLM(lp, existing))
+}
+
+func normalizeMarketplacePricing(pricing *ChannelModelPricing) *ChannelModelPricing {
+	if pricing == nil {
+		return nil
+	}
+	cp := pricing.Clone()
+	if cp.BillingMode == "" {
+		cp.BillingMode = BillingModeToken
+	}
+	return &cp
+}
+
+func cloneMarketplacePricing(pricing *ChannelModelPricing) *ChannelModelPricing {
+	if pricing == nil {
+		return nil
+	}
+	cp := pricing.Clone()
+	return &cp
+}
+
+func scaleMarketplacePricing(pricing *ChannelModelPricing, factor float64) *ChannelModelPricing {
+	if pricing == nil {
+		return nil
+	}
+	if factor < 0 {
+		factor = 0
+	}
+
+	cp := pricing.Clone()
+	if cp.BillingMode == "" {
+		cp.BillingMode = BillingModeToken
+	}
+	cp.InputPrice = scaleMarketplacePricePtr(cp.InputPrice, factor)
+	cp.OutputPrice = scaleMarketplacePricePtr(cp.OutputPrice, factor)
+	cp.CacheWritePrice = scaleMarketplacePricePtr(cp.CacheWritePrice, factor)
+	cp.CacheReadPrice = scaleMarketplacePricePtr(cp.CacheReadPrice, factor)
+	cp.ImageOutputPrice = scaleMarketplacePricePtr(cp.ImageOutputPrice, factor)
+	cp.PerRequestPrice = scaleMarketplacePricePtr(cp.PerRequestPrice, factor)
+	for i := range cp.Intervals {
+		cp.Intervals[i].InputPrice = scaleMarketplacePricePtr(cp.Intervals[i].InputPrice, factor)
+		cp.Intervals[i].OutputPrice = scaleMarketplacePricePtr(cp.Intervals[i].OutputPrice, factor)
+		cp.Intervals[i].CacheWritePrice = scaleMarketplacePricePtr(cp.Intervals[i].CacheWritePrice, factor)
+		cp.Intervals[i].CacheReadPrice = scaleMarketplacePricePtr(cp.Intervals[i].CacheReadPrice, factor)
+		cp.Intervals[i].PerRequestPrice = scaleMarketplacePricePtr(cp.Intervals[i].PerRequestPrice, factor)
+	}
+	return &cp
+}
+
+func scaleMarketplacePricePtr(value *float64, factor float64) *float64 {
+	if value == nil {
+		return nil
+	}
+	scaled := *value * factor
+	return &scaled
+}
+
+func marketplaceBillingType(pricings ...*ChannelModelPricing) string {
+	for _, pricing := range pricings {
+		if pricing == nil {
+			continue
+		}
+		mode := pricing.BillingMode
+		if mode == "" {
+			mode = BillingModeToken
+		}
+		return string(mode)
+	}
+	return string(BillingModeToken)
+}
+
+func aggregateMarketplaceRows(rows []ModelMarketplaceGroupOffer) []ModelMarketplaceCard {
+	type cardKey struct {
+		platform string
+		model    string
+	}
+
+	grouped := make(map[cardKey][]ModelMarketplaceGroupOffer)
+	for _, row := range rows {
+		key := cardKey{
+			platform: strings.ToLower(strings.TrimSpace(row.Platform)),
+			model:    strings.ToLower(strings.TrimSpace(row.ModelName)),
+		}
+		grouped[key] = append(grouped[key], row)
+	}
+
+	cards := make([]ModelMarketplaceCard, 0, len(grouped))
+	for _, offers := range grouped {
+		sortMarketplaceOffers(offers)
+		rep := pickMarketplaceRepresentative(offers)
+		cards = append(cards, ModelMarketplaceCard{
+			GroupID:          rep.GroupID,
+			GroupName:        rep.GroupName,
+			GroupPlatform:    rep.GroupPlatform,
+			GroupRate:        rep.GroupRate,
+			GroupIsExclusive: rep.GroupIsExclusive,
+			SubscriptionType: rep.SubscriptionType,
+			ModelName:        rep.ModelName,
+			Platform:         rep.Platform,
+			BillingType:      rep.BillingType,
+			PricingSource:    rep.PricingSource,
+			OriginalPricing:  cloneMarketplacePricing(rep.OriginalPricing),
+			CurrentPricing:   cloneMarketplacePricing(rep.CurrentPricing),
+			Groups:           cloneMarketplaceOffers(offers),
+		})
+	}
+
+	sortMarketplaceCards(cards)
+	return cards
+}
+
+func cloneMarketplaceOffers(offers []ModelMarketplaceGroupOffer) []ModelMarketplaceGroupOffer {
+	out := make([]ModelMarketplaceGroupOffer, 0, len(offers))
+	for _, offer := range offers {
+		cp := offer
+		cp.OriginalPricing = cloneMarketplacePricing(offer.OriginalPricing)
+		cp.CurrentPricing = cloneMarketplacePricing(offer.CurrentPricing)
+		out = append(out, cp)
+	}
+	return out
+}
+
+func sortMarketplaceOffers(offers []ModelMarketplaceGroupOffer) {
+	sort.SliceStable(offers, func(i, j int) bool {
+		leftPrice, leftOK := marketplaceDisplayPrice(offers[i].CurrentPricing, offers[i].BillingType)
+		rightPrice, rightOK := marketplaceDisplayPrice(offers[j].CurrentPricing, offers[j].BillingType)
+
+		if leftOK != rightOK {
+			return leftOK
+		}
+		if leftOK && rightOK && leftPrice != rightPrice {
+			return leftPrice < rightPrice
+		}
+		if offers[i].GroupName != offers[j].GroupName {
+			return strings.ToLower(offers[i].GroupName) < strings.ToLower(offers[j].GroupName)
+		}
+		return strings.ToLower(offers[i].ModelName) < strings.ToLower(offers[j].ModelName)
+	})
+}
+
+func pickMarketplaceRepresentative(offers []ModelMarketplaceGroupOffer) ModelMarketplaceGroupOffer {
+	best := offers[0]
+	for i := 1; i < len(offers); i++ {
+		if marketplaceOfferIsBetter(offers[i], best) {
+			best = offers[i]
+		}
+	}
+	return best
+}
+
+func marketplaceOfferIsBetter(candidate, current ModelMarketplaceGroupOffer) bool {
+	candidatePrice, candidateOK := marketplaceDisplayPrice(candidate.CurrentPricing, candidate.BillingType)
+	currentPrice, currentOK := marketplaceDisplayPrice(current.CurrentPricing, current.BillingType)
+
+	switch {
+	case candidateOK && !currentOK:
+		return true
+	case !candidateOK && currentOK:
+		return false
+	case candidateOK && currentOK && candidatePrice != currentPrice:
+		return candidatePrice < currentPrice
+	}
+
+	if candidate.GroupName != current.GroupName {
+		return strings.ToLower(candidate.GroupName) < strings.ToLower(current.GroupName)
+	}
+	return strings.ToLower(candidate.ModelName) < strings.ToLower(current.ModelName)
+}
+
+func sortMarketplaceCards(cards []ModelMarketplaceCard) {
+	sort.SliceStable(cards, func(i, j int) bool {
+		leftPrice, leftOK := marketplaceDisplayPrice(cards[i].CurrentPricing, cards[i].BillingType)
+		rightPrice, rightOK := marketplaceDisplayPrice(cards[j].CurrentPricing, cards[j].BillingType)
+
+		if leftOK != rightOK {
+			return leftOK
+		}
+		if leftOK && rightOK && leftPrice != rightPrice {
+			return leftPrice < rightPrice
+		}
+		if cards[i].Platform != cards[j].Platform {
+			return cards[i].Platform < cards[j].Platform
+		}
+		return strings.ToLower(cards[i].ModelName) < strings.ToLower(cards[j].ModelName)
+	})
+}
+
+func marketplaceDisplayPrice(pricing *ChannelModelPricing, billingType string) (float64, bool) {
+	if pricing == nil {
+		return 0, false
+	}
+
+	switch billingType {
+	case string(BillingModePerRequest), string(BillingModeImage):
+		if pricing.PerRequestPrice != nil {
+			return *pricing.PerRequestPrice, true
+		}
+		if price, ok := minMarketplaceIntervalPrice(pricing.Intervals, func(iv PricingInterval) *float64 {
+			return iv.PerRequestPrice
+		}); ok {
+			return price, true
+		}
+	default:
+		if pricing.InputPrice != nil {
+			return *pricing.InputPrice, true
+		}
+		if price, ok := minMarketplaceIntervalPrice(pricing.Intervals, func(iv PricingInterval) *float64 {
+			return iv.InputPrice
+		}); ok {
+			return price, true
 		}
 	}
 
-	sort.SliceStable(out, func(i, j int) bool {
-		if out[i].GroupName != out[j].GroupName {
-			return strings.ToLower(out[i].GroupName) < strings.ToLower(out[j].GroupName)
+	for _, ptr := range []*float64{
+		pricing.OutputPrice,
+		pricing.CacheWritePrice,
+		pricing.CacheReadPrice,
+		pricing.ImageOutputPrice,
+	} {
+		if ptr != nil {
+			return *ptr, true
 		}
-		if out[i].Platform != out[j].Platform {
-			return out[i].Platform < out[j].Platform
-		}
-		return strings.ToLower(out[i].ModelName) < strings.ToLower(out[j].ModelName)
-	})
+	}
 
-	return out, nil
+	for _, getter := range []func(PricingInterval) *float64{
+		func(iv PricingInterval) *float64 { return iv.OutputPrice },
+		func(iv PricingInterval) *float64 { return iv.CacheWritePrice },
+		func(iv PricingInterval) *float64 { return iv.CacheReadPrice },
+		func(iv PricingInterval) *float64 { return iv.PerRequestPrice },
+	} {
+		if price, ok := minMarketplaceIntervalPrice(pricing.Intervals, getter); ok {
+			return price, true
+		}
+	}
+
+	return 0, false
+}
+
+func minMarketplaceIntervalPrice(
+	intervals []PricingInterval,
+	getter func(PricingInterval) *float64,
+) (float64, bool) {
+	var best float64
+	found := false
+	for _, iv := range intervals {
+		value := getter(iv)
+		if value == nil {
+			continue
+		}
+		if !found || *value < best {
+			best = *value
+			found = true
+		}
+	}
+	return best, found
 }
 
 func marketplacePricingProviderForPlatform(platform string) string {
@@ -190,7 +523,7 @@ func marketplacePricingProviderForPlatform(platform string) string {
 func (s *GroupService) ListPublicMarketplaceGroups(ctx context.Context) ([]Group, error) {
 	groups, err := s.ListActive(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("list public marketplace groups: %w", err)
+		return nil, err
 	}
 	out := make([]Group, 0, len(groups))
 	for _, group := range groups {

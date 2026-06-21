@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { createMemoryHistory, createRouter } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
 import ModelMarketplaceView from '../ModelMarketplaceView.vue'
-import { createRouter, createMemoryHistory } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { i18n } from '@/i18n'
@@ -21,6 +21,7 @@ vi.mock('vue-i18n', async () => {
           'common.copy': '复制',
           'common.copied': '已复制',
           'common.copiedToClipboard': '已复制到剪贴板',
+          'common.close': '关闭',
         }
         return translations[key] ?? fallback ?? key
       },
@@ -38,37 +39,17 @@ vi.mock('@/api/modelMarketplace', () => ({
   default: {
     getModelMarketplace: vi.fn().mockResolvedValue([
       {
-        group_id: 1,
-        group_name: 'Public',
+        group_id: 2,
+        group_name: 'Pro',
         group_platform: 'openai',
-        group_rate: 1.2,
+        group_rate: 0.8,
         group_is_exclusive: false,
         subscription_type: 'standard',
         model_name: 'gpt-4o',
         platform: 'openai',
-        billing_type: 'per_request',
-        pricing: {
-          billing_mode: 'per_request',
-          input_price: null,
-          output_price: null,
-          cache_write_price: null,
-          cache_read_price: null,
-          image_output_price: null,
-          per_request_price: 0.02,
-          intervals: [],
-        },
-      },
-      {
-        group_id: 2,
-        group_name: 'Pro',
-        group_platform: 'anthropic',
-        group_rate: 1.8,
-        group_is_exclusive: true,
-        subscription_type: 'subscription',
-        model_name: 'claude-sonnet-4',
-        platform: 'anthropic',
         billing_type: 'token',
-        pricing: {
+        pricing_source: 'group',
+        original_pricing: {
           billing_mode: 'token',
           input_price: 0.000003,
           output_price: 0.000015,
@@ -78,6 +59,148 @@ vi.mock('@/api/modelMarketplace', () => ({
           per_request_price: null,
           intervals: [],
         },
+        current_pricing: {
+          billing_mode: 'token',
+          input_price: 0.0000024,
+          output_price: 0.000012,
+          cache_write_price: null,
+          cache_read_price: null,
+          image_output_price: null,
+          per_request_price: null,
+          intervals: [],
+        },
+        groups: [
+          {
+            group_id: 1,
+            group_name: 'Public',
+            group_platform: 'openai',
+            group_rate: 1.2,
+            group_is_exclusive: false,
+            subscription_type: 'standard',
+            model_name: 'gpt-4o',
+            platform: 'openai',
+            billing_type: 'token',
+            pricing_source: 'group',
+            original_pricing: {
+              billing_mode: 'token',
+              input_price: 0.000003,
+              output_price: 0.000015,
+              cache_write_price: null,
+              cache_read_price: null,
+              image_output_price: null,
+              per_request_price: null,
+              intervals: [],
+            },
+            current_pricing: {
+              billing_mode: 'token',
+              input_price: 0.0000036,
+              output_price: 0.000018,
+              cache_write_price: null,
+              cache_read_price: null,
+              image_output_price: null,
+              per_request_price: null,
+              intervals: [],
+            },
+          },
+          {
+            group_id: 2,
+            group_name: 'Pro',
+            group_platform: 'openai',
+            group_rate: 0.8,
+            group_is_exclusive: false,
+            subscription_type: 'standard',
+            model_name: 'gpt-4o',
+            platform: 'openai',
+            billing_type: 'token',
+            pricing_source: 'group',
+            original_pricing: {
+              billing_mode: 'token',
+              input_price: 0.000003,
+              output_price: 0.000015,
+              cache_write_price: null,
+              cache_read_price: null,
+              image_output_price: null,
+              per_request_price: null,
+              intervals: [],
+            },
+            current_pricing: {
+              billing_mode: 'token',
+              input_price: 0.0000024,
+              output_price: 0.000012,
+              cache_write_price: null,
+              cache_read_price: null,
+              image_output_price: null,
+              per_request_price: null,
+              intervals: [],
+            },
+          },
+        ],
+      },
+      {
+        group_id: 3,
+        group_name: 'Claude',
+        group_platform: 'anthropic',
+        group_rate: 1.5,
+        group_is_exclusive: false,
+        subscription_type: 'subscription',
+        model_name: 'claude-sonnet-4',
+        platform: 'anthropic',
+        billing_type: 'per_request',
+        pricing_source: 'channel',
+        original_pricing: {
+          billing_mode: 'per_request',
+          input_price: null,
+          output_price: null,
+          cache_write_price: null,
+          cache_read_price: null,
+          image_output_price: null,
+          per_request_price: 0.02,
+          intervals: [],
+        },
+        current_pricing: {
+          billing_mode: 'per_request',
+          input_price: null,
+          output_price: null,
+          cache_write_price: null,
+          cache_read_price: null,
+          image_output_price: null,
+          per_request_price: 0.02,
+          intervals: [],
+        },
+        groups: [
+          {
+            group_id: 3,
+            group_name: 'Claude',
+            group_platform: 'anthropic',
+            group_rate: 1.5,
+            group_is_exclusive: false,
+            subscription_type: 'subscription',
+            model_name: 'claude-sonnet-4',
+            platform: 'anthropic',
+            billing_type: 'per_request',
+            pricing_source: 'channel',
+            original_pricing: {
+              billing_mode: 'per_request',
+              input_price: null,
+              output_price: null,
+              cache_write_price: null,
+              cache_read_price: null,
+              image_output_price: null,
+              per_request_price: 0.02,
+              intervals: [],
+            },
+            current_pricing: {
+              billing_mode: 'per_request',
+              input_price: null,
+              output_price: null,
+              cache_write_price: null,
+              cache_read_price: null,
+              image_output_price: null,
+              per_request_price: 0.02,
+              intervals: [],
+            },
+          },
+        ],
       },
     ]),
   },
@@ -87,9 +210,11 @@ describe('ModelMarketplaceView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     i18n.global.locale.value = 'zh'
+    copyToClipboardMock.mockReset()
+    copyToClipboardMock.mockResolvedValue(true)
   })
 
-  it('filters cards by model name and group', async () => {
+  async function mountView() {
     const router = createRouter({
       history: createMemoryHistory(),
       routes: [
@@ -168,6 +293,11 @@ describe('ModelMarketplaceView', () => {
     })
 
     await flushPromises()
+    return wrapper
+  }
+
+  it('filters aggregated cards by model name and group', async () => {
+    const wrapper = await mountView()
 
     expect(wrapper.text()).toContain('gpt-4o')
     expect(wrapper.text()).toContain('claude-sonnet-4')
@@ -175,59 +305,39 @@ describe('ModelMarketplaceView', () => {
     const searchInput = wrapper.find('input[type="text"]')
     await searchInput.setValue('claude')
     await flushPromises()
+
     expect(wrapper.text()).toContain('claude-sonnet-4')
     expect(wrapper.text()).not.toContain('gpt-4o')
 
-    const selects = wrapper.findAll('select')
-    await selects[0].setValue('Pro')
+    await searchInput.setValue('')
     await flushPromises()
-    expect(wrapper.text()).toContain('claude-sonnet-4')
+
+    const selects = wrapper.findAll('select')
+    await selects[0].setValue('Public')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('gpt-4o')
+    expect(wrapper.text()).not.toContain('claude-sonnet-4')
   })
 
-  it('shows token prices per 1M tokens and supports copying model names', async () => {
-    const router = createRouter({
-      history: createMemoryHistory(),
-      routes: [
-        { path: '/home', component: { template: '<div />' } },
-        { path: '/login', component: { template: '<div />' } },
-        { path: '/model-marketplace', component: ModelMarketplaceView },
-      ],
-    })
-    await router.push('/model-marketplace')
-    await router.isReady()
+  it('renders one aggregated card, shows original/current prices, and opens drawer for copyable details', async () => {
+    const wrapper = await mountView()
 
-    const appStore = useAppStore()
-    appStore.publicSettingsLoaded = true
-    appStore.siteName = 'Sub2API'
-    appStore.siteLogo = ''
+    expect(wrapper.findAll('[data-testid="marketplace-card-openai-gpt-4o"]').length).toBe(1)
+    expect(wrapper.text()).toContain('$2.4 / 1M Tokens')
+    expect(wrapper.text()).toContain('$3 / 1M Tokens')
 
-    const authStore = useAuthStore()
-    authStore.$patch({
-      token: null,
-      user: null,
-    } as never)
-
-    const wrapper = mount(ModelMarketplaceView, {
-      global: {
-        plugins: [router, i18n],
-        stubs: {
-          RouterLink: {
-            props: ['to'],
-            template: '<a><slot /></a>',
-          },
-        },
-      },
-    })
-
+    await wrapper.get('[data-testid="marketplace-card-openai-gpt-4o"]').trigger('click')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('$3 / 1M Tokens')
-    expect(wrapper.text()).toContain('分组')
+    const drawer = wrapper.get('[data-testid="marketplace-detail-drawer"]')
+    expect(drawer.text()).toContain('Public')
+    expect(drawer.text()).toContain('Pro')
 
-    const copyButton = wrapper.find('[data-testid="copy-model-name-gpt-4o"]')
-    expect(copyButton.exists()).toBe(true)
+    const copyButton = wrapper.get('[data-testid="copy-model-name-gpt-4o"]')
     await copyButton.trigger('click')
     await flushPromises()
+
     expect(copyToClipboardMock).toHaveBeenCalledWith('gpt-4o', '已复制到剪贴板')
     expect(copyButton.attributes('aria-label')).toBe('已复制')
   })
