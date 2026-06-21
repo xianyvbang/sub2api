@@ -283,9 +283,16 @@
               >
                 <div class="flex items-start justify-between gap-4">
                   <div class="min-w-0">
-                    <p class="truncate text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-dark-400">
-                      {{ card.platform }}
-                    </p>
+                    <div class="truncate text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-dark-400">
+                      <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100/90 px-2.5 py-1 dark:bg-dark-800/90">
+                        <PlatformIcon
+                          :platform="normalizePlatform(card.platform)"
+                          size="sm"
+                          :data-testid="`marketplace-platform-icon-${card.platform}-${card.model_name}`"
+                        />
+                        <span>{{ card.platform }}</span>
+                      </span>
+                    </div>
                     <h3 class="mt-2 min-w-0 break-words text-[1.125rem] font-bold leading-snug text-slate-950 dark:text-white">
                       {{ card.model_name }}
                     </h3>
@@ -526,6 +533,7 @@ import {
   BILLING_MODE_PER_REQUEST,
   BILLING_MODE_TOKEN,
 } from '@/constants/channel'
+import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { useClipboard } from '@/composables/useClipboard'
 import { useAppStore } from '@/stores/app'
@@ -537,6 +545,7 @@ import modelMarketplaceAPI, {
   type ModelMarketplacePricing,
   type ModelMarketplacePricingInterval,
 } from '@/api/modelMarketplace'
+import type { GroupPlatform } from '@/types'
 import { extractApiErrorMessage } from '@/utils/apiError'
 
 type FilterEntry = {
@@ -720,6 +729,18 @@ function cardBelongsToGroup(card: ModelMarketplaceCard, groupName: string): bool
 
 function cardHasBillingType(card: ModelMarketplaceCard, billingType: string): boolean {
   return card.groups.some((group) => normalizeBillingType(group.billing_type) === billingType)
+}
+
+function normalizePlatform(platform: string | null | undefined): GroupPlatform | undefined {
+  switch (platform) {
+    case 'anthropic':
+    case 'openai':
+    case 'gemini':
+    case 'antigravity':
+      return platform
+    default:
+      return undefined
+  }
 }
 
 function cardDisplayOffer(card: ModelMarketplaceCard): ModelMarketplaceCard | ModelMarketplaceGroupOffer {

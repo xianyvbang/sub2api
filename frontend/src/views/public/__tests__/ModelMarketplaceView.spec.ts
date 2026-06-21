@@ -342,6 +342,7 @@ describe('ModelMarketplaceView', () => {
 
     const aggregatedCard = wrapper.get('[data-testid="marketplace-card-openai-gpt-4o"]')
     expect(wrapper.findAll('[data-testid="marketplace-card-openai-gpt-4o"]').length).toBe(1)
+    expect(wrapper.find('[data-testid="marketplace-platform-icon-openai-gpt-4o"]').exists()).toBe(true)
     expect(aggregatedCard.text()).toContain('2 个分组')
     expect(aggregatedCard.text()).toContain('输入价格')
     expect(aggregatedCard.text()).toContain('输出价格')
