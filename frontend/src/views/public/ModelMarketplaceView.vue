@@ -110,37 +110,37 @@
                 <summary
                   class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white"
                 >
-                  <span>{{ t('availableChannels.columns.platform', 'Platforms') }}</span>
+                  <span>{{ t('modelMarketplace.supplierLabel', '供应商') }}</span>
                   <span class="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500 dark:bg-dark-800 dark:text-dark-300">
-                    {{ platformOptions.length }}
+                    {{ supplierOptions.length }}
                   </span>
                 </summary>
                 <div class="space-y-1 border-t border-slate-200/70 p-2 dark:border-dark-700">
                   <button
-                    @click="selectedPlatform = ''"
+                    @click="selectedSupplier = ''"
                     class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition"
                     :class="
-                      selectedPlatform
+                      selectedSupplier
                         ? 'text-slate-600 hover:bg-white hover:text-slate-900 dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-white'
                         : 'bg-slate-900 text-white dark:bg-primary-500 dark:text-white'
                     "
                   >
                     <span>{{ t('common.all', 'All') }}</span>
-                    <span class="text-xs opacity-75">{{ platformAllCount }}</span>
+                    <span class="text-xs opacity-75">{{ supplierAllCount }}</span>
                   </button>
                   <button
-                    v-for="platform in platformEntries"
-                    :key="platform.value"
-                    @click="togglePlatform(platform.value)"
+                    v-for="supplier in supplierEntries"
+                    :key="supplier.value"
+                    @click="toggleSupplier(supplier.value)"
                     class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition"
                     :class="
-                      selectedPlatform === platform.value
+                      selectedSupplier === supplier.value
                         ? 'bg-slate-900 text-white dark:bg-primary-500 dark:text-white'
                         : 'text-slate-600 hover:bg-white hover:text-slate-900 dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-white'
                     "
                   >
-                    <span class="truncate pr-3">{{ platform.value }}</span>
-                    <span class="text-xs opacity-75">{{ platform.count }}</span>
+                    <span class="truncate pr-3">{{ supplierLabel(supplier.value) }}</span>
+                    <span class="text-xs opacity-75">{{ supplier.count }}</span>
                   </button>
                 </div>
               </details>
@@ -194,10 +194,10 @@
                 </select>
               </label>
               <label>
-                Platform
-                <select v-model="selectedPlatform">
+                {{ t('modelMarketplace.supplierLabel', '供应商') }}
+                <select v-model="selectedSupplier">
                   <option value="">{{ t('common.all', 'All') }}</option>
-                  <option v-for="platform in platformOptions" :key="platform" :value="platform">{{ platform }}</option>
+                  <option v-for="supplier in supplierOptions" :key="supplier" :value="supplier">{{ supplierLabel(supplier) }}</option>
                 </select>
               </label>
               <label>
@@ -277,20 +277,19 @@
               <article
                 v-for="card in filteredCards"
                 :key="cardKey(card)"
-                :data-testid="`marketplace-card-${card.platform}-${card.model_name}`"
+                :data-testid="`marketplace-card-${card.supplier}-${card.model_name}`"
                 class="group cursor-pointer rounded-[1.75rem] border border-white/70 bg-white/88 p-6 shadow-[0_20px_70px_-45px_rgba(15,23,42,0.5)] backdrop-blur transition hover:-translate-y-1 hover:shadow-[0_30px_80px_-45px_rgba(15,23,42,0.55)] dark:border-dark-700/70 dark:bg-dark-900/82 dark:shadow-[0_20px_70px_-45px_rgba(0,0,0,0.6)] dark:hover:shadow-[0_30px_80px_-45px_rgba(0,0,0,0.7)]"
                 @click="openCard(card)"
               >
                 <div class="flex items-start justify-between gap-4">
                   <div class="min-w-0">
                     <div class="truncate text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-dark-400">
-                      <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100/90 px-2.5 py-1 dark:bg-dark-800/90">
-                        <PlatformIcon
-                          :platform="normalizePlatform(card.platform)"
-                          size="sm"
-                          :data-testid="`marketplace-platform-icon-${card.platform}-${card.model_name}`"
-                        />
-                        <span>{{ card.platform }}</span>
+                      <span
+                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1"
+                        :class="supplierBadgeClass(card.supplier)"
+                        :data-testid="`marketplace-supplier-badge-${card.supplier}-${card.model_name}`"
+                      >
+                        <span>{{ supplierLabel(card.supplier) }}</span>
                       </span>
                     </div>
                     <h3 class="mt-2 min-w-0 break-words text-[1.125rem] font-bold leading-snug text-slate-950 dark:text-white">
@@ -409,7 +408,7 @@
             <div class="flex items-start justify-between gap-4 border-b border-slate-200/80 px-6 py-5 dark:border-dark-700">
               <div class="min-w-0">
                 <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-dark-400">
-                  {{ activeCard.platform }}
+                  {{ supplierLabel(activeCard.supplier) }}
                 </p>
                 <div class="mt-2 flex items-start gap-2">
                   <h3 class="break-words text-2xl font-bold text-slate-950 dark:text-white">
@@ -533,7 +532,6 @@ import {
   BILLING_MODE_PER_REQUEST,
   BILLING_MODE_TOKEN,
 } from '@/constants/channel'
-import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { useClipboard } from '@/composables/useClipboard'
 import { useAppStore } from '@/stores/app'
@@ -545,7 +543,6 @@ import modelMarketplaceAPI, {
   type ModelMarketplacePricing,
   type ModelMarketplacePricingInterval,
 } from '@/api/modelMarketplace'
-import type { GroupPlatform } from '@/types'
 import { extractApiErrorMessage } from '@/utils/apiError'
 
 type FilterEntry = {
@@ -578,7 +575,7 @@ const loading = ref(false)
 const cards = ref<ModelMarketplaceCard[]>([])
 const searchQuery = ref('')
 const selectedGroup = ref('')
-const selectedPlatform = ref('')
+const selectedSupplier = ref('')
 const selectedBillingType = ref('')
 const copiedModelName = ref('')
 const activeCardKey = ref('')
@@ -593,8 +590,8 @@ const groupOptions = computed(() =>
     new Set(cards.value.flatMap((card) => card.groups.map((group) => group.group_name))),
   ).sort((a, b) => a.localeCompare(b)),
 )
-const platformOptions = computed(() =>
-  Array.from(new Set(cards.value.map((card) => card.platform))).sort((a, b) => a.localeCompare(b)),
+const supplierOptions = computed(() =>
+  Array.from(new Set(cards.value.map((card) => card.supplier))).sort((a, b) => a.localeCompare(b)),
 )
 const billingTypeOptions = computed(() =>
   Array.from(
@@ -603,11 +600,11 @@ const billingTypeOptions = computed(() =>
 )
 
 const hasCategoryFilters = computed(
-  () => Boolean(selectedGroup.value || selectedPlatform.value || selectedBillingType.value),
+  () => Boolean(selectedGroup.value || selectedSupplier.value || selectedBillingType.value),
 )
 
 const activeFilterSummary = computed(() => {
-  const count = [selectedGroup.value, selectedPlatform.value, selectedBillingType.value].filter(Boolean).length
+  const count = [selectedGroup.value, selectedSupplier.value, selectedBillingType.value].filter(Boolean).length
   if (count === 0) return t('common.all', 'All')
   return `${count} ${t('common.filter', 'Filter')}`
 })
@@ -630,13 +627,13 @@ const filteredCards = computed(() =>
 const groupAllCount = computed(
   () =>
     searchedCards.value.filter((card) => {
-      if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
+      if (selectedSupplier.value && card.supplier !== selectedSupplier.value) return false
       if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
       return true
     }).length,
 )
 
-const platformAllCount = computed(
+const supplierAllCount = computed(
   () =>
     searchedCards.value.filter((card) => {
       if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
@@ -649,7 +646,7 @@ const billingTypeAllCount = computed(
   () =>
     searchedCards.value.filter((card) => {
       if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
-      if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
+      if (selectedSupplier.value && card.supplier !== selectedSupplier.value) return false
       return true
     }).length,
 )
@@ -659,18 +656,18 @@ const groupEntries = computed<FilterEntry[]>(() =>
     value,
     count: searchedCards.value.filter((card) => {
       if (!cardBelongsToGroup(card, value)) return false
-      if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
+      if (selectedSupplier.value && card.supplier !== selectedSupplier.value) return false
       if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
       return true
     }).length,
   })),
 )
 
-const platformEntries = computed<FilterEntry[]>(() =>
-  platformOptions.value.map((value) => ({
+const supplierEntries = computed<FilterEntry[]>(() =>
+  supplierOptions.value.map((value) => ({
     value,
     count: searchedCards.value.filter((card) => {
-      if (card.platform !== value) return false
+      if (card.supplier !== value) return false
       if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
       if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
       return true
@@ -684,7 +681,7 @@ const billingTypeEntries = computed<FilterEntry[]>(() =>
     count: searchedCards.value.filter((card) => {
       if (!cardHasBillingType(card, value)) return false
       if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
-      if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
+      if (selectedSupplier.value && card.supplier !== selectedSupplier.value) return false
       return true
     }).length,
   })),
@@ -701,14 +698,14 @@ const rateFormatter = new Intl.NumberFormat('en-US', {
   useGrouping: false,
 })
 
-function cardKey(card: Pick<ModelMarketplaceCard, 'platform' | 'model_name'>): string {
-  return `${card.platform}::${card.model_name}`.toLowerCase()
+function cardKey(card: Pick<ModelMarketplaceCard, 'supplier' | 'model_name'>): string {
+  return `${card.supplier}::${card.model_name}`.toLowerCase()
 }
 
 function marketplaceSearchText(card: ModelMarketplaceCard): string {
   return [
     card.model_name,
-    card.platform,
+    card.supplier,
     card.group_name,
     ...card.groups.map((group) => group.group_name),
   ]
@@ -718,7 +715,7 @@ function marketplaceSearchText(card: ModelMarketplaceCard): string {
 
 function cardMatchesSelectedFilters(card: ModelMarketplaceCard): boolean {
   if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
-  if (selectedPlatform.value && card.platform !== selectedPlatform.value) return false
+  if (selectedSupplier.value && card.supplier !== selectedSupplier.value) return false
   if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
   return true
 }
@@ -729,18 +726,6 @@ function cardBelongsToGroup(card: ModelMarketplaceCard, groupName: string): bool
 
 function cardHasBillingType(card: ModelMarketplaceCard, billingType: string): boolean {
   return card.groups.some((group) => normalizeBillingType(group.billing_type) === billingType)
-}
-
-function normalizePlatform(platform: string | null | undefined): GroupPlatform | undefined {
-  switch (platform) {
-    case 'anthropic':
-    case 'openai':
-    case 'gemini':
-    case 'antigravity':
-      return platform
-    default:
-      return undefined
-  }
 }
 
 function cardDisplayOffer(card: ModelMarketplaceCard): ModelMarketplaceCard | ModelMarketplaceGroupOffer {
@@ -759,7 +744,7 @@ function compareCardsByDisplayPrice(left: ModelMarketplaceCard, right: ModelMark
   if (leftPrice != null && rightPrice != null && leftPrice !== rightPrice) {
     return leftPrice - rightPrice
   }
-  if (left.platform !== right.platform) return left.platform.localeCompare(right.platform)
+  if (left.supplier !== right.supplier) return left.supplier.localeCompare(right.supplier)
   return left.model_name.localeCompare(right.model_name)
 }
 
@@ -812,8 +797,8 @@ function toggleGroup(value: string) {
   selectedGroup.value = selectedGroup.value === value ? '' : value
 }
 
-function togglePlatform(value: string) {
-  selectedPlatform.value = selectedPlatform.value === value ? '' : value
+function toggleSupplier(value: string) {
+  selectedSupplier.value = selectedSupplier.value === value ? '' : value
 }
 
 function toggleBillingType(value: string) {
@@ -822,8 +807,65 @@ function toggleBillingType(value: string) {
 
 function resetCategoryFilters() {
   selectedGroup.value = ''
-  selectedPlatform.value = ''
+  selectedSupplier.value = ''
   selectedBillingType.value = ''
+}
+
+function supplierLabel(value: string | null | undefined): string {
+  const normalized = (value || '').trim().toLowerCase()
+  switch (normalized) {
+    case 'openai':
+      return 'OpenAI'
+    case 'anthropic':
+      return 'Anthropic'
+    case 'google':
+      return 'Google'
+    case 'deepseek':
+      return 'DeepSeek'
+    case 'kimi':
+      return 'Kimi'
+    case 'moonshot':
+      return 'Moonshot'
+    case 'glm':
+      return 'GLM'
+    case 'qwen':
+      return 'Qwen'
+    case 'minimax':
+      return 'MiniMax'
+    case 'doubao':
+      return 'Doubao'
+    case 'unknown':
+      return t('modelMarketplace.supplierUnknown', '未知供应商')
+    default:
+      return value || t('modelMarketplace.supplierUnknown', '未知供应商')
+  }
+}
+
+function supplierBadgeClass(value: string | null | undefined): string {
+  switch ((value || '').trim().toLowerCase()) {
+    case 'openai':
+      return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300'
+    case 'anthropic':
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-300'
+    case 'google':
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300'
+    case 'deepseek':
+      return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-300'
+    case 'kimi':
+      return 'bg-lime-100 text-lime-800 dark:bg-lime-500/15 dark:text-lime-300'
+    case 'moonshot':
+      return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300'
+    case 'glm':
+      return 'bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-500/15 dark:text-fuchsia-300'
+    case 'qwen':
+      return 'bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300'
+    case 'minimax':
+      return 'bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300'
+    case 'doubao':
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300'
+    default:
+      return 'bg-slate-100 text-slate-700 dark:bg-dark-800 dark:text-dark-200'
+  }
 }
 
 function formatTokenPrice(value: number | null | undefined): string {

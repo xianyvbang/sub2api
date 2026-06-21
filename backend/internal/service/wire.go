@@ -511,6 +511,14 @@ func ProvideAPIKeyService(
 	return svc
 }
 
+func ProvideModelMarketplaceService(
+	accountRepo AccountRepository,
+	channelService *ChannelService,
+	pricingService *PricingService,
+) *ModelMarketplaceService {
+	return NewModelMarketplaceService(accountRepo, channelService, pricingService)
+}
+
 // ProviderSet is the Wire provider set for all services
 var ProviderSet = wire.NewSet(
 	// Core services
@@ -526,6 +534,7 @@ var ProviderSet = wire.NewSet(
 	NewUsageService,
 	NewDashboardService,
 	ProvidePricingService,
+	ProvideModelMarketplaceService,
 	NewBillingService,
 	ProvideBillingCacheService,
 	NewAnnouncementService,

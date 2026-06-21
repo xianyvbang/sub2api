@@ -922,6 +922,27 @@ func (s *PricingService) ListModelNamesByProvider(provider string) []string {
 	return names
 }
 
+// ListModelNamesByPrefix returns all model names in the catalog that start with
+// the given prefix (case-insensitive). The returned slice is sorted alphabetically.
+func (s *PricingService) ListModelNamesByPrefix(prefix string) []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	prefix = strings.ToLower(strings.TrimSpace(prefix))
+	if prefix == "" {
+		return nil
+	}
+
+	names := make([]string, 0)
+	for name := range s.pricingData {
+		if strings.HasPrefix(strings.ToLower(name), prefix) {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
 // isNumeric 检查字符串是否为纯数字
 func isNumeric(s string) bool {
 	for _, c := range s {

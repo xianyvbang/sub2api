@@ -31,7 +31,7 @@ export interface ModelMarketplaceGroupOffer {
   group_is_exclusive: boolean
   subscription_type: string
   model_name: string
-  platform: string
+  supplier: string
   billing_type: string
   pricing_source: string
   original_pricing: ModelMarketplacePricing | null
@@ -46,7 +46,7 @@ export interface ModelMarketplaceCard {
   group_is_exclusive: boolean
   subscription_type: string
   model_name: string
-  platform: string
+  supplier: string
   billing_type: string
   pricing_source: string
   original_pricing: ModelMarketplacePricing | null

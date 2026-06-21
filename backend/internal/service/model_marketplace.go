@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"log/slog"
 	"sort"
 	"strings"
 )
@@ -22,7 +21,7 @@ type ModelMarketplaceGroupOffer struct {
 	GroupIsExclusive bool
 	SubscriptionType string
 	ModelName        string
-	Platform         string
+	Supplier         string
 	BillingType      string
 	PricingSource    string
 	OriginalPricing  *ChannelModelPricing
@@ -42,7 +41,7 @@ type ModelMarketplaceCard struct {
 	GroupIsExclusive bool
 	SubscriptionType string
 	ModelName        string
-	Platform         string
+	Supplier         string
 	BillingType      string
 	PricingSource    string
 	OriginalPricing  *ChannelModelPricing
@@ -75,19 +74,40 @@ func (s *SettingService) GetModelMarketplaceRuntime(ctx context.Context) ModelMa
 	}
 }
 
-// ListModelMarketplace returns one aggregated card per platform + model.
+type marketplaceAccountLister interface {
+	ListSchedulableByGroupID(ctx context.Context, groupID int64) ([]Account, error)
+}
+
+// ModelMarketplaceService aggregates the public model marketplace cards.
+type ModelMarketplaceService struct {
+	accountLister  marketplaceAccountLister
+	channelService *ChannelService
+	pricingService *PricingService
+}
+
+func NewModelMarketplaceService(
+	accountLister marketplaceAccountLister,
+	channelService *ChannelService,
+	pricingService *PricingService,
+) *ModelMarketplaceService {
+	return &ModelMarketplaceService{
+		accountLister:  accountLister,
+		channelService: channelService,
+		pricingService: pricingService,
+	}
+}
+
+// ListModelMarketplace returns one aggregated card per supplier + model.
 //
 // Each card keeps the cheapest offer as its representative row and includes
 // every matched group in Groups for the detail drawer.
-func (s *ChannelService) ListModelMarketplace(
+func (s *ModelMarketplaceService) ListModelMarketplace(
 	ctx context.Context,
 	visibleGroups []Group,
 ) ([]ModelMarketplaceCard, error) {
-	if s.pricingService == nil {
+	if s == nil || s.channelService == nil || s.pricingService == nil {
 		return []ModelMarketplaceCard{}, nil
 	}
-
-	globalModelNamesByPlatform := make(map[string][]string)
 
 	type rowKey struct {
 		groupID   int64
@@ -105,7 +125,10 @@ func (s *ChannelService) ListModelMarketplace(
 			continue
 		}
 
-		modelNames := s.listMarketplaceModelNamesForGroup(ctx, group, globalModelNamesByPlatform)
+		modelNames, err := s.listMarketplaceModelNamesForGroup(ctx, group)
+		if err != nil {
+			return nil, err
+		}
 		for _, modelName := range modelNames {
 			modelKey := strings.ToLower(strings.TrimSpace(modelName))
 			if modelKey == "" {
@@ -127,51 +150,38 @@ func (s *ChannelService) ListModelMarketplace(
 	return aggregateMarketplaceRows(rows), nil
 }
 
-func (s *ChannelService) listMarketplaceModelNamesForGroup(
+func (s *ModelMarketplaceService) listMarketplaceModelNamesForGroup(
 	ctx context.Context,
 	group Group,
-	globalModelNamesByPlatform map[string][]string,
-) []string {
+	) ([]string, error) {
 	platform := strings.ToLower(strings.TrimSpace(group.Platform))
 	if platform == "" {
-		return nil
+		return nil, nil
 	}
 
-	globalNames, ok := globalModelNamesByPlatform[platform]
-	if !ok {
-		provider := marketplacePricingProviderForPlatform(platform)
-		globalNames = s.pricingService.ListModelNamesByProvider(provider)
-		globalModelNamesByPlatform[platform] = globalNames
+	if s.accountLister == nil {
+		return nil, nil
 	}
 
-	ch, err := s.GetChannelForGroup(ctx, group.ID)
+	accounts, err := s.accountLister.ListSchedulableByGroupID(ctx, group.ID)
 	if err != nil {
-		slog.Warn("list marketplace group models: failed to load group channel",
-			"group_id", group.ID,
-			"group_name", group.Name,
-			"error", err)
+		return nil, err
 	}
 
-	channelNames := make([]string, 0)
-	if ch != nil {
-		supported := ch.SupportedModels()
-		s.fillGlobalPricingFallback(supported)
-		for _, model := range supported {
-			if !strings.EqualFold(strings.TrimSpace(model.Platform), platform) {
+	names := make([]string, 0)
+	for _, account := range accounts {
+		if !strings.EqualFold(strings.TrimSpace(account.Platform), platform) {
+			continue
+		}
+		for modelName := range explicitModelMapping(account.Credentials) {
+			expanded := s.expandMarketplaceModelPattern(modelName)
+			if len(expanded) == 0 {
 				continue
 			}
-			channelNames = append(channelNames, model.Name)
+			names = append(names, expanded...)
 		}
 	}
-
-	if ch != nil && ch.RestrictModels && len(channelNames) > 0 {
-		return dedupeAndSortMarketplaceNames(channelNames)
-	}
-
-	combined := make([]string, 0, len(globalNames)+len(channelNames))
-	combined = append(combined, globalNames...)
-	combined = append(combined, channelNames...)
-	return dedupeAndSortMarketplaceNames(combined)
+	return dedupeAndSortMarketplaceNames(names), nil
 }
 
 func dedupeAndSortMarketplaceNames(names []string) []string {
@@ -198,12 +208,36 @@ func dedupeAndSortMarketplaceNames(names []string) []string {
 	return out
 }
 
-func (s *ChannelService) buildMarketplaceGroupOffer(
+func explicitModelMapping(credentials map[string]any) map[string]string {
+	if credentials == nil {
+		return nil
+	}
+	return stringMappingFromRaw(credentials["model_mapping"])
+}
+
+func (s *ModelMarketplaceService) expandMarketplaceModelPattern(pattern string) []string {
+	trimmed := strings.TrimSpace(pattern)
+	if trimmed == "" {
+		return nil
+	}
+	if !strings.HasSuffix(trimmed, "*") {
+		return []string{trimmed}
+	}
+
+	if s == nil || s.pricingService == nil {
+		return nil
+	}
+
+	allNames := s.pricingService.ListModelNamesByPrefix(trimmed[:len(trimmed)-1])
+	return dedupeAndSortMarketplaceNames(allNames)
+}
+
+func (s *ModelMarketplaceService) buildMarketplaceGroupOffer(
 	ctx context.Context,
 	group Group,
 	modelName string,
 ) ModelMarketplaceGroupOffer {
-	channelPricing := s.GetChannelModelPricing(ctx, group.ID, modelName)
+	channelPricing := s.channelService.GetChannelModelPricing(ctx, group.ID, modelName)
 
 	pricingSource := ModelMarketplacePricingSourceGroup
 	var originalPricing *ChannelModelPricing
@@ -229,7 +263,7 @@ func (s *ChannelService) buildMarketplaceGroupOffer(
 		GroupIsExclusive: group.IsExclusive,
 		SubscriptionType: group.SubscriptionType,
 		ModelName:        modelName,
-		Platform:         group.Platform,
+		Supplier:         s.marketplaceSupplierForModel(modelName),
 		BillingType:      billingType,
 		PricingSource:    pricingSource,
 		OriginalPricing:  originalPricing,
@@ -241,12 +275,75 @@ func marketplaceHasExplicitChannelPricing(pricing *ChannelModelPricing) bool {
 	return pricing != nil && !pricingNeedsFallback(pricing)
 }
 
-func (s *ChannelService) marketplaceBasePricing(modelName string, existing *ChannelModelPricing) *ChannelModelPricing {
+func (s *ModelMarketplaceService) marketplaceBasePricing(modelName string, existing *ChannelModelPricing) *ChannelModelPricing {
 	var lp *LiteLLMModelPricing
 	if s.pricingService != nil {
 		lp = s.pricingService.GetModelPricing(modelName)
 	}
 	return normalizeMarketplacePricing(synthesizePricingFromLiteLLM(lp, existing))
+}
+
+func (s *ModelMarketplaceService) marketplaceSupplierForModel(modelName string) string {
+	if supplier := inferMarketplaceSupplier(modelName); supplier != "" {
+		return supplier
+	}
+	if s != nil && s.pricingService != nil {
+		if pricing := s.pricingService.GetModelPricing(modelName); pricing != nil {
+			if supplier := normalizeMarketplaceSupplier(pricing.LiteLLMProvider); supplier != "" {
+				return supplier
+			}
+		}
+	}
+	return "unknown"
+}
+
+func inferMarketplaceSupplier(modelName string) string {
+	name := strings.ToLower(strings.TrimSpace(modelName))
+	switch {
+	case name == "":
+		return ""
+	case strings.HasPrefix(name, "gpt-"),
+		strings.HasPrefix(name, "o1"),
+		strings.HasPrefix(name, "o3"),
+		strings.HasPrefix(name, "o4"):
+		return "openai"
+	case strings.HasPrefix(name, "claude-"),
+		strings.HasPrefix(name, "opus-"),
+		strings.HasPrefix(name, "sonnet-"),
+		strings.HasPrefix(name, "haiku-"):
+		return "anthropic"
+	case strings.HasPrefix(name, "gemini-"):
+		return "google"
+	case strings.HasPrefix(name, "deepseek-"):
+		return "deepseek"
+	case strings.HasPrefix(name, "kimi-"):
+		return "kimi"
+	case strings.HasPrefix(name, "moonshot-"):
+		return "moonshot"
+	case strings.HasPrefix(name, "glm-"):
+		return "glm"
+	case strings.HasPrefix(name, "qwen-"),
+		strings.HasPrefix(name, "qwen2-"),
+		strings.HasPrefix(name, "qwen3-"),
+		strings.HasPrefix(name, "qwen4-"):
+		return "qwen"
+	case strings.HasPrefix(name, "minimax-"):
+		return "minimax"
+	case strings.HasPrefix(name, "doubao-"):
+		return "doubao"
+	default:
+		return ""
+	}
+}
+
+func normalizeMarketplaceSupplier(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case "anthropic", "openai", "google", "deepseek", "kimi", "moonshot", "glm", "qwen", "minimax", "doubao":
+		return value
+	default:
+		return value
+	}
 }
 
 func normalizeMarketplacePricing(pricing *ChannelModelPricing) *ChannelModelPricing {
@@ -320,14 +417,14 @@ func marketplaceBillingType(pricings ...*ChannelModelPricing) string {
 
 func aggregateMarketplaceRows(rows []ModelMarketplaceGroupOffer) []ModelMarketplaceCard {
 	type cardKey struct {
-		platform string
+		supplier string
 		model    string
 	}
 
 	grouped := make(map[cardKey][]ModelMarketplaceGroupOffer)
 	for _, row := range rows {
 		key := cardKey{
-			platform: strings.ToLower(strings.TrimSpace(row.Platform)),
+			supplier: strings.ToLower(strings.TrimSpace(row.Supplier)),
 			model:    strings.ToLower(strings.TrimSpace(row.ModelName)),
 		}
 		grouped[key] = append(grouped[key], row)
@@ -345,7 +442,7 @@ func aggregateMarketplaceRows(rows []ModelMarketplaceGroupOffer) []ModelMarketpl
 			GroupIsExclusive: rep.GroupIsExclusive,
 			SubscriptionType: rep.SubscriptionType,
 			ModelName:        rep.ModelName,
-			Platform:         rep.Platform,
+			Supplier:         rep.Supplier,
 			BillingType:      rep.BillingType,
 			PricingSource:    rep.PricingSource,
 			OriginalPricing:  cloneMarketplacePricing(rep.OriginalPricing),
@@ -427,8 +524,8 @@ func sortMarketplaceCards(cards []ModelMarketplaceCard) {
 		if leftOK && rightOK && leftPrice != rightPrice {
 			return leftPrice < rightPrice
 		}
-		if cards[i].Platform != cards[j].Platform {
-			return cards[i].Platform < cards[j].Platform
+		if cards[i].Supplier != cards[j].Supplier {
+			return cards[i].Supplier < cards[j].Supplier
 		}
 		return strings.ToLower(cards[i].ModelName) < strings.ToLower(cards[j].ModelName)
 	})
@@ -502,21 +599,6 @@ func minMarketplaceIntervalPrice(
 		}
 	}
 	return best, found
-}
-
-func marketplacePricingProviderForPlatform(platform string) string {
-	switch strings.ToLower(strings.TrimSpace(platform)) {
-	case PlatformAnthropic:
-		return "anthropic"
-	case PlatformOpenAI:
-		return "openai"
-	case PlatformGemini:
-		return "google"
-	case PlatformAntigravity:
-		return "anthropic"
-	default:
-		return strings.ToLower(strings.TrimSpace(platform))
-	}
 }
 
 // ListPublicMarketplaceGroups returns the groups visible to anonymous marketplace visitors.

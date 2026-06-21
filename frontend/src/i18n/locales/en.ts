@@ -1110,6 +1110,8 @@ export default {
     heroTitle: 'Browse aggregated models and the lowest displayed price',
     heroDescription: 'Each card keeps one model, highlights the lowest current price, compares it with the base price, and lets you inspect every matched group.',
     searchPlaceholder: 'Search model names',
+    supplierLabel: 'Supplier',
+    supplierUnknown: 'Unknown Supplier',
     billingType: 'Billing Type',
     billingModeToken: 'Token Billing',
     billingModePerRequest: 'Per-request Billing',

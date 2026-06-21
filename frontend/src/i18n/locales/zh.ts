@@ -1114,6 +1114,8 @@ export default {
     heroTitle: '按模型聚合浏览可用能力与最低展示价',
     heroDescription: '每张卡片只保留一个模型，并展示当前最低价、原价对比，以及该模型所在分组的完整明细。',
     searchPlaceholder: '搜索模型名称',
+    supplierLabel: '供应商',
+    supplierUnknown: '未知供应商',
     billingType: '计费类型',
     billingModeToken: '按量计费(tokens)',
     billingModePerRequest: '按次计费',

@@ -95,7 +95,7 @@ func newMarketplaceHandler() *ModelMarketplaceHandler {
 					GroupIsExclusive: false,
 					SubscriptionType: service.SubscriptionTypeStandard,
 					ModelName:        "gpt-4o",
-					Platform:         "openai",
+					Supplier:         "openai",
 					BillingType:      string(service.BillingModePerRequest),
 					PricingSource:    service.ModelMarketplacePricingSourceGroup,
 					OriginalPricing: &service.ChannelModelPricing{
@@ -115,7 +115,7 @@ func newMarketplaceHandler() *ModelMarketplaceHandler {
 							GroupIsExclusive: false,
 							SubscriptionType: service.SubscriptionTypeStandard,
 							ModelName:        "gpt-4o",
-							Platform:         "openai",
+							Supplier:         "openai",
 							BillingType:      string(service.BillingModePerRequest),
 							PricingSource:    service.ModelMarketplacePricingSourceGroup,
 							OriginalPricing: &service.ChannelModelPricing{
@@ -135,7 +135,7 @@ func newMarketplaceHandler() *ModelMarketplaceHandler {
 							GroupIsExclusive: true,
 							SubscriptionType: service.SubscriptionTypeStandard,
 							ModelName:        "gpt-4o",
-							Platform:         "openai",
+							Supplier:         "openai",
 							BillingType:      string(service.BillingModePerRequest),
 							PricingSource:    service.ModelMarketplacePricingSourceChannel,
 							OriginalPricing: &service.ChannelModelPricing{
@@ -157,7 +157,7 @@ func newMarketplaceHandler() *ModelMarketplaceHandler {
 					GroupIsExclusive: false,
 					SubscriptionType: service.SubscriptionTypeSubscription,
 					ModelName:        "gpt-4o-mini",
-					Platform:         "openai",
+					Supplier:         "openai",
 					BillingType:      string(service.BillingModePerRequest),
 					PricingSource:    service.ModelMarketplacePricingSourceGroup,
 					OriginalPricing: &service.ChannelModelPricing{
@@ -177,7 +177,7 @@ func newMarketplaceHandler() *ModelMarketplaceHandler {
 							GroupIsExclusive: false,
 							SubscriptionType: service.SubscriptionTypeSubscription,
 							ModelName:        "gpt-4o-mini",
-							Platform:         "openai",
+							Supplier:         "openai",
 							BillingType:      string(service.BillingModePerRequest),
 							PricingSource:    service.ModelMarketplacePricingSourceGroup,
 							OriginalPricing: &service.ChannelModelPricing{

@@ -9,8 +9,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type marketplaceAccountRepoStub struct {
+	accountsByGroup map[int64][]Account
+}
+
+func (s *marketplaceAccountRepoStub) ListSchedulableByGroupID(_ context.Context, groupID int64) ([]Account, error) {
+	return append([]Account(nil), s.accountsByGroup[groupID]...), nil
+}
+
 func TestListModelMarketplace_AggregatesModelsAndChoosesLowestCurrentPrice(t *testing.T) {
-	svc := NewChannelService(&mockChannelRepository{}, &stubGroupRepoForAvailable{}, nil, &PricingService{
+	channelSvc := NewChannelService(&mockChannelRepository{}, &stubGroupRepoForAvailable{}, nil, &PricingService{
 		pricingData: map[string]*LiteLLMModelPricing{
 			"gpt-4o": {
 				InputCostPerToken:  1e-6,
@@ -20,6 +28,12 @@ func TestListModelMarketplace_AggregatesModelsAndChoosesLowestCurrentPrice(t *te
 			},
 		},
 	})
+	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
+		accountsByGroup: map[int64][]Account{
+			1: {{Platform: "openai", Credentials: map[string]any{"model_mapping": map[string]any{"gpt-4o": "gpt-4o"}}}},
+			2: {{Platform: "openai", Credentials: map[string]any{"model_mapping": map[string]any{"gpt-4o": "gpt-4o"}}}},
+		},
+	}, channelSvc, channelSvc.pricingService)
 
 	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
 		{ID: 1, Name: "public", Platform: "openai", IsExclusive: false, RateMultiplier: 1.2, SubscriptionType: SubscriptionTypeStandard, Status: StatusActive},
@@ -30,6 +44,7 @@ func TestListModelMarketplace_AggregatesModelsAndChoosesLowestCurrentPrice(t *te
 
 	card := cards[0]
 	require.Equal(t, "gpt-4o", card.ModelName)
+	require.Equal(t, "openai", card.Supplier)
 	require.Equal(t, "promo", card.GroupName)
 	require.Equal(t, ModelMarketplacePricingSourceGroup, card.PricingSource)
 	require.Len(t, card.Groups, 2)
@@ -58,7 +73,7 @@ func TestListModelMarketplace_ChannelPricingWinsWithoutApplyingGroupMultiplier(t
 		},
 	}
 
-	svc := NewChannelService(
+	channelSvc := NewChannelService(
 		makeStandardRepo(channel, map[int64]string{10: "openai"}),
 		&stubGroupRepoForAvailable{},
 		nil,
@@ -73,6 +88,11 @@ func TestListModelMarketplace_ChannelPricingWinsWithoutApplyingGroupMultiplier(t
 			},
 		},
 	)
+	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
+		accountsByGroup: map[int64][]Account{
+			10: {{Platform: "openai", Credentials: map[string]any{"model_mapping": map[string]any{"gpt-4o": "gpt-4o"}}}},
+		},
+	}, channelSvc, channelSvc.pricingService)
 
 	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
 		{ID: 10, Name: "enterprise", Platform: "openai", RateMultiplier: 3.5, Status: StatusActive},
@@ -91,19 +111,8 @@ func TestListModelMarketplace_ChannelPricingWinsWithoutApplyingGroupMultiplier(t
 }
 
 func TestListModelMarketplace_ModelsWithoutPricingRemainVisibleAndSortLast(t *testing.T) {
-	channel := Channel{
-		ID:       1,
-		Status:   StatusActive,
-		GroupIDs: []int64{10},
-		ModelMapping: map[string]map[string]string{
-			"openai": {
-				"mystery-model": "mystery-model",
-			},
-		},
-	}
-
-	svc := NewChannelService(
-		makeStandardRepo(channel, map[int64]string{10: "openai"}),
+	channelSvc := NewChannelService(
+		makeStandardRepo(Channel{ID: 1, Status: StatusActive, GroupIDs: []int64{10}}, map[int64]string{10: "openai"}),
 		&stubGroupRepoForAvailable{},
 		nil,
 		&PricingService{
@@ -117,6 +126,19 @@ func TestListModelMarketplace_ModelsWithoutPricingRemainVisibleAndSortLast(t *te
 			},
 		},
 	)
+	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
+		accountsByGroup: map[int64][]Account{
+			10: {{
+				Platform: "openai",
+				Credentials: map[string]any{
+					"model_mapping": map[string]any{
+						"gpt-4o":        "gpt-4o",
+						"mystery-model": "mystery-model",
+					},
+				},
+			}},
+		},
+	}, channelSvc, channelSvc.pricingService)
 
 	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
 		{ID: 10, Name: "public", Platform: "openai", RateMultiplier: 1.0, Status: StatusActive},
@@ -127,6 +149,79 @@ func TestListModelMarketplace_ModelsWithoutPricingRemainVisibleAndSortLast(t *te
 	require.Equal(t, "mystery-model", cards[1].ModelName)
 	require.Nil(t, cards[1].OriginalPricing)
 	require.Nil(t, cards[1].CurrentPricing)
+}
+
+func TestListModelMarketplace_UsesOnlyExplicitModelMappings(t *testing.T) {
+	channelSvc := NewChannelService(&mockChannelRepository{}, &stubGroupRepoForAvailable{}, nil, &PricingService{
+		pricingData: map[string]*LiteLLMModelPricing{
+			"claude-sonnet-4-5": {LiteLLMProvider: "anthropic", InputCostPerToken: 1e-6, OutputCostPerToken: 2e-6, Mode: "chat"},
+		},
+	})
+	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
+		accountsByGroup: map[int64][]Account{
+			11: {
+				{Platform: "antigravity", Credentials: map[string]any{}},
+				{Platform: "antigravity", Credentials: map[string]any{"model_mapping": map[string]any{"claude-sonnet-4-5": "deepseek-v4-pro"}}},
+			},
+		},
+	}, channelSvc, channelSvc.pricingService)
+
+	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
+		{ID: 11, Name: "ag", Platform: "antigravity", RateMultiplier: 1.0, Status: StatusActive},
+	})
+	require.NoError(t, err)
+	require.Len(t, cards, 1)
+	require.Equal(t, "claude-sonnet-4-5", cards[0].ModelName)
+	require.Equal(t, "anthropic", cards[0].Supplier)
+}
+
+func TestListModelMarketplace_ExpandsWildcardMappingsAndDedupes(t *testing.T) {
+	channelSvc := NewChannelService(&mockChannelRepository{}, &stubGroupRepoForAvailable{}, nil, &PricingService{
+		pricingData: map[string]*LiteLLMModelPricing{
+			"claude-sonnet-4-5":      {LiteLLMProvider: "anthropic", InputCostPerToken: 1e-6, OutputCostPerToken: 2e-6, Mode: "chat"},
+			"claude-opus-4-5":        {LiteLLMProvider: "anthropic", InputCostPerToken: 3e-6, OutputCostPerToken: 6e-6, Mode: "chat"},
+			"claude-opus-4-5-sonnet": {LiteLLMProvider: "anthropic", InputCostPerToken: 4e-6, OutputCostPerToken: 8e-6, Mode: "chat"},
+		},
+	})
+	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
+		accountsByGroup: map[int64][]Account{
+			12: {
+				{Platform: "anthropic", Credentials: map[string]any{"model_mapping": map[string]any{"claude-*": "x"}}},
+				{Platform: "anthropic", Credentials: map[string]any{"model_mapping": map[string]any{"claude-opus-4-5": "y"}}},
+			},
+		},
+	}, channelSvc, channelSvc.pricingService)
+
+	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
+		{ID: 12, Name: "wild", Platform: "anthropic", RateMultiplier: 1.0, Status: StatusActive},
+	})
+	require.NoError(t, err)
+	require.Len(t, cards, 3)
+	require.Equal(t, "claude-opus-4-5", cards[0].ModelName)
+	require.Equal(t, "claude-opus-4-5-sonnet", cards[1].ModelName)
+	require.Equal(t, "claude-sonnet-4-5", cards[2].ModelName)
+}
+
+func TestListModelMarketplace_FallsBackSupplierToPricingProvider(t *testing.T) {
+	channelSvc := NewChannelService(&mockChannelRepository{}, &stubGroupRepoForAvailable{}, nil, &PricingService{
+		pricingData: map[string]*LiteLLMModelPricing{
+			"custom-model": {LiteLLMProvider: "openai", InputCostPerToken: 1e-6, OutputCostPerToken: 2e-6, Mode: "chat"},
+		},
+	})
+	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
+		accountsByGroup: map[int64][]Account{
+			13: {
+				{Platform: "openai", Credentials: map[string]any{"model_mapping": map[string]any{"custom-model": "custom-model"}}},
+			},
+		},
+	}, channelSvc, channelSvc.pricingService)
+
+	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
+		{ID: 13, Name: "custom", Platform: "openai", RateMultiplier: 1.0, Status: StatusActive},
+	})
+	require.NoError(t, err)
+	require.Len(t, cards, 1)
+	require.Equal(t, "openai", cards[0].Supplier)
 }
 
 func TestListPublicMarketplaceGroups_AnonymousOnlySeesNonExclusive(t *testing.T) {

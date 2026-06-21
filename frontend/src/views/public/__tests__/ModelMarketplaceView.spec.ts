@@ -54,7 +54,7 @@ vi.mock('@/api/modelMarketplace', () => ({
         group_is_exclusive: false,
         subscription_type: 'standard',
         model_name: 'gpt-4o',
-        platform: 'openai',
+        supplier: 'openai',
         billing_type: 'token',
         pricing_source: 'group',
         original_pricing: {
@@ -86,7 +86,7 @@ vi.mock('@/api/modelMarketplace', () => ({
             group_is_exclusive: false,
             subscription_type: 'standard',
             model_name: 'gpt-4o',
-            platform: 'openai',
+            supplier: 'openai',
             billing_type: 'token',
             pricing_source: 'group',
             original_pricing: {
@@ -118,7 +118,7 @@ vi.mock('@/api/modelMarketplace', () => ({
             group_is_exclusive: false,
             subscription_type: 'standard',
             model_name: 'gpt-4o',
-            platform: 'openai',
+            supplier: 'openai',
             billing_type: 'token',
             pricing_source: 'group',
             original_pricing: {
@@ -152,7 +152,7 @@ vi.mock('@/api/modelMarketplace', () => ({
         group_is_exclusive: false,
         subscription_type: 'subscription',
         model_name: 'claude-sonnet-4',
-        platform: 'anthropic',
+        supplier: 'anthropic',
         billing_type: 'per_request',
         pricing_source: 'channel',
         original_pricing: {
@@ -184,7 +184,7 @@ vi.mock('@/api/modelMarketplace', () => ({
             group_is_exclusive: false,
             subscription_type: 'subscription',
             model_name: 'claude-sonnet-4',
-            platform: 'anthropic',
+            supplier: 'anthropic',
             billing_type: 'per_request',
             pricing_source: 'channel',
             original_pricing: {
@@ -342,7 +342,7 @@ describe('ModelMarketplaceView', () => {
 
     const aggregatedCard = wrapper.get('[data-testid="marketplace-card-openai-gpt-4o"]')
     expect(wrapper.findAll('[data-testid="marketplace-card-openai-gpt-4o"]').length).toBe(1)
-    expect(wrapper.find('[data-testid="marketplace-platform-icon-openai-gpt-4o"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="marketplace-supplier-badge-openai-gpt-4o"]').exists()).toBe(true)
     expect(aggregatedCard.text()).toContain('2 个分组')
     expect(aggregatedCard.text()).toContain('输入价格')
     expect(aggregatedCard.text()).toContain('输出价格')

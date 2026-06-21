@@ -45,7 +45,7 @@ type modelMarketplaceGroupDTO struct {
 	GroupIsExclusive bool                        `json:"group_is_exclusive"`
 	SubscriptionType string                      `json:"subscription_type"`
 	ModelName        string                      `json:"model_name"`
-	Platform         string                      `json:"platform"`
+	Supplier         string                      `json:"supplier"`
 	BillingType      string                      `json:"billing_type"`
 	PricingSource    string                      `json:"pricing_source"`
 	OriginalPricing  *modelMarketplacePricingDTO `json:"original_pricing"`
@@ -60,7 +60,7 @@ type modelMarketplaceCardDTO struct {
 	GroupIsExclusive bool                        `json:"group_is_exclusive"`
 	SubscriptionType string                      `json:"subscription_type"`
 	ModelName        string                      `json:"model_name"`
-	Platform         string                      `json:"platform"`
+	Supplier         string                      `json:"supplier"`
 	BillingType      string                      `json:"billing_type"`
 	PricingSource    string                      `json:"pricing_source"`
 	OriginalPricing  *modelMarketplacePricingDTO `json:"original_pricing"`
@@ -77,7 +77,7 @@ type ModelMarketplaceHandler struct {
 }
 
 func NewModelMarketplaceHandler(
-	channelService *service.ChannelService,
+	channelService *service.ModelMarketplaceService,
 	apiKeyService *service.APIKeyService,
 	groupService *service.GroupService,
 	settingService *service.SettingService,
@@ -90,7 +90,7 @@ func NewModelMarketplaceHandler(
 	}
 }
 
-// List returns one aggregated marketplace card per platform + model.
+// List returns one aggregated marketplace card per supplier + model.
 // GET /api/v1/model-marketplace
 func (h *ModelMarketplaceHandler) List(c *gin.Context) {
 	if h.settingService == nil {
@@ -138,7 +138,7 @@ func (h *ModelMarketplaceHandler) List(c *gin.Context) {
 				GroupIsExclusive: group.GroupIsExclusive,
 				SubscriptionType: group.SubscriptionType,
 				ModelName:        group.ModelName,
-				Platform:         group.Platform,
+				Supplier:         group.Supplier,
 				BillingType:      group.BillingType,
 				PricingSource:    group.PricingSource,
 				OriginalPricing:  toMarketplacePricing(group.OriginalPricing),
@@ -154,7 +154,7 @@ func (h *ModelMarketplaceHandler) List(c *gin.Context) {
 			GroupIsExclusive: card.GroupIsExclusive,
 			SubscriptionType: card.SubscriptionType,
 			ModelName:        card.ModelName,
-			Platform:         card.Platform,
+			Supplier:         card.Supplier,
 			BillingType:      card.BillingType,
 			PricingSource:    card.PricingSource,
 			OriginalPricing:  toMarketplacePricing(card.OriginalPricing),
