@@ -10,7 +10,7 @@
     />
 
     <header class="relative z-10 px-6 py-5">
-      <nav class="mx-auto flex max-w-7xl items-center justify-between gap-4">
+      <nav class="flex w-full items-center justify-between gap-4">
         <router-link to="/home" class="flex items-center gap-3">
           <div
             class="h-11 w-11 overflow-hidden rounded-2xl bg-white shadow-lg shadow-amber-100 dark:bg-dark-800 dark:shadow-black/20"
@@ -45,9 +45,9 @@
     </header>
 
     <main class="relative z-10 px-6 pb-16 pt-6">
-      <div class="mx-auto max-w-7xl">
+      <div class="w-full">
         <section
-          class="rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-[0_25px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur dark:border-dark-700/70 dark:bg-dark-900/75 dark:shadow-[0_25px_80px_-40px_rgba(0,0,0,0.55)]"
+          class="w-full rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-[0_25px_80px_-40px_rgba(15,23,42,0.45)] backdrop-blur dark:border-dark-700/70 dark:bg-dark-900/75 dark:shadow-[0_25px_80px_-40px_rgba(0,0,0,0.55)]"
         >
           <div class="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
             <div class="max-w-3xl">
@@ -123,7 +123,7 @@
           </div>
         </section>
 
-        <section class="mt-8 grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+        <section class="mt-8 grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside
             class="h-fit rounded-[1.75rem] border border-white/70 bg-white/85 p-4 shadow-[0_20px_60px_-45px_rgba(15,23,42,0.55)] backdrop-blur dark:border-dark-700/70 dark:bg-dark-900/80 dark:shadow-[0_20px_60px_-45px_rgba(0,0,0,0.6)] xl:sticky xl:top-6"
           >
@@ -289,8 +289,8 @@
             </div>
           </aside>
 
-          <div class="min-w-0">
-            <section v-if="loading" class="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+          <div class="min-w-0 w-full">
+            <section v-if="loading" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               <div
                 v-for="index in 6"
                 :key="index"
@@ -310,7 +310,7 @@
               </p>
             </section>
 
-            <section v-else class="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+            <section v-else class="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               <article
                 v-for="card in filteredCards"
                 :key="`${card.group_id}-${card.platform}-${card.model_name}`"
