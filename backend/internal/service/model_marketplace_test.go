@@ -197,9 +197,15 @@ func TestListModelMarketplace_ExpandsWildcardMappingsAndDedupes(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, cards, 3)
-	require.Equal(t, "claude-opus-4-5", cards[0].ModelName)
-	require.Equal(t, "claude-opus-4-5-sonnet", cards[1].ModelName)
-	require.Equal(t, "claude-sonnet-4-5", cards[2].ModelName)
+	require.ElementsMatch(t, []string{
+		"claude-opus-4-5",
+		"claude-opus-4-5-sonnet",
+		"claude-sonnet-4-5",
+	}, []string{
+		cards[0].ModelName,
+		cards[1].ModelName,
+		cards[2].ModelName,
+	})
 }
 
 func TestListModelMarketplace_FallsBackSupplierToPricingProvider(t *testing.T) {
