@@ -42,7 +42,7 @@ vi.mock('@/api/modelMarketplace', () => ({
         group_id: 2,
         group_name: 'Pro',
         group_platform: 'openai',
-        group_rate: 0.8,
+        group_rate: 0.812345,
         group_is_exclusive: false,
         subscription_type: 'standard',
         model_name: 'gpt-4o',
@@ -74,7 +74,7 @@ vi.mock('@/api/modelMarketplace', () => ({
             group_id: 1,
             group_name: 'Public',
             group_platform: 'openai',
-            group_rate: 1.2,
+            group_rate: 1.234567,
             group_is_exclusive: false,
             subscription_type: 'standard',
             model_name: 'gpt-4o',
@@ -106,7 +106,7 @@ vi.mock('@/api/modelMarketplace', () => ({
             group_id: 2,
             group_name: 'Pro',
             group_platform: 'openai',
-            group_rate: 0.8,
+            group_rate: 0.812345,
             group_is_exclusive: false,
             subscription_type: 'standard',
             model_name: 'gpt-4o',
@@ -318,21 +318,44 @@ describe('ModelMarketplaceView', () => {
 
     expect(wrapper.text()).toContain('gpt-4o')
     expect(wrapper.text()).not.toContain('claude-sonnet-4')
+
+    const groupedCard = wrapper.get('[data-testid="marketplace-card-openai-gpt-4o"]')
+    expect(groupedCard.text()).toContain('Public')
+    expect(groupedCard.text()).toContain('当前展示分组')
+    expect(groupedCard.text()).toContain('1.234567x')
+    expect(groupedCard.text()).toContain('$3.6 / 1M Tokens')
+    expect(groupedCard.text()).toContain('$18 / 1M Tokens')
+    expect(groupedCard.text()).not.toContain('$2.4 / 1M Tokens')
+    expect(groupedCard.text()).not.toContain('$12 / 1M Tokens')
   })
 
   it('renders one aggregated card, shows original/current prices, and opens drawer for copyable details', async () => {
     const wrapper = await mountView()
 
+    const aggregatedCard = wrapper.get('[data-testid="marketplace-card-openai-gpt-4o"]')
     expect(wrapper.findAll('[data-testid="marketplace-card-openai-gpt-4o"]').length).toBe(1)
-    expect(wrapper.text()).toContain('$2.4 / 1M Tokens')
-    expect(wrapper.text()).toContain('$3 / 1M Tokens')
+    expect(aggregatedCard.text()).toContain('输入价格')
+    expect(aggregatedCard.text()).toContain('输出价格')
+    expect(aggregatedCard.text()).toContain('原价')
+    expect(aggregatedCard.text()).toContain('$2.4 / 1M Tokens')
+    expect(aggregatedCard.text()).toContain('$12 / 1M Tokens')
+    expect(aggregatedCard.text()).toContain('$3 / 1M Tokens')
+    expect(aggregatedCard.text()).toContain('$15 / 1M Tokens')
+    expect(aggregatedCard.text()).toContain('0.812345x')
+    expect(aggregatedCard.findAll('.line-through').length).toBeGreaterThan(0)
 
-    await wrapper.get('[data-testid="marketplace-card-openai-gpt-4o"]').trigger('click')
+    await aggregatedCard.trigger('click')
     await flushPromises()
 
     const drawer = wrapper.get('[data-testid="marketplace-detail-drawer"]')
     expect(drawer.text()).toContain('Public')
     expect(drawer.text()).toContain('Pro')
+    expect(drawer.text()).toContain('输入价格')
+    expect(drawer.text()).toContain('输出价格')
+    expect(drawer.text()).toContain('原价')
+    expect(drawer.text()).toContain('1.234567x')
+    expect(drawer.text()).toContain('0.812345x')
+    expect(drawer.findAll('.line-through').length).toBeGreaterThan(0)
 
     const copyButton = wrapper.get('[data-testid="copy-model-name-gpt-4o"]')
     await copyButton.trigger('click')

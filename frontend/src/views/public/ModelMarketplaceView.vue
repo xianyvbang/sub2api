@@ -331,9 +331,9 @@
                   </div>
                   <span
                     class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold"
-                    :class="pricingSourceBadgeClass(card.pricing_source)"
+                    :class="pricingSourceBadgeClass(cardDisplayOffer(card).pricing_source)"
                   >
-                    {{ pricingSourceLabel(card.pricing_source) }}
+                    {{ pricingSourceLabel(cardDisplayOffer(card).pricing_source) }}
                   </span>
                 </div>
 
@@ -341,12 +341,12 @@
                   <span
                     class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
                   >
-                    {{ card.group_name }}
+                    {{ cardDisplayOffer(card).group_name }}
                   </span>
                   <span
                     class="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-800 dark:bg-sky-500/15 dark:text-sky-300"
                   >
-                    {{ billingTypeLabel(card.billing_type) }}
+                    {{ billingTypeLabel(cardDisplayOffer(card).billing_type) }}
                   </span>
                   <span
                     class="rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-800 dark:bg-violet-500/15 dark:text-violet-300"
@@ -356,40 +356,48 @@
                 </div>
 
                 <div class="mt-6 rounded-[1.5rem] border border-slate-200/80 bg-slate-50/90 p-4 dark:border-dark-700 dark:bg-dark-950/70">
-                  <div class="grid grid-cols-2 gap-3">
-                    <div>
-                      <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-dark-400">
-                        {{ t('modelMarketplace.currentPrice', '现价') }}
-                      </p>
-                      <p class="mt-2 text-lg font-bold text-slate-950 dark:text-white">
-                        {{ formatPrimaryPrice(card.current_pricing, card.billing_type) }}
-                      </p>
-                      <p class="mt-1 text-xs text-slate-500 dark:text-dark-400">
-                        {{ primaryPriceLabel(card.current_pricing, card.billing_type) }}
-                      </p>
-                    </div>
-                    <div>
-                      <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-dark-400">
-                        {{ t('modelMarketplace.originalPrice', '原价') }}
-                      </p>
-                      <p class="mt-2 text-lg font-semibold text-slate-500 line-through dark:text-dark-400">
-                        {{ formatPrimaryPrice(card.original_pricing, card.billing_type) }}
-                      </p>
-                      <p class="mt-1 text-xs text-slate-500 dark:text-dark-400">
-                        {{ primaryPriceLabel(card.original_pricing, card.billing_type) }}
-                      </p>
+                  <div
+                    v-if="buildPricingComparisonLines(cardDisplayOffer(card).current_pricing, cardDisplayOffer(card).original_pricing).length > 0"
+                    class="space-y-3"
+                  >
+                    <div
+                      v-for="line in buildPricingComparisonLines(cardDisplayOffer(card).current_pricing, cardDisplayOffer(card).original_pricing)"
+                      :key="`${cardKey(card)}-comparison-${line.label}`"
+                      class="rounded-2xl bg-white/80 px-4 py-3 dark:bg-dark-900/70"
+                    >
+                      <div class="flex items-center justify-between gap-4 text-sm">
+                        <span class="font-medium text-amber-700 dark:text-amber-300">{{ formatCardPriceLabel(line.label) }}:</span>
+                        <span class="text-right font-semibold text-slate-950 dark:text-white">
+                          {{ line.currentValue ?? t('modelMarketplace.priceUnavailable', '暂无价格') }}
+                        </span>
+                      </div>
+                      <div class="mt-2 flex items-center justify-between gap-4 text-xs">
+                        <span class="text-slate-500 dark:text-dark-400">{{ t('modelMarketplace.originalPrice', '原价') }}:</span>
+                        <span class="text-right text-slate-500 line-through dark:text-dark-300">
+                          {{ line.originalValue ?? t('availableChannels.noPricing', 'No pricing configured') }}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                  <p v-else class="text-sm text-slate-500 dark:text-dark-400">
+                    {{ t('availableChannels.noPricing', 'No pricing configured') }}
+                  </p>
                 </div>
 
                 <dl class="mt-6 space-y-3 text-sm">
                   <div class="flex items-center justify-between gap-4">
-                    <dt class="text-slate-500 dark:text-dark-400">{{ t('modelMarketplace.lowestPriceGroup', '最低展示价分组') }}</dt>
-                    <dd class="font-medium text-slate-900 dark:text-white">{{ card.group_name }}</dd>
+                    <dt class="text-slate-500 dark:text-dark-400">
+                      {{
+                        selectedGroup
+                          ? t('modelMarketplace.displayPriceGroup', '当前展示分组')
+                          : t('modelMarketplace.lowestPriceGroup', '最低展示价分组')
+                      }}
+                    </dt>
+                    <dd class="font-medium text-slate-900 dark:text-white">{{ cardDisplayOffer(card).group_name }}</dd>
                   </div>
                   <div class="flex items-center justify-between gap-4">
                     <dt class="text-slate-500 dark:text-dark-400">{{ t('modelMarketplace.groupRate', 'Rate') }}</dt>
-                    <dd class="font-medium text-slate-900 dark:text-white">{{ formatRate(card.group_rate) }}</dd>
+                    <dd class="font-medium text-slate-900 dark:text-white">{{ formatRate(cardDisplayOffer(card).group_rate) }}</dd>
                   </div>
                 </dl>
 
@@ -506,49 +514,38 @@
                         </span>
                       </div>
                     </div>
-                    <div class="text-sm text-slate-500 dark:text-dark-400">
+                    <div class="text-sm font-semibold text-slate-950 dark:text-white">
                       {{ t('modelMarketplace.groupRate', 'Rate') }}: {{ formatRate(group.group_rate) }}
                     </div>
                   </div>
 
-                  <div class="mt-5 grid gap-3 md:grid-cols-2">
-                    <section class="rounded-2xl border border-slate-200/80 bg-slate-50/90 p-4 dark:border-dark-700 dark:bg-dark-900/70">
-                      <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-dark-400">
-                        {{ t('modelMarketplace.originalPrice', '原价') }}
-                      </p>
-                      <div v-if="buildPricingLines(group.original_pricing).length > 0" class="mt-3 space-y-2 text-sm">
-                        <div
-                          v-for="line in buildPricingLines(group.original_pricing)"
-                          :key="`${group.group_id}-original-${line.label}`"
-                          class="flex items-center justify-between gap-4"
-                        >
-                          <span class="text-slate-500 dark:text-dark-400">{{ line.label }}</span>
-                          <span class="text-right font-medium text-slate-900 dark:text-white">{{ line.value }}</span>
+                  <div class="mt-5 rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
+                    <div
+                      v-if="buildPricingComparisonLines(group.current_pricing, group.original_pricing).length > 0"
+                      class="space-y-3"
+                    >
+                      <div
+                        v-for="line in buildPricingComparisonLines(group.current_pricing, group.original_pricing)"
+                        :key="`${group.group_id}-comparison-${line.label}`"
+                        class="rounded-2xl bg-white/85 px-4 py-3 dark:bg-dark-900/70"
+                      >
+                        <div class="flex items-center justify-between gap-4 text-sm">
+                          <span class="font-medium text-amber-700 dark:text-amber-300">{{ formatCardPriceLabel(line.label) }}:</span>
+                          <span class="text-right font-semibold text-slate-950 dark:text-white">
+                            {{ line.currentValue ?? t('modelMarketplace.priceUnavailable', '暂无价格') }}
+                          </span>
+                        </div>
+                        <div class="mt-2 flex items-center justify-between gap-4 text-xs">
+                          <span class="text-slate-500 dark:text-dark-400">{{ t('modelMarketplace.originalPrice', '原价') }}:</span>
+                          <span class="text-right text-slate-500 line-through dark:text-dark-300">
+                            {{ line.originalValue ?? t('availableChannels.noPricing', 'No pricing configured') }}
+                          </span>
                         </div>
                       </div>
-                      <p v-else class="mt-3 text-sm text-slate-500 dark:text-dark-400">
-                        {{ t('availableChannels.noPricing', 'No pricing configured') }}
-                      </p>
-                    </section>
-
-                    <section class="rounded-2xl border border-amber-200/80 bg-amber-50/80 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
-                      <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">
-                        {{ t('modelMarketplace.currentPrice', '现价') }}
-                      </p>
-                      <div v-if="buildPricingLines(group.current_pricing).length > 0" class="mt-3 space-y-2 text-sm">
-                        <div
-                          v-for="line in buildPricingLines(group.current_pricing)"
-                          :key="`${group.group_id}-current-${line.label}`"
-                          class="flex items-center justify-between gap-4"
-                        >
-                          <span class="text-amber-700/80 dark:text-amber-200/80">{{ line.label }}</span>
-                          <span class="text-right font-semibold text-slate-950 dark:text-white">{{ line.value }}</span>
-                        </div>
-                      </div>
-                      <p v-else class="mt-3 text-sm text-amber-700/80 dark:text-amber-200/80">
-                        {{ t('modelMarketplace.priceUnavailable', '暂无价格') }}
-                      </p>
-                    </section>
+                    </div>
+                    <p v-else class="text-sm text-slate-500 dark:text-dark-400">
+                      {{ t('availableChannels.noPricing', 'No pricing configured') }}
+                    </p>
                   </div>
                 </article>
               </div>
@@ -575,6 +572,7 @@ import { useAuthStore } from '@/stores/auth'
 import { formatScaled } from '@/utils/pricing'
 import modelMarketplaceAPI, {
   type ModelMarketplaceCard,
+  type ModelMarketplaceGroupOffer,
   type ModelMarketplacePricing,
   type ModelMarketplacePricingInterval,
 } from '@/api/modelMarketplace'
@@ -588,6 +586,12 @@ type FilterEntry = {
 type PriceSummaryLine = {
   label: string
   value: string
+}
+
+type PriceComparisonLine = {
+  label: string
+  currentValue: string | null
+  originalValue: string | null
 }
 
 type PriceDescriptor = {
@@ -721,6 +725,12 @@ const activeCard = computed(() => {
   return cards.value.find((card) => cardKey(card) === activeCardKey.value) ?? null
 })
 
+const rateFormatter = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 10,
+  useGrouping: false,
+})
+
 function cardKey(card: Pick<ModelMarketplaceCard, 'platform' | 'model_name'>): string {
   return `${card.platform}::${card.model_name}`.toLowerCase()
 }
@@ -751,9 +761,16 @@ function cardHasBillingType(card: ModelMarketplaceCard, billingType: string): bo
   return card.groups.some((group) => normalizeBillingType(group.billing_type) === billingType)
 }
 
+function cardDisplayOffer(card: ModelMarketplaceCard): ModelMarketplaceCard | ModelMarketplaceGroupOffer {
+  if (!selectedGroup.value) return card
+  return card.groups.find((group) => group.group_name === selectedGroup.value) ?? card
+}
+
 function compareCardsByDisplayPrice(left: ModelMarketplaceCard, right: ModelMarketplaceCard): number {
-  const leftPrice = primaryPriceDescriptor(left.current_pricing, left.billing_type)?.value
-  const rightPrice = primaryPriceDescriptor(right.current_pricing, right.billing_type)?.value
+  const leftOffer = cardDisplayOffer(left)
+  const rightOffer = cardDisplayOffer(right)
+  const leftPrice = primaryPriceDescriptor(leftOffer.current_pricing, leftOffer.billing_type)?.value
+  const rightPrice = primaryPriceDescriptor(rightOffer.current_pricing, rightOffer.billing_type)?.value
 
   if (leftPrice == null && rightPrice != null) return 1
   if (leftPrice != null && rightPrice == null) return -1
@@ -844,18 +861,6 @@ function formatFieldPrice(field: PriceDescriptor['field'], value: number): strin
   return formatTokenPrice(value)
 }
 
-function formatPrimaryPrice(pricing: ModelMarketplacePricing | null, billingType: string): string {
-  const descriptor = primaryPriceDescriptor(pricing, billingType)
-  if (!descriptor) return t('modelMarketplace.priceUnavailable', '暂无价格')
-  return formatFieldPrice(descriptor.field, descriptor.value)
-}
-
-function primaryPriceLabel(pricing: ModelMarketplacePricing | null, billingType: string): string {
-  const descriptor = primaryPriceDescriptor(pricing, billingType)
-  if (!descriptor) return t('modelMarketplace.priceUnavailable', '暂无价格')
-  return fieldLabel(descriptor.field)
-}
-
 function primaryPriceDescriptor(pricing: ModelMarketplacePricing | null, billingType: string): PriceDescriptor | null {
   if (!pricing) return null
 
@@ -925,6 +930,13 @@ function fieldLabel(field: PriceDescriptor['field']): string {
   }
 }
 
+function formatCardPriceLabel(label: string): string {
+  if (label.includes(t('modelMarketplace.intervalPricing', '区间价格'))) {
+    return label
+  }
+  return `${label}${t('modelMarketplace.pricing', '价格')}`
+}
+
 function buildPricingLines(pricing: ModelMarketplacePricing | null): PriceSummaryLine[] {
   if (!pricing) return []
 
@@ -963,6 +975,23 @@ function buildPricingLines(pricing: ModelMarketplacePricing | null): PriceSummar
   return lines
 }
 
+function buildPricingComparisonLines(
+  currentPricing: ModelMarketplacePricing | null,
+  originalPricing: ModelMarketplacePricing | null,
+): PriceComparisonLine[] {
+  const currentLines = buildPricingLines(currentPricing)
+  const originalLines = buildPricingLines(originalPricing)
+  const currentByLabel = new Map(currentLines.map((line) => [line.label, line.value]))
+  const originalByLabel = new Map(originalLines.map((line) => [line.label, line.value]))
+  const orderedLabels = Array.from(new Set([...currentLines.map((line) => line.label), ...originalLines.map((line) => line.label)]))
+
+  return orderedLabels.map((label) => ({
+    label,
+    currentValue: currentByLabel.get(label) ?? null,
+    originalValue: originalByLabel.get(label) ?? null,
+  }))
+}
+
 function intervalLabel(interval: ModelMarketplacePricingInterval): string {
   if (interval.tier_label) return interval.tier_label
   const upper = interval.max_tokens == null ? 'max' : String(interval.max_tokens)
@@ -970,7 +999,8 @@ function intervalLabel(interval: ModelMarketplacePricingInterval): string {
 }
 
 function formatRate(value: number): string {
-  return `${value.toFixed(2)}x`
+  if (!Number.isFinite(value)) return '-'
+  return `${rateFormatter.format(value)}x`
 }
 
 function openCard(card: ModelMarketplaceCard) {
