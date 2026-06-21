@@ -20,7 +20,7 @@ type modelMarketplaceAPIKeyGroupProvider interface {
 }
 
 type modelMarketplaceGroupProvider interface {
-	ListPublicMarketplaceGroups(ctx context.Context) ([]service.Group, error)
+	ListActive(ctx context.Context) ([]service.Group, error)
 }
 
 type modelMarketplaceSettingRuntimeProvider interface {
@@ -87,20 +87,20 @@ func (h *ModelMarketplaceHandler) List(c *gin.Context) {
 		return
 	}
 
-	publicGroups, err := h.groupService.ListPublicMarketplaceGroups(c.Request.Context())
+	activeGroups, err := h.groupService.ListActive(c.Request.Context())
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}
 
-	visibleGroups := publicGroups
+	visibleGroups := activeGroups
 	if subject, ok := middleware.GetAuthSubjectFromContext(c); ok {
 		allowedGroups, err := h.apiKeyService.GetAvailableGroups(c.Request.Context(), subject.UserID)
 		if err != nil {
 			response.ErrorFrom(c, err)
 			return
 		}
-		visibleGroups = mergeMarketplaceGroups(publicGroups, allowedGroups)
+		visibleGroups = mergeMarketplaceGroups(activeGroups, allowedGroups)
 	}
 
 	cards, err := h.channelService.ListModelMarketplace(c.Request.Context(), visibleGroups)
