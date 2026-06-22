@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative min-h-screen overflow-hidden bg-gradient-to-br from-amber-50 via-white to-indigo-50 text-gray-900 dark:from-dark-950 dark:via-dark-950 dark:to-dark-900 dark:text-gray-100"
+    class="model-marketplace-page relative min-h-screen overflow-hidden bg-gradient-to-br from-amber-50 via-white to-indigo-50 text-[13px] text-gray-900 dark:from-dark-950 dark:via-dark-950 dark:to-dark-900 dark:text-gray-100"
   >
     <div
       class="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(15,23,42,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.04)_1px,transparent_1px)] bg-[size:30px_30px] dark:bg-[linear-gradient(rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.08)_1px,transparent_1px)]"
@@ -18,10 +18,10 @@
             <img :src="siteLogo || '/logo.png'" alt="Logo" class="h-full w-full object-contain" />
           </div>
           <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700/80 dark:text-amber-300/80">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-700/80 dark:text-amber-300/80">
               {{ t('nav.modelMarketplace', 'Model Marketplace') }}
             </p>
-            <h1 class="text-lg font-semibold text-slate-900 dark:text-white">{{ siteName }}</h1>
+            <h1 class="text-base font-semibold text-slate-900 dark:text-white">{{ siteName }}</h1>
           </div>
         </router-link>
 
@@ -29,14 +29,14 @@
           <router-link
             v-if="isAuthenticated"
             :to="dashboardPath"
-            class="rounded-full border border-slate-200/80 bg-white/90 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm backdrop-blur transition hover:border-slate-300 hover:text-slate-900 dark:border-dark-700 dark:bg-dark-800/90 dark:text-dark-200 dark:hover:border-dark-600 dark:hover:text-white"
+            class="rounded-full border border-slate-200/80 bg-white/90 px-4 py-2 text-xs font-medium text-slate-700 shadow-sm backdrop-blur transition hover:border-slate-300 hover:text-slate-900 dark:border-dark-700 dark:bg-dark-800/90 dark:text-dark-200 dark:hover:border-dark-600 dark:hover:text-white"
           >
             {{ t('home.dashboard') }}
           </router-link>
           <router-link
             v-else
             to="/login"
-            class="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-slate-300 transition hover:bg-slate-800 dark:bg-primary-500 dark:shadow-primary-500/20 dark:hover:bg-primary-600"
+            class="rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg shadow-slate-300 transition hover:bg-slate-800 dark:bg-primary-500 dark:shadow-primary-500/20 dark:hover:bg-primary-600"
           >
             {{ t('home.login') }}
           </router-link>
@@ -52,15 +52,15 @@
           >
             <div class="mb-4 flex items-center justify-between gap-3 px-2">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-dark-400">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-dark-400">
                   {{ t('common.filter', 'Filter') }}
                 </p>
-                <p class="mt-1 text-sm text-slate-600 dark:text-dark-300">{{ activeFilterSummary }}</p>
+                <p class="mt-1 text-xs text-slate-600 dark:text-dark-300">{{ activeFilterSummary }}</p>
               </div>
               <button
                 v-if="hasCategoryFilters"
                 @click="resetCategoryFilters"
-                class="text-xs font-semibold text-amber-700 transition hover:text-amber-600 dark:text-amber-300 dark:hover:text-amber-200"
+                class="text-[11px] font-semibold text-amber-700 transition hover:text-amber-600 dark:text-amber-300 dark:hover:text-amber-200"
               >
                 {{ t('common.reset', 'Reset') }}
               </button>
@@ -69,17 +69,17 @@
             <div class="space-y-3">
               <details open class="group overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/75 dark:border-dark-700 dark:bg-dark-950/60">
                 <summary
-                  class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white"
+                  class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-xs font-semibold text-slate-900 dark:text-white"
                 >
                   <span>{{ t('modelMarketplace.groupLabel', '分组') }}</span>
-                  <span class="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500 dark:bg-dark-800 dark:text-dark-300">
+                  <span class="rounded-full bg-white px-2 py-0.5 text-[11px] text-slate-500 dark:bg-dark-800 dark:text-dark-300">
                     {{ groupOptions.length }}
                   </span>
                 </summary>
                 <div class="space-y-1 border-t border-slate-200/70 p-2 dark:border-dark-700">
                   <button
                     @click="selectedGroup = ''"
-                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition"
+                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition"
                     :class="
                       selectedGroup
                         ? 'text-slate-600 hover:bg-white hover:text-slate-900 dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-white'
@@ -87,13 +87,13 @@
                     "
                   >
                     <span>{{ t('common.all', 'All') }}</span>
-                    <span class="text-xs opacity-75">{{ groupAllCount }}</span>
+                    <span class="text-[11px] opacity-75">{{ groupAllCount }}</span>
                   </button>
                   <button
                     v-for="group in groupEntries"
                     :key="group.value"
                     @click="toggleGroup(group.value)"
-                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition"
+                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition"
                     :class="
                       selectedGroup === group.value
                         ? 'bg-slate-900 text-white dark:bg-primary-500 dark:text-white'
@@ -101,24 +101,24 @@
                     "
                   >
                     <span class="truncate pr-3">{{ group.value }}</span>
-                    <span class="text-xs opacity-75">{{ group.count }}</span>
+                    <span class="text-[11px] opacity-75">{{ group.count }}</span>
                   </button>
                 </div>
               </details>
 
               <details open class="group overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/75 dark:border-dark-700 dark:bg-dark-950/60">
                 <summary
-                  class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white"
+                  class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-xs font-semibold text-slate-900 dark:text-white"
                 >
                   <span>{{ t('modelMarketplace.supplierLabel', '供应商') }}</span>
-                  <span class="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500 dark:bg-dark-800 dark:text-dark-300">
+                  <span class="rounded-full bg-white px-2 py-0.5 text-[11px] text-slate-500 dark:bg-dark-800 dark:text-dark-300">
                     {{ supplierOptions.length }}
                   </span>
                 </summary>
                 <div class="space-y-1 border-t border-slate-200/70 p-2 dark:border-dark-700">
                   <button
                     @click="selectedSupplier = ''"
-                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition"
+                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition"
                     :class="
                       selectedSupplier
                         ? 'text-slate-600 hover:bg-white hover:text-slate-900 dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-white'
@@ -126,13 +126,13 @@
                     "
                   >
                     <span>{{ t('common.all', 'All') }}</span>
-                    <span class="text-xs opacity-75">{{ supplierAllCount }}</span>
+                    <span class="text-[11px] opacity-75">{{ supplierAllCount }}</span>
                   </button>
                   <button
                     v-for="supplier in supplierEntries"
                     :key="supplier.value"
                     @click="toggleSupplier(supplier.value)"
-                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition"
+                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition"
                     :class="
                       selectedSupplier === supplier.value
                         ? 'bg-slate-900 text-white dark:bg-primary-500 dark:text-white'
@@ -140,24 +140,24 @@
                     "
                   >
                     <span class="truncate pr-3">{{ supplierLabel(supplier.value) }}</span>
-                    <span class="text-xs opacity-75">{{ supplier.count }}</span>
+                    <span class="text-[11px] opacity-75">{{ supplier.count }}</span>
                   </button>
                 </div>
               </details>
 
               <details open class="group overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50/75 dark:border-dark-700 dark:bg-dark-950/60">
                 <summary
-                  class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white"
+                  class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-xs font-semibold text-slate-900 dark:text-white"
                 >
                   <span>{{ t('modelMarketplace.billingType', 'Billing Type') }}</span>
-                  <span class="rounded-full bg-white px-2 py-0.5 text-xs text-slate-500 dark:bg-dark-800 dark:text-dark-300">
+                  <span class="rounded-full bg-white px-2 py-0.5 text-[11px] text-slate-500 dark:bg-dark-800 dark:text-dark-300">
                     {{ billingTypeOptions.length }}
                   </span>
                 </summary>
                 <div class="space-y-1 border-t border-slate-200/70 p-2 dark:border-dark-700">
                   <button
                     @click="selectedBillingType = ''"
-                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition"
+                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition"
                     :class="
                       selectedBillingType
                         ? 'text-slate-600 hover:bg-white hover:text-slate-900 dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-white'
@@ -165,13 +165,13 @@
                     "
                   >
                     <span>{{ t('common.all', 'All') }}</span>
-                    <span class="text-xs opacity-75">{{ billingTypeAllCount }}</span>
+                    <span class="text-[11px] opacity-75">{{ billingTypeAllCount }}</span>
                   </button>
                   <button
                     v-for="billingType in billingTypeEntries"
                     :key="billingType.value"
                     @click="toggleBillingType(billingType.value)"
-                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition"
+                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition"
                     :class="
                       selectedBillingType === billingType.value
                         ? 'bg-slate-900 text-white dark:bg-primary-500 dark:text-white'
@@ -179,7 +179,7 @@
                     "
                   >
                     <span class="truncate pr-3">{{ billingTypeLabel(billingType.value) }}</span>
-                    <span class="text-xs opacity-75">{{ billingType.count }}</span>
+                    <span class="text-[11px] opacity-75">{{ billingType.count }}</span>
                   </button>
                 </div>
               </details>
@@ -218,7 +218,7 @@
             >
               <div class="flex flex-col gap-6">
                 <div class="max-w-3xl">
-                  <p class="text-3xl font-black tracking-[0.08em] text-slate-950 dark:text-white md:text-4xl">
+                  <p class="text-2xl font-black tracking-[0.08em] text-slate-950 dark:text-white md:text-3xl">
                     {{ t('nav.modelMarketplace', 'Model Marketplace') }}
                   </p>
                 </div>
@@ -229,7 +229,7 @@
                       v-model="searchQuery"
                       type="text"
                       :placeholder="t('modelMarketplace.searchPlaceholder', '搜索模型名称')"
-                      class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-amber-400 dark:border-dark-600 dark:bg-dark-900 dark:text-white dark:placeholder:text-dark-400 dark:focus:border-amber-400"
+                      class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-amber-400 dark:border-dark-600 dark:bg-dark-900 dark:text-white dark:placeholder:text-dark-400 dark:focus:border-amber-400"
                     />
                   </div>
 
@@ -237,14 +237,14 @@
                     <button
                       v-if="hasCategoryFilters"
                       @click="resetCategoryFilters"
-                      class="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 dark:border-dark-600 dark:bg-dark-900 dark:text-dark-200 dark:hover:border-dark-500 dark:hover:text-white"
+                      class="inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 dark:border-dark-600 dark:bg-dark-900 dark:text-dark-200 dark:hover:border-dark-500 dark:hover:text-white"
                     >
                       {{ t('common.reset', 'Reset') }}
                     </button>
                     <button
                       @click="loadMarketplace"
                       :disabled="loading"
-                      class="inline-flex items-center rounded-full bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
+                      class="inline-flex items-center rounded-full bg-amber-400 px-5 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {{ loading ? t('common.loading', 'Loading...') : t('common.refresh', 'Refresh') }}
                     </button>
@@ -265,10 +265,10 @@
               v-else-if="filteredCards.length === 0"
               class="mt-8 rounded-[2rem] border border-dashed border-slate-300 bg-white/70 px-8 py-20 text-center shadow-sm dark:border-dark-700 dark:bg-dark-900/60"
             >
-              <h3 class="text-2xl font-bold text-slate-900 dark:text-white">
+              <h3 class="text-xl font-bold text-slate-900 dark:text-white">
                 {{ t('modelMarketplace.emptyTitle', 'No matching models') }}
               </h3>
-              <p class="mt-3 text-sm text-slate-500 dark:text-dark-400">
+              <p class="mt-3 text-xs text-slate-500 dark:text-dark-400">
                 {{ t('modelMarketplace.emptyDescription', 'Adjust your search or filters and try again.') }}
               </p>
             </section>
@@ -283,7 +283,7 @@
               >
                 <div class="flex items-start justify-between gap-4">
                   <div class="min-w-0">
-                    <div class="truncate text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-dark-400">
+                    <div class="truncate text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-dark-400">
                       <span
                         class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1"
                         :class="supplierBadgeClass(card.supplier)"
@@ -292,12 +292,12 @@
                         <span>{{ supplierLabel(card.supplier) }}</span>
                       </span>
                     </div>
-                    <h3 class="mt-2 min-w-0 break-words text-[1.125rem] font-bold leading-snug text-slate-950 dark:text-white">
+                    <h3 class="mt-2 min-w-0 break-words text-base font-bold leading-snug text-slate-950 dark:text-white">
                       {{ card.model_name }}
                     </h3>
                   </div>
                   <span
-                    class="shrink-0 rounded-full px-3 py-1 text-xs font-semibold"
+                    class="shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold"
                     :class="pricingSourceBadgeClass(cardDisplayOffer(card).pricing_source)"
                   >
                     {{ pricingSourceLabel(cardDisplayOffer(card).pricing_source) }}
@@ -306,17 +306,17 @@
 
                 <div class="mt-5 flex flex-wrap gap-2">
                   <span
-                    class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                    class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
                   >
                     {{ cardDisplayOffer(card).group_name }}
                   </span>
                   <span
-                    class="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-800 dark:bg-sky-500/15 dark:text-sky-300"
+                    class="rounded-full bg-sky-100 px-3 py-1 text-[11px] font-medium text-sky-800 dark:bg-sky-500/15 dark:text-sky-300"
                   >
                     {{ billingTypeLabel(cardDisplayOffer(card).billing_type) }}
                   </span>
                   <span
-                    class="rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-800 dark:bg-violet-500/15 dark:text-violet-300"
+                    class="rounded-full bg-violet-100 px-3 py-1 text-[11px] font-medium text-violet-800 dark:bg-violet-500/15 dark:text-violet-300"
                   >
                     {{ t('modelMarketplace.groupCount', { count: card.groups.length }) }}
                   </span>
@@ -332,13 +332,13 @@
                       :key="`${cardKey(card)}-comparison-${line.label}`"
                       class="rounded-2xl bg-white/80 px-4 py-3 dark:bg-dark-900/70"
                     >
-                      <div class="flex items-center justify-between gap-4 text-sm">
+                      <div class="flex items-center justify-between gap-4 text-xs">
                         <span class="font-medium text-amber-700 dark:text-amber-300">{{ formatCardPriceLabel(line.label) }}:</span>
                         <span class="text-right font-semibold text-slate-950 dark:text-white">
                           {{ line.currentValue ?? t('modelMarketplace.priceUnavailable', '暂无价格') }}
                         </span>
                       </div>
-                      <div class="mt-2 flex items-center justify-between gap-4 text-xs">
+                      <div class="mt-2 flex items-center justify-between gap-4 text-[11px]">
                         <span class="text-slate-500 dark:text-dark-400">{{ t('modelMarketplace.originalPrice', '原价') }}:</span>
                         <span class="text-right text-slate-500 line-through dark:text-dark-300">
                           {{ line.originalValue ?? t('availableChannels.noPricing', 'No pricing configured') }}
@@ -346,12 +346,12 @@
                       </div>
                     </div>
                   </div>
-                  <p v-else class="text-sm text-slate-500 dark:text-dark-400">
+                  <p v-else class="text-xs text-slate-500 dark:text-dark-400">
                     {{ t('availableChannels.noPricing', 'No pricing configured') }}
                   </p>
                 </div>
 
-                <dl class="mt-6 space-y-3 text-sm">
+                <dl class="mt-6 space-y-3 text-xs">
                   <div class="flex items-center justify-between gap-4">
                     <dt class="text-slate-500 dark:text-dark-400">
                       {{
@@ -369,7 +369,7 @@
                 </dl>
 
                 <div
-                  class="mt-6 flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 text-sm font-medium text-slate-700 transition group-hover:border-slate-300 group-hover:text-slate-900 dark:border-dark-700 dark:bg-dark-900/90 dark:text-dark-200 dark:group-hover:border-dark-500 dark:group-hover:text-white"
+                  class="mt-6 flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 text-xs font-medium text-slate-700 transition group-hover:border-slate-300 group-hover:text-slate-900 dark:border-dark-700 dark:bg-dark-900/90 dark:text-dark-200 dark:group-hover:border-dark-500 dark:group-hover:text-white"
                 >
                   <span>{{ t('modelMarketplace.viewDetails', '查看分组明细') }}</span>
                   <Icon name="chevronRight" size="sm" />
@@ -407,11 +407,11 @@
           >
             <div class="flex items-start justify-between gap-4 border-b border-slate-200/80 px-6 py-5 dark:border-dark-700">
               <div class="min-w-0">
-                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-dark-400">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400 dark:text-dark-400">
                   {{ supplierLabel(activeCard.supplier) }}
                 </p>
                 <div class="mt-2 flex items-start gap-2">
-                  <h3 class="break-words text-2xl font-bold text-slate-950 dark:text-white">
+                  <h3 class="break-words text-xl font-bold text-slate-950 dark:text-white">
                     {{ activeCard.model_name }}
                   </h3>
                   <button
@@ -428,12 +428,12 @@
                 </div>
                 <div class="mt-3 flex flex-wrap gap-2">
                   <span
-                    class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+                    class="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
                   >
                     {{ t('modelMarketplace.groupCount', { count: activeCard.groups.length }) }}
                   </span>
                   <span
-                    class="rounded-full px-3 py-1 text-xs font-medium"
+                    class="rounded-full px-3 py-1 text-[11px] font-medium"
                     :class="billingTypeBadgeClass(cardDisplayOffer(activeCard).billing_type)"
                   >
                     {{ billingTypeLabel(cardDisplayOffer(activeCard).billing_type) }}
@@ -460,28 +460,28 @@
                 >
                   <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <h4 class="text-lg font-semibold text-slate-950 dark:text-white">{{ group.group_name }}</h4>
+                      <h4 class="text-base font-semibold text-slate-950 dark:text-white">{{ group.group_name }}</h4>
                       <div class="mt-3 flex flex-wrap gap-2">
                         <span
-                          class="rounded-full px-3 py-1 text-xs font-medium"
+                          class="rounded-full px-3 py-1 text-[11px] font-medium"
                           :class="billingTypeBadgeClass(group.billing_type)"
                         >
                           {{ billingTypeLabel(group.billing_type) }}
                         </span>
                         <span
-                          class="rounded-full px-3 py-1 text-xs font-medium"
+                          class="rounded-full px-3 py-1 text-[11px] font-medium"
                           :class="pricingSourceBadgeClass(group.pricing_source)"
                         >
                           {{ pricingSourceLabel(group.pricing_source) }}
                         </span>
                         <span
-                          class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-dark-800 dark:text-dark-200"
+                          class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-700 dark:bg-dark-800 dark:text-dark-200"
                         >
                           {{ group.subscription_type || '-' }}
                         </span>
                       </div>
                     </div>
-                    <div class="text-sm font-semibold text-slate-950 dark:text-white">
+                    <div class="text-xs font-semibold text-slate-950 dark:text-white">
                       {{ t('modelMarketplace.groupRate', 'Rate') }}: {{ formatRate(group.group_rate) }}
                     </div>
                   </div>
@@ -496,13 +496,13 @@
                         :key="`${group.group_id}-comparison-${line.label}`"
                         class="rounded-2xl bg-white/85 px-4 py-3 dark:bg-dark-900/70"
                       >
-                        <div class="flex items-center justify-between gap-4 text-sm">
+                        <div class="flex items-center justify-between gap-4 text-xs">
                           <span class="font-medium text-amber-700 dark:text-amber-300">{{ formatCardPriceLabel(line.label) }}:</span>
                           <span class="text-right font-semibold text-slate-950 dark:text-white">
                             {{ line.currentValue ?? t('modelMarketplace.priceUnavailable', '暂无价格') }}
                           </span>
                         </div>
-                        <div class="mt-2 flex items-center justify-between gap-4 text-xs">
+                        <div class="mt-2 flex items-center justify-between gap-4 text-[11px]">
                           <span class="text-slate-500 dark:text-dark-400">{{ t('modelMarketplace.originalPrice', '原价') }}:</span>
                           <span class="text-right text-slate-500 line-through dark:text-dark-300">
                             {{ line.originalValue ?? t('availableChannels.noPricing', 'No pricing configured') }}
@@ -510,7 +510,7 @@
                         </div>
                       </div>
                     </div>
-                    <p v-else class="text-sm text-slate-500 dark:text-dark-400">
+                    <p v-else class="text-xs text-slate-500 dark:text-dark-400">
                       {{ t('availableChannels.noPricing', 'No pricing configured') }}
                     </p>
                   </div>
