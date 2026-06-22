@@ -139,7 +139,12 @@
                         : 'text-slate-600 hover:bg-white hover:text-slate-900 dark:text-dark-300 dark:hover:bg-dark-800 dark:hover:text-white'
                     "
                   >
-                    <span class="truncate pr-3">{{ supplierLabel(supplier.value) }}</span>
+                    <span class="flex min-w-0 items-center gap-2 pr-3">
+                      <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/90 shadow-sm ring-1 ring-black/5 dark:bg-white">
+                        <ModelIcon :model="supplierIconModel(supplier.value)" size="14px" />
+                      </span>
+                      <span class="truncate">{{ supplierLabel(supplier.value) }}</span>
+                    </span>
                     <span class="text-[11px] opacity-75">{{ supplier.count }}</span>
                   </button>
                 </div>
@@ -292,9 +297,14 @@
                         <span>{{ supplierLabel(card.supplier) }}</span>
                       </span>
                     </div>
-                    <h3 class="mt-2 min-w-0 break-words text-base font-bold leading-snug text-slate-950 dark:text-white">
-                      {{ card.model_name }}
-                    </h3>
+                    <div class="mt-2 flex min-w-0 items-start gap-2">
+                      <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-black/5">
+                        <ModelIcon :model="supplierIconModel(card.supplier)" size="18px" />
+                      </span>
+                      <h3 class="min-w-0 flex-1 break-words text-base font-bold leading-snug text-slate-950 dark:text-white">
+                        {{ card.model_name }}
+                      </h3>
+                    </div>
                   </div>
                   <span
                     class="shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold"
@@ -411,6 +421,9 @@
                   {{ supplierLabel(activeCard.supplier) }}
                 </p>
                 <div class="mt-2 flex items-start gap-2">
+                  <span class="mt-1 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-black/5">
+                    <ModelIcon :model="supplierIconModel(activeCard.supplier)" size="20px" />
+                  </span>
                   <h3 class="break-words text-xl font-bold text-slate-950 dark:text-white">
                     {{ activeCard.model_name }}
                   </h3>
@@ -533,6 +546,7 @@ import {
   BILLING_MODE_TOKEN,
 } from '@/constants/channel'
 import Icon from '@/components/icons/Icon.vue'
+import ModelIcon from '@/components/common/ModelIcon.vue'
 import { useClipboard } from '@/composables/useClipboard'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
@@ -890,6 +904,33 @@ function supplierLabel(value: string | null | undefined): string {
       return t('modelMarketplace.supplierUnknown', '未知供应商')
     default:
       return value || t('modelMarketplace.supplierUnknown', '未知供应商')
+  }
+}
+
+function supplierIconModel(value: string | null | undefined): string {
+  const normalized = (value || '').trim().toLowerCase()
+  switch (normalized) {
+    case 'openai':
+      return 'gpt'
+    case 'anthropic':
+      return 'claude'
+    case 'google':
+      return 'gemini'
+    case 'deepseek':
+      return 'deepseek'
+    case 'kimi':
+    case 'moonshot':
+      return 'moonshot'
+    case 'glm':
+      return 'glm'
+    case 'qwen':
+      return 'qwen'
+    case 'minimax':
+      return 'minimax'
+    case 'doubao':
+      return 'doubao'
+    default:
+      return normalized || 'api'
   }
 }
 
