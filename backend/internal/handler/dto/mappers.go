@@ -526,8 +526,11 @@ func RedeemCodeFromServiceAdmin(rc *service.RedeemCode) *AdminRedeemCode {
 		return nil
 	}
 	return &AdminRedeemCode{
-		RedeemCode: redeemCodeFromServiceBase(rc),
-		Notes:      rc.Notes,
+		RedeemCode:   redeemCodeFromServiceBase(rc),
+		UsageLimit:   rc.UsageLimit,
+		PerUserLimit: rc.PerUserLimit,
+		GiftParentID: rc.GiftParentID,
+		Notes:        rc.Notes,
 	}
 }
 
@@ -544,9 +547,6 @@ func redeemCodeFromServiceBase(rc *service.RedeemCode) RedeemCode {
 		ExpiresAt:    rc.ExpiresAt,
 		GroupID:      rc.GroupID,
 		ValidityDays: rc.ValidityDays,
-		UsageLimit:   rc.UsageLimit,
-		PerUserLimit: rc.PerUserLimit,
-		GiftParentID: rc.GiftParentID,
 		User:         UserFromServiceShallow(rc.User),
 		Group:        GroupFromServiceShallow(rc.Group),
 	}

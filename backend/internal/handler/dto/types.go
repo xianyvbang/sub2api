@@ -354,10 +354,6 @@ type RedeemCode struct {
 	GroupID      *int64 `json:"group_id"`
 	ValidityDays int    `json:"validity_days"`
 
-	UsageLimit   int    `json:"usage_limit"`
-	PerUserLimit int    `json:"per_user_limit"`
-	GiftParentID *int64 `json:"gift_parent_id,omitempty"`
-
 	// Notes is only populated for admin_balance/admin_concurrency types
 	// so users can see why they were charged or credited
 	Notes *string `json:"notes,omitempty"`
@@ -371,7 +367,10 @@ type RedeemCode struct {
 type AdminRedeemCode struct {
 	RedeemCode
 
-	Notes string `json:"notes"`
+	UsageLimit   int    `json:"usage_limit"`
+	PerUserLimit int    `json:"per_user_limit"`
+	GiftParentID *int64 `json:"gift_parent_id,omitempty"`
+	Notes        string `json:"notes"`
 }
 
 type NullableTimeField struct {
