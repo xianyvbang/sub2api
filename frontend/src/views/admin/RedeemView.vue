@@ -132,6 +132,9 @@
             <span class="text-sm font-medium text-gray-900 dark:text-white">
               <template v-if="row.type === 'balance' || row.type === 'gift_balance'">
                 ${{ value.toFixed(2) }}
+                <span v-if="row.type === 'gift_balance'" class="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                  {{ row.usage_limit || 1 }} / {{ row.per_user_limit || 1 }}
+                </span>
               </template>
               <template v-else-if="row.type === 'subscription'">
                 {{ row.validity_days || 30 }} {{ t('admin.redeem.days') }}
