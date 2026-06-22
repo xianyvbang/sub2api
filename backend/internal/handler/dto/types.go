@@ -367,10 +367,12 @@ type RedeemCode struct {
 type AdminRedeemCode struct {
 	RedeemCode
 
-	UsageLimit   int    `json:"usage_limit"`
-	PerUserLimit int    `json:"per_user_limit"`
-	GiftParentID *int64 `json:"gift_parent_id,omitempty"`
-	Notes        string `json:"notes"`
+	UsageLimit     int    `json:"usage_limit"`
+	PerUserLimit   int    `json:"per_user_limit"`
+	UsageRemaining int    `json:"usage_remaining"`
+	UsageTotal     int    `json:"usage_total"`
+	GiftParentID   *int64 `json:"gift_parent_id,omitempty"`
+	Notes          string `json:"notes"`
 }
 
 type NullableTimeField struct {

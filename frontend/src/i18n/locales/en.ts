@@ -4423,6 +4423,7 @@ export default {
         code: 'Code',
         type: 'Type',
         value: 'Value',
+        usageRemaining: 'Remaining Uses',
         status: 'Status',
         usedBy: 'Used By',
         usedAt: 'Used At',

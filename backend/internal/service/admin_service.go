@@ -3327,6 +3327,8 @@ func (s *adminServiceImpl) GenerateRedeemCodes(ctx context.Context, input *Gener
 		if code.Type == RedeemTypeGiftBalance {
 			code.UsageLimit = input.UsageLimit
 			code.PerUserLimit = input.PerUserLimit
+			code.UsageRemaining = input.UsageLimit
+			code.UsageTotal = input.UsageLimit
 		}
 		// 订阅类型专用字段
 		if input.Type == RedeemTypeSubscription {

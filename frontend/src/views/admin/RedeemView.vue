@@ -132,9 +132,6 @@
             <span class="text-sm font-medium text-gray-900 dark:text-white">
               <template v-if="row.type === 'balance' || row.type === 'gift_balance'">
                 ${{ value.toFixed(2) }}
-                <span v-if="row.type === 'gift_balance'" class="ml-1 text-xs text-gray-500 dark:text-gray-400">
-                  {{ row.usage_limit || 1 }} / {{ row.per_user_limit || 1 }}
-                </span>
               </template>
               <template v-else-if="row.type === 'subscription'">
                 {{ row.validity_days || 30 }} {{ t('admin.redeem.days') }}
@@ -143,6 +140,15 @@
                 >
               </template>
               <template v-else>{{ value }}</template>
+            </span>
+          </template>
+
+          <template #cell-usage_remaining="{ row }">
+            <span class="text-sm text-gray-500 dark:text-dark-400">
+              <template v-if="row.type === 'gift_balance'">
+                {{ formatGiftUsageRemaining(row) }}
+              </template>
+              <template v-else>-</template>
             </span>
           </template>
 
@@ -822,6 +828,20 @@ const textareaHeight = computed(() => {
   return `${calculatedHeight}px`
 })
 
+const formatGiftUsageRemaining = (code: RedeemCode) => {
+  const totalValue = code.usage_total
+  const remainingValue = code.usage_remaining
+  const total =
+    totalValue != null && Number.isFinite(totalValue)
+      ? totalValue
+      : code.usage_limit || 1
+  const remaining =
+    remainingValue != null && Number.isFinite(remainingValue)
+      ? remainingValue
+      : total
+  return `${remaining} / ${total}`
+}
+
 const copiedAll = ref(false)
 
 const closeResultDialog = () => {
@@ -857,6 +877,7 @@ const columns = computed<Column[]>(() => [
   { key: 'code', label: t('admin.redeem.columns.code') },
   { key: 'type', label: t('admin.redeem.columns.type'), sortable: true },
   { key: 'value', label: t('admin.redeem.columns.value'), sortable: true },
+  { key: 'usage_remaining', label: t('admin.redeem.columns.usageRemaining') },
   { key: 'status', label: t('admin.redeem.columns.status'), sortable: true },
   { key: 'used_by', label: t('admin.redeem.columns.usedBy') },
   { key: 'used_at', label: t('admin.redeem.columns.usedAt'), sortable: true },

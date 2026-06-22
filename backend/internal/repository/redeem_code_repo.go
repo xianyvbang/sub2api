@@ -13,6 +13,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/user"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/lib/pq"
 
 	entsql "entgo.io/ent/dialect/sql"
 )
@@ -105,6 +106,9 @@ func (r *redeemCodeRepository) GetByID(ctx context.Context, id int64) (*service.
 	if err := r.loadGiftFields(ctx, out); err != nil {
 		return nil, err
 	}
+	if err := r.loadGiftUsageCounts(ctx, out); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 
@@ -121,6 +125,9 @@ func (r *redeemCodeRepository) GetByCode(ctx context.Context, code string) (*ser
 	}
 	out := redeemCodeEntityToService(m)
 	if err := r.loadGiftFields(ctx, out); err != nil {
+		return nil, err
+	}
+	if err := r.loadGiftUsageCounts(ctx, out); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -140,6 +147,9 @@ func (r *redeemCodeRepository) GetByCodeForUpdate(ctx context.Context, code stri
 	}
 	out := redeemCodeEntityToService(m)
 	if err := r.loadGiftFields(ctx, out); err != nil {
+		return nil, err
+	}
+	if err := r.loadGiftUsageCounts(ctx, out); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -559,6 +569,13 @@ func (r *redeemCodeRepository) ListGiftChildren(ctx context.Context, parentID in
 
 func (r *redeemCodeRepository) CountGiftChildrenByStatus(ctx context.Context, parentID int64, status string) (int64, error) {
 	return r.countGiftChildrenByStatus(ctx, clientFromContext(ctx, r.client), parentID, status)
+}
+
+func (r *redeemCodeRepository) countGiftChildren(ctx context.Context, client *dbent.Client, parentID int64) (int64, error) {
+	n, err := client.RedeemCode.Query().
+		Where(rawRedeemCodeFieldEQ("gift_parent_id", parentID)).
+		Count(ctx)
+	return int64(n), err
 }
 
 func (r *redeemCodeRepository) countGiftChildrenByStatus(ctx context.Context, client *dbent.Client, parentID int64, status string) (int64, error) {
@@ -1019,7 +1036,80 @@ func (r *redeemCodeRepository) loadGiftFieldsForCodes(ctx context.Context, codes
 			return err
 		}
 	}
+	if err := r.loadGiftUsageCountsForCodes(ctx, codes); err != nil {
+		return err
+	}
 	return nil
+}
+
+func (r *redeemCodeRepository) loadGiftUsageCounts(ctx context.Context, code *service.RedeemCode) error {
+	if code == nil || code.ID == 0 || code.Type != service.RedeemTypeGiftBalance || code.GiftParentID != nil {
+		return nil
+	}
+	client := clientFromContext(ctx, r.client)
+	total, err := r.countGiftChildren(ctx, client, code.ID)
+	if err != nil {
+		return err
+	}
+	remaining, err := r.countGiftChildrenByStatus(ctx, client, code.ID, service.StatusUnused)
+	if err != nil {
+		return err
+	}
+	code.UsageTotal = int(total)
+	code.UsageRemaining = int(remaining)
+	return nil
+}
+
+func (r *redeemCodeRepository) loadGiftUsageCountsForCodes(ctx context.Context, codes []service.RedeemCode) error {
+	parentIndex := make(map[int64]int)
+	ids := make([]int64, 0)
+	for i := range codes {
+		code := &codes[i]
+		if code.ID == 0 || code.Type != service.RedeemTypeGiftBalance || code.GiftParentID != nil {
+			continue
+		}
+		parentIndex[code.ID] = i
+		ids = append(ids, code.ID)
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+
+	client := clientFromContext(ctx, r.client)
+	now := time.Now()
+	rows, err := client.QueryContext(
+		ctx,
+		`SELECT gift_parent_id,
+		        COUNT(*) AS total,
+		        COUNT(*) FILTER (
+		          WHERE status = $1
+		            AND (expires_at IS NULL OR expires_at > $2)
+		        ) AS remaining
+		   FROM redeem_codes
+		  WHERE gift_parent_id = ANY($3)
+		  GROUP BY gift_parent_id`,
+		service.StatusUnused,
+		now,
+		pq.Array(ids),
+	)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = rows.Close() }()
+
+	for rows.Next() {
+		var parentID int64
+		var total int
+		var remaining int
+		if err := rows.Scan(&parentID, &total, &remaining); err != nil {
+			return fmt.Errorf("scan gift usage counts: %w", err)
+		}
+		if i, ok := parentIndex[parentID]; ok {
+			codes[i].UsageTotal = total
+			codes[i].UsageRemaining = remaining
+		}
+	}
+	return rows.Err()
 }
 
 func scanGiftFields(rows *sql.Rows, code *service.RedeemCode) error {

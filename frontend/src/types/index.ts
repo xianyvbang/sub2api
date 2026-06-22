@@ -1342,6 +1342,8 @@ export interface RedeemCode {
   validity_days?: number // 订阅类型专用
   usage_limit?: number
   per_user_limit?: number
+  usage_remaining?: number
+  usage_total?: number
   gift_parent_id?: number | null
   user?: User
   group?: Group // 关联的分组

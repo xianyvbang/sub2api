@@ -4533,6 +4533,7 @@ export default {
         code: '兑换码',
         type: '类型',
         value: '面值',
+        usageRemaining: '剩余次数',
         status: '状态',
         usedBy: '使用者',
         usedAt: '使用时间',
