@@ -145,6 +145,104 @@ vi.mock('@/api/modelMarketplace', () => ({
         ],
       },
       {
+        group_id: 5,
+        group_name: 'Hybrid Token',
+        group_platform: 'openai',
+        group_rate: 0.5,
+        group_is_exclusive: false,
+        subscription_type: 'standard',
+        model_name: 'gpt-hybrid',
+        supplier: 'openai',
+        billing_type: 'token',
+        pricing_source: 'group',
+        original_pricing: {
+          billing_mode: 'token',
+          input_price: 0.000001,
+          output_price: 0.000002,
+          cache_write_price: null,
+          cache_read_price: null,
+          image_output_price: null,
+          per_request_price: null,
+          intervals: [],
+        },
+        current_pricing: {
+          billing_mode: 'token',
+          input_price: 0.0000005,
+          output_price: 0.000001,
+          cache_write_price: null,
+          cache_read_price: null,
+          image_output_price: null,
+          per_request_price: null,
+          intervals: [],
+        },
+        groups: [
+          {
+            group_id: 5,
+            group_name: 'Hybrid Token',
+            group_platform: 'openai',
+            group_rate: 0.5,
+            group_is_exclusive: false,
+            subscription_type: 'standard',
+            model_name: 'gpt-hybrid',
+            supplier: 'openai',
+            billing_type: 'token',
+            pricing_source: 'group',
+            original_pricing: {
+              billing_mode: 'token',
+              input_price: 0.000001,
+              output_price: 0.000002,
+              cache_write_price: null,
+              cache_read_price: null,
+              image_output_price: null,
+              per_request_price: null,
+              intervals: [],
+            },
+            current_pricing: {
+              billing_mode: 'token',
+              input_price: 0.0000005,
+              output_price: 0.000001,
+              cache_write_price: null,
+              cache_read_price: null,
+              image_output_price: null,
+              per_request_price: null,
+              intervals: [],
+            },
+          },
+          {
+            group_id: 6,
+            group_name: 'Hybrid Requests',
+            group_platform: 'openai',
+            group_rate: 1,
+            group_is_exclusive: false,
+            subscription_type: 'standard',
+            model_name: 'gpt-hybrid',
+            supplier: 'openai',
+            billing_type: 'per_request',
+            pricing_source: 'channel',
+            original_pricing: {
+              billing_mode: 'per_request',
+              input_price: null,
+              output_price: null,
+              cache_write_price: null,
+              cache_read_price: null,
+              image_output_price: null,
+              per_request_price: 0.08,
+              intervals: [],
+            },
+            current_pricing: {
+              billing_mode: 'per_request',
+              input_price: null,
+              output_price: null,
+              cache_write_price: null,
+              cache_read_price: null,
+              image_output_price: null,
+              per_request_price: 0.05,
+              intervals: [],
+            },
+          },
+        ],
+      },
+      {
         group_id: 3,
         group_name: 'Claude',
         group_platform: 'anthropic',
@@ -467,6 +565,55 @@ describe('ModelMarketplaceView', () => {
     expect(drawer.text()).not.toContain('$16 / 1M Tokens')
     expect(drawer.text()).not.toContain('$10 / 1M Tokens')
     expect(drawer.text()).not.toContain('$20 / 1M Tokens')
+  })
+
+  it('updates the displayed card offer when billing type filter changes', async () => {
+    const wrapper = await mountView()
+
+    const hybridCard = wrapper.get('[data-testid="marketplace-card-openai-gpt-hybrid"]')
+    expect(hybridCard.text()).toContain('Hybrid Token')
+    expect(hybridCard.text()).toContain('按量计费(tokens)')
+    expect(hybridCard.text()).toContain('$0.5 / 1M Tokens')
+    expect(hybridCard.text()).not.toContain('Hybrid Requests')
+    expect(hybridCard.text()).not.toContain('$0.05 / 次')
+
+    const selects = wrapper.findAll('select')
+    await selects[2].setValue('per_request')
+    await flushPromises()
+
+    const filteredHybridCard = wrapper.get('[data-testid="marketplace-card-openai-gpt-hybrid"]')
+    expect(filteredHybridCard.text()).toContain('Hybrid Requests')
+    expect(filteredHybridCard.text()).toContain('按次计费')
+    expect(filteredHybridCard.text()).toContain('按次价格')
+    expect(filteredHybridCard.text()).toContain('$0.05 / 次')
+    expect(filteredHybridCard.text()).not.toContain('Hybrid Token')
+    expect(filteredHybridCard.text()).not.toContain('$0.5 / 1M Tokens')
+
+    await filteredHybridCard.trigger('click')
+    await flushPromises()
+
+    const drawer = wrapper.get('[data-testid="marketplace-detail-drawer"]')
+    expect(drawer.text()).toContain('按次计费')
+  })
+
+  it('requires group and billing type filters to match the same offer', async () => {
+    const wrapper = await mountView()
+    const selects = wrapper.findAll('select')
+
+    await selects[0].setValue('Hybrid Token')
+    await selects[2].setValue('per_request')
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="marketplace-card-openai-gpt-hybrid"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('No matching models')
+
+    await selects[0].setValue('Hybrid Requests')
+    await flushPromises()
+
+    const hybridCard = wrapper.get('[data-testid="marketplace-card-openai-gpt-hybrid"]')
+    expect(hybridCard.text()).toContain('Hybrid Requests')
+    expect(hybridCard.text()).toContain('$0.05 / 次')
+    expect(hybridCard.text()).not.toContain('Hybrid Token')
   })
 
   it('shows image output pricing for image billing instead of token input or output pricing', async () => {

@@ -434,9 +434,9 @@
                   </span>
                   <span
                     class="rounded-full px-3 py-1 text-xs font-medium"
-                    :class="billingTypeBadgeClass(activeCard.billing_type)"
+                    :class="billingTypeBadgeClass(cardDisplayOffer(activeCard).billing_type)"
                   >
-                    {{ billingTypeLabel(activeCard.billing_type) }}
+                    {{ billingTypeLabel(cardDisplayOffer(activeCard).billing_type) }}
                   </span>
                 </div>
               </div>
@@ -568,6 +568,11 @@ type PriceDescriptor = {
   value: number
 }
 
+type OfferFilter = {
+  groupName?: string
+  billingType?: string
+}
+
 const { t } = useI18n()
 const appStore = useAppStore()
 const authStore = useAuthStore()
@@ -630,7 +635,7 @@ const groupAllCount = computed(
   () =>
     searchedCards.value.filter((card) => {
       if (selectedSupplier.value && card.supplier !== selectedSupplier.value) return false
-      if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
+      if (selectedBillingType.value && !cardHasMatchingOffer(card, { billingType: selectedBillingType.value })) return false
       return true
     }).length,
 )
@@ -638,8 +643,15 @@ const groupAllCount = computed(
 const supplierAllCount = computed(
   () =>
     searchedCards.value.filter((card) => {
-      if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
-      if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
+      if (
+        (selectedGroup.value || selectedBillingType.value) &&
+        !cardHasMatchingOffer(card, {
+          groupName: selectedGroup.value,
+          billingType: selectedBillingType.value,
+        })
+      ) {
+        return false
+      }
       return true
     }).length,
 )
@@ -647,7 +659,7 @@ const supplierAllCount = computed(
 const billingTypeAllCount = computed(
   () =>
     searchedCards.value.filter((card) => {
-      if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
+      if (selectedGroup.value && !cardHasMatchingOffer(card, { groupName: selectedGroup.value })) return false
       if (selectedSupplier.value && card.supplier !== selectedSupplier.value) return false
       return true
     }).length,
@@ -657,9 +669,8 @@ const groupEntries = computed<FilterEntry[]>(() =>
   groupOptions.value.map((value) => ({
     value,
     count: searchedCards.value.filter((card) => {
-      if (!cardBelongsToGroup(card, value)) return false
       if (selectedSupplier.value && card.supplier !== selectedSupplier.value) return false
-      if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
+      if (!cardHasMatchingOffer(card, { groupName: value, billingType: selectedBillingType.value })) return false
       return true
     }).length,
   })),
@@ -670,8 +681,15 @@ const supplierEntries = computed<FilterEntry[]>(() =>
     value,
     count: searchedCards.value.filter((card) => {
       if (card.supplier !== value) return false
-      if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
-      if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
+      if (
+        (selectedGroup.value || selectedBillingType.value) &&
+        !cardHasMatchingOffer(card, {
+          groupName: selectedGroup.value,
+          billingType: selectedBillingType.value,
+        })
+      ) {
+        return false
+      }
       return true
     }).length,
   })),
@@ -681,9 +699,8 @@ const billingTypeEntries = computed<FilterEntry[]>(() =>
   billingTypeOptions.value.map((value) => ({
     value,
     count: searchedCards.value.filter((card) => {
-      if (!cardHasBillingType(card, value)) return false
-      if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
       if (selectedSupplier.value && card.supplier !== selectedSupplier.value) return false
+      if (!cardHasMatchingOffer(card, { groupName: selectedGroup.value, billingType: value })) return false
       return true
     }).length,
   })),
@@ -716,23 +733,56 @@ function marketplaceSearchText(card: ModelMarketplaceCard): string {
 }
 
 function cardMatchesSelectedFilters(card: ModelMarketplaceCard): boolean {
-  if (selectedGroup.value && !cardBelongsToGroup(card, selectedGroup.value)) return false
   if (selectedSupplier.value && card.supplier !== selectedSupplier.value) return false
-  if (selectedBillingType.value && !cardHasBillingType(card, selectedBillingType.value)) return false
+  if (selectedGroup.value || selectedBillingType.value) {
+    return cardHasMatchingOffer(card, {
+      groupName: selectedGroup.value,
+      billingType: selectedBillingType.value,
+    })
+  }
   return true
 }
 
-function cardBelongsToGroup(card: ModelMarketplaceCard, groupName: string): boolean {
-  return card.groups.some((group) => group.group_name === groupName)
-}
-
-function cardHasBillingType(card: ModelMarketplaceCard, billingType: string): boolean {
-  return card.groups.some((group) => normalizeBillingType(group.billing_type) === billingType)
-}
-
 function cardDisplayOffer(card: ModelMarketplaceCard): ModelMarketplaceCard | ModelMarketplaceGroupOffer {
-  if (!selectedGroup.value) return card
-  return card.groups.find((group) => group.group_name === selectedGroup.value) ?? card
+  if (!selectedGroup.value && !selectedBillingType.value) return card
+
+  const candidates = card.groups.filter((group) => groupOfferMatchesSelectedFilters(group))
+  return pickBestDisplayOffer(candidates) ?? card
+}
+
+function cardHasMatchingOffer(card: ModelMarketplaceCard, filters: OfferFilter): boolean {
+  return card.groups.some((group) => groupOfferMatchesFilters(group, filters))
+}
+
+function groupOfferMatchesSelectedFilters(group: ModelMarketplaceGroupOffer): boolean {
+  return groupOfferMatchesFilters(group, {
+    groupName: selectedGroup.value,
+    billingType: selectedBillingType.value,
+  })
+}
+
+function groupOfferMatchesFilters(group: ModelMarketplaceGroupOffer, filters: OfferFilter): boolean {
+  if (filters.groupName && group.group_name !== filters.groupName) return false
+  if (filters.billingType && normalizeBillingType(group.billing_type) !== filters.billingType) return false
+  return true
+}
+
+function pickBestDisplayOffer(offers: ModelMarketplaceGroupOffer[]): ModelMarketplaceGroupOffer | null {
+  if (offers.length === 0) return null
+  return offers.slice().sort(compareGroupOffersByDisplayPrice)[0]
+}
+
+function compareGroupOffersByDisplayPrice(left: ModelMarketplaceGroupOffer, right: ModelMarketplaceGroupOffer): number {
+  const leftPrice = primaryPriceDescriptor(left.current_pricing, left.billing_type)?.value
+  const rightPrice = primaryPriceDescriptor(right.current_pricing, right.billing_type)?.value
+
+  if (leftPrice == null && rightPrice != null) return 1
+  if (leftPrice != null && rightPrice == null) return -1
+  if (leftPrice != null && rightPrice != null && leftPrice !== rightPrice) {
+    return leftPrice - rightPrice
+  }
+  if (left.group_name !== right.group_name) return left.group_name.localeCompare(right.group_name)
+  return left.model_name.localeCompare(right.model_name)
 }
 
 function compareCardsByDisplayPrice(left: ModelMarketplaceCard, right: ModelMarketplaceCard): number {
