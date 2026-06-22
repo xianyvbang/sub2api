@@ -544,6 +544,10 @@ func (s *stubAdminService) ListRedeemCodes(ctx context.Context, page, pageSize i
 	return s.redeems, int64(len(s.redeems)), nil
 }
 
+func (s *stubAdminService) ListRedeemCodeChildren(ctx context.Context, id int64, page, pageSize int) ([]service.RedeemCode, int64, error) {
+	return s.redeems, int64(len(s.redeems)), nil
+}
+
 func (s *stubAdminService) GetRedeemCode(ctx context.Context, id int64) (*service.RedeemCode, error) {
 	code := service.RedeemCode{ID: id, Code: "R-TEST", Status: service.StatusUnused}
 	return &code, nil

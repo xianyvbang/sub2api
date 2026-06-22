@@ -544,6 +544,9 @@ func redeemCodeFromServiceBase(rc *service.RedeemCode) RedeemCode {
 		ExpiresAt:    rc.ExpiresAt,
 		GroupID:      rc.GroupID,
 		ValidityDays: rc.ValidityDays,
+		UsageLimit:   rc.UsageLimit,
+		PerUserLimit: rc.PerUserLimit,
+		GiftParentID: rc.GiftParentID,
 		User:         UserFromServiceShallow(rc.User),
 		Group:        GroupFromServiceShallow(rc.Group),
 	}

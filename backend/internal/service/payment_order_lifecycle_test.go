@@ -111,6 +111,10 @@ func (r *paymentOrderLifecycleRedeemRepo) GetByCode(_ context.Context, code stri
 	return &cloned, nil
 }
 
+func (r *paymentOrderLifecycleRedeemRepo) GetByCodeForUpdate(ctx context.Context, code string) (*RedeemCode, error) {
+	return r.GetByCode(ctx, code)
+}
+
 func (r *paymentOrderLifecycleRedeemRepo) Update(context.Context, *RedeemCode) error {
 	panic("unexpected call")
 }
@@ -120,6 +124,14 @@ func (r *paymentOrderLifecycleRedeemRepo) BatchUpdate(context.Context, []int64, 
 }
 
 func (r *paymentOrderLifecycleRedeemRepo) Delete(context.Context, int64) error {
+	panic("unexpected call")
+}
+
+func (r *paymentOrderLifecycleRedeemRepo) DeleteGiftParent(context.Context, int64) error {
+	panic("unexpected call")
+}
+
+func (r *paymentOrderLifecycleRedeemRepo) DeleteGiftChild(context.Context, int64, int64) error {
 	panic("unexpected call")
 }
 
@@ -142,11 +154,27 @@ func (r *paymentOrderLifecycleRedeemRepo) Use(_ context.Context, id, userID int6
 	return ErrRedeemCodeNotFound
 }
 
+func (r *paymentOrderLifecycleRedeemRepo) UseGiftChild(context.Context, int64, int64) (*RedeemCode, error) {
+	panic("unexpected call")
+}
+
 func (r *paymentOrderLifecycleRedeemRepo) List(context.Context, pagination.PaginationParams) ([]RedeemCode, *pagination.PaginationResult, error) {
 	panic("unexpected call")
 }
 
 func (r *paymentOrderLifecycleRedeemRepo) ListWithFilters(context.Context, pagination.PaginationParams, string, string, string) ([]RedeemCode, *pagination.PaginationResult, error) {
+	panic("unexpected call")
+}
+
+func (r *paymentOrderLifecycleRedeemRepo) ListGiftChildren(context.Context, int64, pagination.PaginationParams) ([]RedeemCode, *pagination.PaginationResult, error) {
+	panic("unexpected call")
+}
+
+func (r *paymentOrderLifecycleRedeemRepo) CountGiftChildrenByStatus(context.Context, int64, string) (int64, error) {
+	panic("unexpected call")
+}
+
+func (r *paymentOrderLifecycleRedeemRepo) CountGiftChildrenByUser(context.Context, int64, int64) (int64, error) {
 	panic("unexpected call")
 }
 

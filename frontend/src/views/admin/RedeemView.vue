@@ -117,7 +117,7 @@
             <span
               :class="[
                 'badge',
-                value === 'balance'
+                value === 'balance' || value === 'gift_balance'
                   ? 'badge-success'
                   : value === 'subscription'
                     ? 'badge-warning'
@@ -130,7 +130,12 @@
 
           <template #cell-value="{ value, row }">
             <span class="text-sm font-medium text-gray-900 dark:text-white">
-              <template v-if="row.type === 'balance'">${{ value.toFixed(2) }}</template>
+              <template v-if="row.type === 'balance' || row.type === 'gift_balance'">
+                ${{ value.toFixed(2) }}
+                <span v-if="row.type === 'gift_balance'" class="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                  {{ row.usage_limit || 1 }} / {{ row.per_user_limit || 1 }}
+                </span>
+              </template>
               <template v-else-if="row.type === 'subscription'">
                 {{ row.validity_days || 30 }} {{ t('admin.redeem.days') }}
                 <span v-if="row.group" class="ml-1 text-xs text-gray-500 dark:text-gray-400"
@@ -184,6 +189,14 @@
           <template #cell-actions="{ row }">
             <div class="flex items-center space-x-2">
               <button
+                v-if="row.type === 'gift_balance'"
+                @click="openGiftChildrenDialog(row)"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-900/20 dark:hover:text-primary-300"
+              >
+                <Icon name="eye" size="sm" :stroke-width="2" />
+                <span class="text-xs">{{ t('common.view') }}</span>
+              </button>
+              <button
                 v-if="row.status === 'unused'"
                 @click="handleDelete(row)"
                 class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
@@ -198,7 +211,11 @@
                 </svg>
                 <span class="text-xs">{{ t('common.delete') }}</span>
               </button>
-              <span v-else class="text-gray-400 dark:text-dark-500">-</span>
+              <span
+                v-if="row.type !== 'gift_balance' && row.status !== 'unused'"
+                class="text-gray-400 dark:text-dark-500"
+                >-</span
+              >
             </div>
           </template>
         </DataTable>
@@ -291,7 +308,7 @@
             <div v-if="generateForm.type !== 'subscription' && generateForm.type !== 'invitation'">
               <label class="input-label">
                 {{
-                  generateForm.type === 'balance'
+                  generateForm.type === 'balance' || generateForm.type === 'gift_balance'
                     ? t('admin.redeem.amount')
                     : t('admin.redeem.columns.value')
                 }}
@@ -299,12 +316,38 @@
               <input
                 v-model.number="generateForm.value"
                 type="number"
-                :step="generateForm.type === 'balance' ? '0.01' : '1'"
-                :min="generateForm.type === 'balance' ? '0.01' : '1'"
+                :step="generateForm.type === 'balance' || generateForm.type === 'gift_balance' ? '0.01' : '1'"
+                :min="generateForm.type === 'balance' || generateForm.type === 'gift_balance' ? '0.01' : '1'"
                 required
                 class="input"
               />
             </div>
+            <template v-if="generateForm.type === 'gift_balance'">
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label class="input-label">{{ t('admin.redeem.usageLimit') }}</label>
+                  <input
+                    v-model.number="generateForm.usage_limit"
+                    type="number"
+                    min="1"
+                    max="1000"
+                    required
+                    class="input"
+                  />
+                </div>
+                <div>
+                  <label class="input-label">{{ t('admin.redeem.perUserLimit') }}</label>
+                  <input
+                    v-model.number="generateForm.per_user_limit"
+                    type="number"
+                    min="1"
+                    max="1000"
+                    required
+                    class="input"
+                  />
+                </div>
+              </div>
+            </template>
             <!-- 邀请码类型：显示提示信息 -->
             <div v-if="generateForm.type === 'invitation'" class="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
               <p class="text-sm text-blue-700 dark:text-blue-300">
@@ -520,6 +563,96 @@
       </div>
     </Teleport>
 
+    <!-- Gift Balance Children Dialog -->
+    <Teleport to="body">
+      <div v-if="showGiftChildrenDialog" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="fixed inset-0 bg-black/50" @click="closeGiftChildrenDialog"></div>
+        <div class="relative z-10 flex max-h-[90vh] w-full max-w-6xl flex-col rounded-xl bg-white shadow-xl dark:bg-dark-800">
+          <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-dark-600">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t('admin.redeem.giftChildrenTitle') }}
+              </h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                {{ viewingGiftCode?.code }}
+              </p>
+            </div>
+            <button
+              @click="closeGiftChildrenDialog"
+              class="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-dark-700 dark:hover:text-gray-300"
+            >
+              <Icon name="x" size="md" :stroke-width="2" />
+            </button>
+          </div>
+          <div class="min-h-0 flex-1 overflow-auto p-5">
+            <DataTable
+              :columns="giftChildColumns"
+              :data="giftChildren"
+              :loading="giftChildrenLoading"
+            >
+              <template #cell-code="{ value }">
+                <code class="font-mono text-sm text-gray-900 dark:text-gray-100">{{ value }}</code>
+              </template>
+              <template #cell-type="{ value }">
+                <span class="badge badge-success">{{ t('admin.redeem.types.' + value) }}</span>
+              </template>
+              <template #cell-value="{ value }">
+                <span class="text-sm font-medium text-gray-900 dark:text-white">${{ value.toFixed(2) }}</span>
+              </template>
+              <template #cell-status="{ value }">
+                <span
+                  :class="[
+                    'badge',
+                    value === 'unused'
+                      ? 'badge-success'
+                      : value === 'used'
+                        ? 'badge-gray'
+                        : 'badge-danger'
+                  ]"
+                >
+                  {{ t('admin.redeem.status.' + value) }}
+                </span>
+              </template>
+              <template #cell-used_by="{ value, row }">
+                <span class="text-sm text-gray-500 dark:text-dark-400">
+                  {{ row.user?.email || (value ? t('admin.redeem.userPrefix', { id: value }) : '-') }}
+                </span>
+              </template>
+              <template #cell-used_at="{ value }">
+                <span class="text-sm text-gray-500 dark:text-dark-400">{{ value ? formatDateTime(value) : '-' }}</span>
+              </template>
+              <template #cell-expires_at="{ value }">
+                <span class="text-sm text-gray-500 dark:text-dark-400">
+                  {{ value ? formatDateTime(value) : t('admin.redeem.neverExpires') }}
+                </span>
+              </template>
+              <template #cell-actions="{ row }">
+                <button
+                  v-if="row.status === 'unused'"
+                  @click="handleDelete(row)"
+                  class="flex items-center gap-1 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                >
+                  <Icon name="trash" size="sm" :stroke-width="2" />
+                  <span class="text-xs">{{ t('common.delete') }}</span>
+                </button>
+                <span v-else class="text-gray-400 dark:text-dark-500">-</span>
+              </template>
+            </DataTable>
+          </div>
+          <div class="border-t border-gray-200 px-5 py-4 dark:border-dark-600">
+            <Pagination
+              v-if="giftChildrenPagination.total > 0"
+              :page="giftChildrenPagination.page"
+              :total="giftChildrenPagination.total"
+              :page-size="giftChildrenPagination.page_size"
+              @update:page="handleGiftChildrenPageChange"
+              @update:pageSize="handleGiftChildrenPageSizeChange"
+            />
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- Generated Codes Result Dialog -->
     <Teleport to="body">
       <div v-if="showResultDialog" class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -731,8 +864,20 @@ const columns = computed<Column[]>(() => [
   { key: 'actions', label: t('admin.redeem.columns.actions') }
 ])
 
+const giftChildColumns = computed<Column[]>(() => [
+  { key: 'code', label: t('admin.redeem.columns.code') },
+  { key: 'type', label: t('admin.redeem.columns.type') },
+  { key: 'value', label: t('admin.redeem.columns.value') },
+  { key: 'status', label: t('admin.redeem.columns.status') },
+  { key: 'used_by', label: t('admin.redeem.columns.usedBy') },
+  { key: 'used_at', label: t('admin.redeem.columns.usedAt') },
+  { key: 'expires_at', label: t('admin.redeem.columns.expiresAt') },
+  { key: 'actions', label: t('admin.redeem.columns.actions') }
+])
+
 const typeOptions = computed(() => [
   { value: 'balance', label: t('admin.redeem.balance') },
+  { value: 'gift_balance', label: t('admin.redeem.giftBalance') },
   { value: 'concurrency', label: t('admin.redeem.concurrency') },
   { value: 'subscription', label: t('admin.redeem.subscription') },
   { value: 'invitation', label: t('admin.redeem.invitation') }
@@ -741,6 +886,7 @@ const typeOptions = computed(() => [
 const filterTypeOptions = computed(() => [
   { value: '', label: t('admin.redeem.allTypes') },
   { value: 'balance', label: t('admin.redeem.balance') },
+  { value: 'gift_balance', label: t('admin.redeem.giftBalance') },
   { value: 'concurrency', label: t('admin.redeem.concurrency') },
   { value: 'subscription', label: t('admin.redeem.subscription') },
   { value: 'invitation', label: t('admin.redeem.invitation') }
@@ -789,8 +935,19 @@ let abortController: AbortController | null = null
 const showDeleteDialog = ref(false)
 const showDeleteUnusedDialog = ref(false)
 const showBatchUpdateDialog = ref(false)
+const showGiftChildrenDialog = ref(false)
 const deletingCode = ref<RedeemCode | null>(null)
+const viewingGiftCode = ref<RedeemCode | null>(null)
+const giftChildren = ref<RedeemCode[]>([])
+const giftChildrenLoading = ref(false)
 const copiedCode = ref<string | null>(null)
+
+const giftChildrenPagination = reactive({
+  page: 1,
+  page_size: getPersistedPageSize(),
+  total: 0,
+  pages: 0
+})
 
 const {
   selectedSet: selectedCodeIds,
@@ -833,6 +990,8 @@ const generateForm = reactive({
   count: 1,
   group_id: null as number | null,
   validity_days: 30,
+  usage_limit: 1,
+  per_user_limit: 1,
   expiry_option: 'never' as RedeemCodeExpiryOption,
   custom_expiry_days: 7
 })
@@ -843,6 +1002,16 @@ watch(
   (newType) => {
     if (newType === 'invitation') {
       generateForm.value = 0
+    } else if (newType === 'gift_balance') {
+      if (generateForm.value <= 0) {
+        generateForm.value = 10
+      }
+      if (generateForm.usage_limit <= 0) {
+        generateForm.usage_limit = 1
+      }
+      if (generateForm.per_user_limit <= 0) {
+        generateForm.per_user_limit = 1
+      }
     } else if (generateForm.value === 0) {
       generateForm.value = 10
     }
@@ -922,6 +1091,56 @@ const handleSort = (key: string, order: 'asc' | 'desc') => {
   sortState.sort_order = order
   pagination.page = 1
   loadCodes()
+}
+
+const openGiftChildrenDialog = (code: RedeemCode) => {
+  viewingGiftCode.value = code
+  giftChildrenPagination.page = 1
+  showGiftChildrenDialog.value = true
+  loadGiftChildren()
+}
+
+const closeGiftChildrenDialog = () => {
+  showGiftChildrenDialog.value = false
+  viewingGiftCode.value = null
+  giftChildren.value = []
+  giftChildrenPagination.page = 1
+  giftChildrenPagination.total = 0
+  giftChildrenPagination.pages = 0
+}
+
+const loadGiftChildren = async () => {
+  if (!viewingGiftCode.value) {
+    return
+  }
+
+  giftChildrenLoading.value = true
+  try {
+    const response = await adminAPI.redeem.listChildren(
+      viewingGiftCode.value.id,
+      giftChildrenPagination.page,
+      giftChildrenPagination.page_size
+    )
+    giftChildren.value = response.items
+    giftChildrenPagination.total = response.total
+    giftChildrenPagination.pages = response.pages
+  } catch (error: any) {
+    appStore.showError(error.response?.data?.detail || t('admin.redeem.failedToLoad'))
+    console.error('Error loading gift balance child codes:', error)
+  } finally {
+    giftChildrenLoading.value = false
+  }
+}
+
+const handleGiftChildrenPageChange = (page: number) => {
+  giftChildrenPagination.page = page
+  loadGiftChildren()
+}
+
+const handleGiftChildrenPageSizeChange = (pageSize: number) => {
+  giftChildrenPagination.page_size = pageSize
+  giftChildrenPagination.page = 1
+  loadGiftChildren()
 }
 
 const toggleSelectRow = (id: number, event: Event) => {
@@ -1024,6 +1243,26 @@ const handleGenerateCodes = async () => {
     return
   }
 
+  let usageLimit: number | undefined
+  let perUserLimit: number | undefined
+  if (generateForm.type === 'gift_balance') {
+    if (!Number.isFinite(generateForm.value) || generateForm.value <= 0) {
+      appStore.showError(t('admin.redeem.giftBalanceAmountRequired'))
+      return
+    }
+
+    usageLimit = Math.floor(Number(generateForm.usage_limit))
+    perUserLimit = Math.floor(Number(generateForm.per_user_limit))
+    if (usageLimit < 1 || perUserLimit < 1) {
+      appStore.showError(t('admin.redeem.giftLimitRequired'))
+      return
+    }
+    if (perUserLimit > usageLimit) {
+      appStore.showError(t('admin.redeem.giftLimitInvalid'))
+      return
+    }
+  }
+
   const expiresInDays = getRedeemCodeExpiresInDays()
   if (expiresInDays === null) {
     appStore.showError(t('admin.redeem.expiryDaysRequired'))
@@ -1038,7 +1277,9 @@ const handleGenerateCodes = async () => {
       generateForm.value,
       generateForm.type === 'subscription' ? generateForm.group_id : undefined,
       generateForm.type === 'subscription' ? generateForm.validity_days : undefined,
-      expiresInDays
+      expiresInDays,
+      usageLimit,
+      perUserLimit
     )
     showGenerateDialog.value = false
     generatedCodes.value = result
@@ -1046,6 +1287,8 @@ const handleGenerateCodes = async () => {
     // 重置表单
     generateForm.group_id = null
     generateForm.validity_days = 30
+    generateForm.usage_limit = 1
+    generateForm.per_user_limit = 1
     generateForm.expiry_option = 'never'
     generateForm.custom_expiry_days = 7
     loadCodes()
@@ -1101,6 +1344,9 @@ const confirmDelete = async () => {
     appStore.showSuccess(t('admin.redeem.codeDeleted'))
     showDeleteDialog.value = false
     deletingCode.value = null
+    if (showGiftChildrenDialog.value && viewingGiftCode.value) {
+      await loadGiftChildren()
+    }
     loadCodes()
   } catch (error: any) {
     appStore.showError(error.response?.data?.detail || t('admin.redeem.failedToDelete'))

@@ -53,13 +53,20 @@ type RedeemCodeRepository interface {
 	CreateBatch(ctx context.Context, codes []RedeemCode) error
 	GetByID(ctx context.Context, id int64) (*RedeemCode, error)
 	GetByCode(ctx context.Context, code string) (*RedeemCode, error)
+	GetByCodeForUpdate(ctx context.Context, code string) (*RedeemCode, error)
 	Update(ctx context.Context, code *RedeemCode) error
 	BatchUpdate(ctx context.Context, ids []int64, fields RedeemCodeBatchUpdateFields) (int64, error)
 	Delete(ctx context.Context, id int64) error
+	DeleteGiftParent(ctx context.Context, id int64) error
+	DeleteGiftChild(ctx context.Context, id, parentID int64) error
 	Use(ctx context.Context, id, userID int64) error
+	UseGiftChild(ctx context.Context, parentID, userID int64) (*RedeemCode, error)
 
 	List(ctx context.Context, params pagination.PaginationParams) ([]RedeemCode, *pagination.PaginationResult, error)
 	ListWithFilters(ctx context.Context, params pagination.PaginationParams, codeType, status, search string) ([]RedeemCode, *pagination.PaginationResult, error)
+	ListGiftChildren(ctx context.Context, parentID int64, params pagination.PaginationParams) ([]RedeemCode, *pagination.PaginationResult, error)
+	CountGiftChildrenByStatus(ctx context.Context, parentID int64, status string) (int64, error)
+	CountGiftChildrenByUser(ctx context.Context, parentID, userID int64) (int64, error)
 	ListByUser(ctx context.Context, userID int64, limit int) ([]RedeemCode, error)
 	// ListByUserPaginated returns paginated balance/concurrency history for a specific user.
 	// codeType filter is optional - pass empty string to return all types.
@@ -397,6 +404,11 @@ func (s *RedeemService) Redeem(ctx context.Context, userID int64, code string) (
 		return nil, fmt.Errorf("get redeem code: %w", err)
 	}
 
+	if redeemCode.GiftParentID != nil {
+		s.incrementRedeemErrorCount(ctx, userID)
+		return nil, ErrRedeemCodeNotFound
+	}
+
 	// 检查兑换码状态和码本身的过期时间
 	if redeemCode.IsExpired() {
 		s.incrementRedeemErrorCount(ctx, userID)
@@ -427,6 +439,21 @@ func (s *RedeemService) Redeem(ctx context.Context, userID int64, code string) (
 
 	// 将事务放入 context，使 repository 方法能够使用同一事务
 	txCtx := dbent.NewTxContext(ctx, tx)
+
+	if redeemCode.Type == RedeemTypeGiftBalance {
+		redeemCode, err = s.redeemGiftBalance(txCtx, userID, redeemCode)
+		if err != nil {
+			if errors.Is(err, ErrRedeemCodeUsed) {
+				s.incrementRedeemErrorCount(ctx, userID)
+			}
+			return nil, err
+		}
+		if err := tx.Commit(); err != nil {
+			return nil, fmt.Errorf("commit transaction: %w", err)
+		}
+		s.invalidateRedeemCaches(ctx, userID, redeemCode)
+		return redeemCode, nil
+	}
 
 	// 【关键】先标记兑换码为已使用，确保并发安全
 	// 利用数据库乐观锁（WHERE status = 'unused'）保证原子性
@@ -508,10 +535,81 @@ func (s *RedeemService) Redeem(ctx context.Context, userID int64, code string) (
 	return redeemCode, nil
 }
 
+func (s *RedeemService) redeemGiftBalance(ctx context.Context, userID int64, parent *RedeemCode) (*RedeemCode, error) {
+	if parent == nil || parent.Type != RedeemTypeGiftBalance {
+		return nil, infraerrors.BadRequest("REDEEM_CODE_INVALID", "invalid gift balance redeem code")
+	}
+	parent, err := s.redeemRepo.GetByCodeForUpdate(ctx, parent.Code)
+	if err != nil {
+		return nil, err
+	}
+	if parent.IsExpired() {
+		return nil, ErrRedeemCodeExpired
+	}
+	if !parent.CanUse() {
+		return nil, ErrRedeemCodeUsed
+	}
+	if parent.UsageLimit <= 0 {
+		parent.UsageLimit = 1
+	}
+	if parent.PerUserLimit <= 0 {
+		parent.PerUserLimit = 1
+	}
+
+	userUsed, err := s.redeemRepo.CountGiftChildrenByUser(ctx, parent.ID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("count gift user usage: %w", err)
+	}
+	if userUsed >= int64(parent.PerUserLimit) {
+		return nil, ErrRedeemCodeUsed
+	}
+
+	remaining, err := s.redeemRepo.CountGiftChildrenByStatus(ctx, parent.ID, StatusUnused)
+	if err != nil {
+		return nil, fmt.Errorf("count gift remaining: %w", err)
+	}
+	if remaining <= 0 {
+		parent.Status = StatusUsed
+		if err := s.redeemRepo.Update(ctx, parent); err != nil {
+			return nil, fmt.Errorf("mark gift parent used: %w", err)
+		}
+		return nil, ErrRedeemCodeUsed
+	}
+
+	child, err := s.redeemRepo.UseGiftChild(ctx, parent.ID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("use gift child: %w", err)
+	}
+	if child.IsExpired() {
+		return nil, ErrRedeemCodeExpired
+	}
+	if err := s.userRepo.UpdateBalance(ctx, userID, child.Value); err != nil {
+		return nil, fmt.Errorf("update user balance: %w", err)
+	}
+
+	remaining, err = s.redeemRepo.CountGiftChildrenByStatus(ctx, parent.ID, StatusUnused)
+	if err != nil {
+		return nil, fmt.Errorf("count gift remaining after use: %w", err)
+	}
+	if remaining == 0 {
+		parent.Status = StatusUsed
+		now := time.Now()
+		parent.UsedAt = &now
+		parent.UsedBy = &userID
+		if err := s.redeemRepo.Update(ctx, parent); err != nil {
+			return nil, fmt.Errorf("mark gift parent used: %w", err)
+		}
+	}
+	parent.UsedBy = &userID
+	now := time.Now()
+	parent.UsedAt = &now
+	return parent, nil
+}
+
 // invalidateRedeemCaches 失效兑换相关的缓存
 func (s *RedeemService) invalidateRedeemCaches(ctx context.Context, userID int64, redeemCode *RedeemCode) {
 	switch redeemCode.Type {
-	case RedeemTypeBalance:
+	case RedeemTypeBalance, RedeemTypeGiftBalance:
 		if s.authCacheInvalidator != nil {
 			s.authCacheInvalidator.InvalidateAuthCacheByUserID(ctx, userID)
 		}

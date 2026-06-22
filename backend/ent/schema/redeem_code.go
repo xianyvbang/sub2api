@@ -72,6 +72,15 @@ func (RedeemCode) Fields() []ent.Field {
 			Nillable(),
 		field.Int("validity_days").
 			Default(30),
+		field.Int("usage_limit").
+			Default(1).
+			Positive(),
+		field.Int("per_user_limit").
+			Default(1).
+			Positive(),
+		field.Int64("gift_parent_id").
+			Optional().
+			Nillable(),
 	}
 }
 
@@ -85,6 +94,10 @@ func (RedeemCode) Edges() []ent.Edge {
 			Ref("redeem_codes").
 			Field("group_id").
 			Unique(),
+		edge.From("gift_parent", RedeemCode.Type).
+			Ref("gift_children").
+			Field("gift_parent_id").
+			Unique(),
 	}
 }
 
@@ -95,5 +108,6 @@ func (RedeemCode) Indexes() []ent.Index {
 		index.Fields("used_by"),
 		index.Fields("group_id"),
 		index.Fields("expires_at"),
+		index.Fields("gift_parent_id"),
 	}
 }

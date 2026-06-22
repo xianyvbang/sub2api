@@ -21,6 +21,10 @@ type RedeemCode struct {
 	GroupID      *int64
 	ValidityDays int
 
+	UsageLimit   int
+	PerUserLimit int
+	GiftParentID *int64
+
 	User  *User
 	Group *Group
 }

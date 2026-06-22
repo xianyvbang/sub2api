@@ -339,8 +339,12 @@ func (s *proxyRepoStub) CountExpiringSoon(_ context.Context, _ time.Time) (int64
 }
 
 type redeemRepoStub struct {
-	deleteErrByID map[int64]error
-	deletedIDs    []int64
+	getByIDByID           map[int64]*RedeemCode
+	getByIDErr            error
+	deleteErrByID         map[int64]error
+	deletedIDs            []int64
+	deletedGiftParentIDs []int64
+	deletedGiftChildIDs  []int64
 
 	batchUpdateIDs    []int64
 	batchUpdateFields RedeemCodeBatchUpdateFields
@@ -358,11 +362,24 @@ func (s *redeemRepoStub) CreateBatch(ctx context.Context, codes []RedeemCode) er
 }
 
 func (s *redeemRepoStub) GetByID(ctx context.Context, id int64) (*RedeemCode, error) {
-	panic("unexpected GetByID call")
+	if s.getByIDErr != nil {
+		return nil, s.getByIDErr
+	}
+	if s.getByIDByID != nil {
+		if code, ok := s.getByIDByID[id]; ok {
+			cloned := *code
+			return &cloned, nil
+		}
+	}
+	return &RedeemCode{ID: id, Code: "R-TEST", Type: RedeemTypeBalance, Status: StatusUnused}, nil
 }
 
 func (s *redeemRepoStub) GetByCode(ctx context.Context, code string) (*RedeemCode, error) {
 	panic("unexpected GetByCode call")
+}
+
+func (s *redeemRepoStub) GetByCodeForUpdate(ctx context.Context, code string) (*RedeemCode, error) {
+	panic("unexpected GetByCodeForUpdate call")
 }
 
 func (s *redeemRepoStub) Update(ctx context.Context, code *RedeemCode) error {
@@ -392,8 +409,22 @@ func (s *redeemRepoStub) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
+func (s *redeemRepoStub) DeleteGiftParent(ctx context.Context, id int64) error {
+	s.deletedGiftParentIDs = append(s.deletedGiftParentIDs, id)
+	return s.Delete(ctx, id)
+}
+
+func (s *redeemRepoStub) DeleteGiftChild(ctx context.Context, id, parentID int64) error {
+	s.deletedGiftChildIDs = append(s.deletedGiftChildIDs, id)
+	return s.Delete(ctx, id)
+}
+
 func (s *redeemRepoStub) Use(ctx context.Context, id, userID int64) error {
 	panic("unexpected Use call")
+}
+
+func (s *redeemRepoStub) UseGiftChild(ctx context.Context, parentID, userID int64) (*RedeemCode, error) {
+	panic("unexpected UseGiftChild call")
 }
 
 func (s *redeemRepoStub) List(ctx context.Context, params pagination.PaginationParams) ([]RedeemCode, *pagination.PaginationResult, error) {
@@ -402,6 +433,18 @@ func (s *redeemRepoStub) List(ctx context.Context, params pagination.PaginationP
 
 func (s *redeemRepoStub) ListWithFilters(ctx context.Context, params pagination.PaginationParams, codeType, status, search string) ([]RedeemCode, *pagination.PaginationResult, error) {
 	panic("unexpected ListWithFilters call")
+}
+
+func (s *redeemRepoStub) ListGiftChildren(ctx context.Context, parentID int64, params pagination.PaginationParams) ([]RedeemCode, *pagination.PaginationResult, error) {
+	panic("unexpected ListGiftChildren call")
+}
+
+func (s *redeemRepoStub) CountGiftChildrenByStatus(ctx context.Context, parentID int64, status string) (int64, error) {
+	panic("unexpected CountGiftChildrenByStatus call")
+}
+
+func (s *redeemRepoStub) CountGiftChildrenByUser(ctx context.Context, parentID, userID int64) (int64, error) {
+	panic("unexpected CountGiftChildrenByUser call")
 }
 
 func (s *redeemRepoStub) ListByUser(ctx context.Context, userID int64, limit int) ([]RedeemCode, error) {

@@ -46,6 +46,10 @@ func (s *redeemCodeRepoStub) GetByCode(_ context.Context, code string) (*RedeemC
 	return &cloned, nil
 }
 
+func (s *redeemCodeRepoStub) GetByCodeForUpdate(ctx context.Context, code string) (*RedeemCode, error) {
+	return s.GetByCode(ctx, code)
+}
+
 func (s *redeemCodeRepoStub) Update(_ context.Context, code *RedeemCode) error {
 	if code == nil {
 		return nil
@@ -67,6 +71,14 @@ func (s *redeemCodeRepoStub) Delete(context.Context, int64) error {
 	panic("unexpected Delete call")
 }
 
+func (s *redeemCodeRepoStub) DeleteGiftParent(context.Context, int64) error {
+	panic("unexpected DeleteGiftParent call")
+}
+
+func (s *redeemCodeRepoStub) DeleteGiftChild(context.Context, int64, int64) error {
+	panic("unexpected DeleteGiftChild call")
+}
+
 func (s *redeemCodeRepoStub) Use(_ context.Context, id, userID int64) error {
 	for code, redeemCode := range s.codesByCode {
 		if redeemCode.ID != id {
@@ -86,12 +98,28 @@ func (s *redeemCodeRepoStub) Use(_ context.Context, id, userID int64) error {
 	return ErrRedeemCodeNotFound
 }
 
+func (s *redeemCodeRepoStub) UseGiftChild(context.Context, int64, int64) (*RedeemCode, error) {
+	panic("unexpected UseGiftChild call")
+}
+
 func (s *redeemCodeRepoStub) List(context.Context, pagination.PaginationParams) ([]RedeemCode, *pagination.PaginationResult, error) {
 	panic("unexpected List call")
 }
 
 func (s *redeemCodeRepoStub) ListWithFilters(context.Context, pagination.PaginationParams, string, string, string) ([]RedeemCode, *pagination.PaginationResult, error) {
 	panic("unexpected ListWithFilters call")
+}
+
+func (s *redeemCodeRepoStub) ListGiftChildren(context.Context, int64, pagination.PaginationParams) ([]RedeemCode, *pagination.PaginationResult, error) {
+	panic("unexpected ListGiftChildren call")
+}
+
+func (s *redeemCodeRepoStub) CountGiftChildrenByStatus(context.Context, int64, string) (int64, error) {
+	panic("unexpected CountGiftChildrenByStatus call")
+}
+
+func (s *redeemCodeRepoStub) CountGiftChildrenByUser(context.Context, int64, int64) (int64, error) {
+	panic("unexpected CountGiftChildrenByUser call")
 }
 
 func (s *redeemCodeRepoStub) ListByUser(context.Context, int64, int) ([]RedeemCode, error) {

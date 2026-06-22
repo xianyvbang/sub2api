@@ -2795,6 +2795,10 @@ func (r *oauthPendingFlowRedeemCodeRepo) GetByCode(ctx context.Context, code str
 	}, nil
 }
 
+func (r *oauthPendingFlowRedeemCodeRepo) GetByCodeForUpdate(ctx context.Context, code string) (*service.RedeemCode, error) {
+	return r.GetByCode(ctx, code)
+}
+
 func (r *oauthPendingFlowRedeemCodeRepo) Update(ctx context.Context, code *service.RedeemCode) error {
 	if code == nil {
 		return nil
@@ -2833,6 +2837,14 @@ func (r *oauthPendingFlowRedeemCodeRepo) Delete(context.Context, int64) error {
 	panic("unexpected Delete call")
 }
 
+func (r *oauthPendingFlowRedeemCodeRepo) DeleteGiftParent(context.Context, int64) error {
+	panic("unexpected DeleteGiftParent call")
+}
+
+func (r *oauthPendingFlowRedeemCodeRepo) DeleteGiftChild(context.Context, int64, int64) error {
+	panic("unexpected DeleteGiftChild call")
+}
+
 func (r *oauthPendingFlowRedeemCodeRepo) Use(ctx context.Context, id, userID int64) error {
 	affected, err := r.client.RedeemCode.Update().
 		Where(redeemcode.IDEQ(id), redeemcode.StatusEQ(service.StatusUnused)).
@@ -2849,12 +2861,28 @@ func (r *oauthPendingFlowRedeemCodeRepo) Use(ctx context.Context, id, userID int
 	return nil
 }
 
+func (r *oauthPendingFlowRedeemCodeRepo) UseGiftChild(context.Context, int64, int64) (*service.RedeemCode, error) {
+	panic("unexpected UseGiftChild call")
+}
+
 func (r *oauthPendingFlowRedeemCodeRepo) List(context.Context, pagination.PaginationParams) ([]service.RedeemCode, *pagination.PaginationResult, error) {
 	panic("unexpected List call")
 }
 
 func (r *oauthPendingFlowRedeemCodeRepo) ListWithFilters(context.Context, pagination.PaginationParams, string, string, string) ([]service.RedeemCode, *pagination.PaginationResult, error) {
 	panic("unexpected ListWithFilters call")
+}
+
+func (r *oauthPendingFlowRedeemCodeRepo) ListGiftChildren(context.Context, int64, pagination.PaginationParams) ([]service.RedeemCode, *pagination.PaginationResult, error) {
+	panic("unexpected ListGiftChildren call")
+}
+
+func (r *oauthPendingFlowRedeemCodeRepo) CountGiftChildrenByStatus(context.Context, int64, string) (int64, error) {
+	panic("unexpected CountGiftChildrenByStatus call")
+}
+
+func (r *oauthPendingFlowRedeemCodeRepo) CountGiftChildrenByUser(context.Context, int64, int64) (int64, error) {
+	panic("unexpected CountGiftChildrenByUser call")
 }
 
 func (r *oauthPendingFlowRedeemCodeRepo) ListByUser(context.Context, int64, int) ([]service.RedeemCode, error) {

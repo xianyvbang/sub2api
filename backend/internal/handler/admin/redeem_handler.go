@@ -35,12 +35,14 @@ func NewRedeemHandler(adminService service.AdminService, redeemService *service.
 // GenerateRedeemCodesRequest represents generate redeem codes request
 type GenerateRedeemCodesRequest struct {
 	Count         int        `json:"count" binding:"required,min=1,max=100"`
-	Type          string     `json:"type" binding:"required,oneof=balance concurrency subscription invitation"`
+	Type          string     `json:"type" binding:"required,oneof=balance concurrency subscription invitation gift_balance"`
 	Value         float64    `json:"value"`
 	GroupID       *int64     `json:"group_id"`      // 订阅类型必填
 	ValidityDays  int        `json:"validity_days"` // 订阅类型使用，正数增加/负数退款扣减
 	ExpiresAt     *time.Time `json:"expires_at"`
 	ExpiresInDays *int       `json:"expires_in_days" binding:"omitempty,min=1,max=3650"`
+	UsageLimit    int        `json:"usage_limit" binding:"omitempty,min=1,max=1000"`
+	PerUserLimit  int        `json:"per_user_limit" binding:"omitempty,min=1,max=1000"`
 }
 
 // CreateAndRedeemCodeRequest represents creating a fixed code and redeeming it for a target user.
@@ -127,6 +129,29 @@ func (h *RedeemHandler) GetByID(c *gin.Context) {
 	response.Success(c, dto.RedeemCodeFromServiceAdmin(code))
 }
 
+// ListChildren handles listing generated balance children for a gift balance code.
+// GET /api/v1/admin/redeem-codes/:id/children
+func (h *RedeemHandler) ListChildren(c *gin.Context) {
+	codeID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid redeem code ID")
+		return
+	}
+	page, pageSize := response.ParsePagination(c)
+
+	codes, total, err := h.adminService.ListRedeemCodeChildren(c.Request.Context(), codeID, page, pageSize)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	out := make([]dto.AdminRedeemCode, 0, len(codes))
+	for i := range codes {
+		out = append(out, *dto.RedeemCodeFromServiceAdmin(&codes[i]))
+	}
+	response.Paginated(c, out, total, page, pageSize)
+}
+
 // Generate handles generating new redeem codes
 // POST /api/v1/admin/redeem-codes/generate
 func (h *RedeemHandler) Generate(c *gin.Context) {
@@ -150,6 +175,8 @@ func (h *RedeemHandler) Generate(c *gin.Context) {
 			GroupID:      req.GroupID,
 			ValidityDays: req.ValidityDays,
 			ExpiresAt:    expiresAt,
+			UsageLimit:   req.UsageLimit,
+			PerUserLimit: req.PerUserLimit,
 		})
 		if execErr != nil {
 			return nil, execErr

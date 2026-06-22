@@ -1921,6 +1921,10 @@ func (stubRedeemCodeRepo) GetByCode(ctx context.Context, code string) (*service.
 	return nil, service.ErrRedeemCodeNotFound
 }
 
+func (stubRedeemCodeRepo) GetByCodeForUpdate(ctx context.Context, code string) (*service.RedeemCode, error) {
+	return nil, service.ErrRedeemCodeNotFound
+}
+
 func (stubRedeemCodeRepo) Update(ctx context.Context, code *service.RedeemCode) error {
 	return errors.New("not implemented")
 }
@@ -1933,8 +1937,20 @@ func (stubRedeemCodeRepo) Delete(ctx context.Context, id int64) error {
 	return errors.New("not implemented")
 }
 
+func (stubRedeemCodeRepo) DeleteGiftParent(ctx context.Context, id int64) error {
+	return errors.New("not implemented")
+}
+
+func (stubRedeemCodeRepo) DeleteGiftChild(ctx context.Context, id, parentID int64) error {
+	return errors.New("not implemented")
+}
+
 func (stubRedeemCodeRepo) Use(ctx context.Context, id, userID int64) error {
 	return errors.New("not implemented")
+}
+
+func (stubRedeemCodeRepo) UseGiftChild(ctx context.Context, parentID, userID int64) (*service.RedeemCode, error) {
+	return nil, errors.New("not implemented")
 }
 
 func (stubRedeemCodeRepo) List(ctx context.Context, params pagination.PaginationParams) ([]service.RedeemCode, *pagination.PaginationResult, error) {
@@ -1943,6 +1959,18 @@ func (stubRedeemCodeRepo) List(ctx context.Context, params pagination.Pagination
 
 func (stubRedeemCodeRepo) ListWithFilters(ctx context.Context, params pagination.PaginationParams, codeType, status, search string) ([]service.RedeemCode, *pagination.PaginationResult, error) {
 	return nil, nil, errors.New("not implemented")
+}
+
+func (stubRedeemCodeRepo) ListGiftChildren(ctx context.Context, parentID int64, params pagination.PaginationParams) ([]service.RedeemCode, *pagination.PaginationResult, error) {
+	return nil, nil, errors.New("not implemented")
+}
+
+func (stubRedeemCodeRepo) CountGiftChildrenByStatus(ctx context.Context, parentID int64, status string) (int64, error) {
+	return 0, errors.New("not implemented")
+}
+
+func (stubRedeemCodeRepo) CountGiftChildrenByUser(ctx context.Context, parentID, userID int64) (int64, error) {
+	return 0, errors.New("not implemented")
 }
 
 func (r *stubRedeemCodeRepo) ListByUser(ctx context.Context, userID int64, limit int) ([]service.RedeemCode, error) {

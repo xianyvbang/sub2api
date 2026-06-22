@@ -70,7 +70,9 @@ export async function generate(
   value: number,
   groupId?: number | null,
   validityDays?: number,
-  expiresInDays?: number | null
+  expiresInDays?: number | null,
+  usageLimit?: number,
+  perUserLimit?: number
 ): Promise<RedeemCode[]> {
   const payload: GenerateRedeemCodesRequest = {
     count,
@@ -88,8 +90,29 @@ export async function generate(
   if (expiresInDays && expiresInDays > 0) {
     payload.expires_in_days = expiresInDays
   }
+  if (type === 'gift_balance') {
+    payload.usage_limit = usageLimit && usageLimit > 0 ? usageLimit : 1
+    payload.per_user_limit = perUserLimit && perUserLimit > 0 ? perUserLimit : 1
+  }
 
   const { data } = await apiClient.post<RedeemCode[]>('/admin/redeem-codes/generate', payload)
+  return data
+}
+
+export async function listChildren(
+  id: number,
+  page: number = 1,
+  pageSize: number = 20
+): Promise<PaginatedResponse<RedeemCode>> {
+  const { data } = await apiClient.get<PaginatedResponse<RedeemCode>>(
+    `/admin/redeem-codes/${id}/children`,
+    {
+      params: {
+        page,
+        page_size: pageSize
+      }
+    }
+  )
   return data
 }
 
@@ -194,6 +217,7 @@ export async function exportCodes(filters?: {
 export const redeemAPI = {
   list,
   getById,
+  listChildren,
   generate,
   delete: deleteCode,
   batchDelete,
