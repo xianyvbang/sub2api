@@ -6269,6 +6269,7 @@ export default {
         noProviders: '暂无服务商实例',
         supportedTypes: '支持的支付方式',
         supportedTypesHint: '逗号分隔，如 alipay,wxpay',
+        noSupportedTypesSelected: '未选择支付方式',
         refundEnabled: '允许退款',
         allowUserRefund: '允许用户退款',
         enableConflict: '{method} 已有启用中的服务商实例：{provider}。请先停用现有实例后再启用或切换。',

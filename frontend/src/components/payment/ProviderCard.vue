@@ -2,16 +2,13 @@
   <div
     :class="[
       'group relative rounded-lg border transition-all',
-      enabled ? 'border-gray-200 dark:border-dark-600' : 'border-gray-200 bg-gray-50 opacity-50 dark:border-dark-700 dark:bg-dark-800/50',
+      enabled ? 'border-gray-200 dark:border-dark-600' : 'border-gray-200 bg-gray-50 dark:border-dark-700 dark:bg-dark-800/50',
     ]"
     :title="!enabled ? t('admin.settings.payment.typeDisabled') + ' — ' + t('admin.settings.payment.enableTypesFirst') : undefined"
   >
-    <div :class="[
-      'flex items-center justify-between px-4 py-2.5',
-      !enabled && 'pointer-events-none',
-    ]">
+    <div class="flex items-center justify-between gap-3 px-4 py-2.5">
       <!-- Left: icon + name + key badge + type badges -->
-      <div class="flex items-center gap-3">
+      <div class="flex min-w-0 flex-wrap items-center gap-3">
         <div :class="[
           'rounded-md p-1.5',
           provider.enabled && enabled ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-dark-700',
@@ -25,8 +22,14 @@
         <span class="text-sm font-medium text-gray-900 dark:text-white">{{ provider.name }}</span>
         <span class="text-xs text-gray-400 dark:text-gray-500">{{ keyLabel }}</span>
         <span v-if="provider.payment_mode" class="text-xs text-gray-400 dark:text-gray-500">· {{ modeLabel }}</span>
-        <span v-if="enabled && availableTypes.length" class="text-xs text-gray-300 dark:text-gray-600">|</span>
-        <div v-if="enabled" class="flex items-center gap-1">
+        <span v-if="availableTypes.length" class="text-xs text-gray-300 dark:text-gray-600">|</span>
+        <span
+          v-if="availableTypes.length && !hasSelectedAvailableTypes"
+          class="rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+        >
+          {{ t('admin.settings.payment.noSupportedTypesSelected') }}
+        </span>
+        <div v-if="availableTypes.length" class="flex flex-wrap items-center gap-1">
           <button
             v-for="pt in availableTypes"
             :key="pt.value"
@@ -116,6 +119,10 @@ const modeLabel = computed(() => {
   if (props.provider.payment_mode === PAYMENT_MODE_REDIRECT) return t('admin.settings.payment.modeRedirect')
   return ''
 })
+
+const hasSelectedAvailableTypes = computed(() =>
+  props.availableTypes.some(type => props.provider.supported_types.includes(type.value)),
+)
 
 function isSelected(type: string): boolean {
   return props.provider.supported_types.includes(type)

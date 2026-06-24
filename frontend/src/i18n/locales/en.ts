@@ -6113,6 +6113,7 @@ export default {
         noProviders: 'No provider instances configured',
         supportedTypes: 'Supported Payment Types',
         supportedTypesHint: 'Comma-separated, e.g. alipay,wxpay',
+        noSupportedTypesSelected: 'No payment types selected',
         refundEnabled: 'Allow Refund',
         allowUserRefund: 'Allow User Refund',
         enableConflict: '{method} already has an enabled provider instance: {provider}. Disable the existing instance before switching.',
