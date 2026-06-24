@@ -120,12 +120,16 @@ const modeLabel = computed(() => {
   return ''
 })
 
+const supportedTypes = computed(() =>
+  Array.isArray(props.provider.supported_types) ? props.provider.supported_types : [],
+)
+
 const hasSelectedAvailableTypes = computed(() =>
-  props.availableTypes.some(type => props.provider.supported_types.includes(type.value)),
+  props.availableTypes.some(type => supportedTypes.value.includes(type.value)),
 )
 
 function isSelected(type: string): boolean {
-  return props.provider.supported_types.includes(type)
+  return supportedTypes.value.includes(type)
 }
 
 function displayTypeLabel(type: string, fallback: string): string {

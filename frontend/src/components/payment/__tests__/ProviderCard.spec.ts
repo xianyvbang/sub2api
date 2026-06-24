@@ -70,6 +70,26 @@ describe('ProviderCard', () => {
     expect(wrapper.emitted('toggleType')?.[0]).toEqual(['alipay'])
   })
 
+  it('keeps provider controls visible when the API returns null supported types', async () => {
+    const wrapper = mountCard({
+      provider: {
+        supported_types: null as unknown as string[],
+      },
+    })
+
+    expect(wrapper.text()).toContain('Official Alipay')
+    expect(wrapper.text()).toContain('No payment types selected')
+    expect(wrapper.text()).toContain('Edit')
+    expect(wrapper.text()).toContain('Delete')
+
+    const alipayButton = wrapper
+      .findAll('button')
+      .find(button => button.text().includes('Alipay'))
+    await alipayButton?.trigger('click')
+
+    expect(wrapper.emitted('toggleType')?.[0]).toEqual(['alipay'])
+  })
+
   it('leaves edit and delete actions usable when the provider type is disabled', async () => {
     const wrapper = mountCard({ enabled: false })
 

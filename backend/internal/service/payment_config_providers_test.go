@@ -239,6 +239,15 @@ func TestJoinTypes(t *testing.T) {
 	}
 }
 
+func TestSplitTypesReturnsEmptySliceForEmptyInput(t *testing.T) {
+	t.Parallel()
+
+	types := splitTypes("")
+
+	require.NotNil(t, types)
+	require.Empty(t, types)
+}
+
 func TestCreateProviderInstanceAllowsVisibleMethodProvidersFromDifferentSources(t *testing.T) {
 	t.Parallel()
 
