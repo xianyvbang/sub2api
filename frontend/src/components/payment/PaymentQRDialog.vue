@@ -45,11 +45,11 @@
           </div>
           <div class="flex justify-between">
             <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.amount') }}</span>
-            <span class="font-medium text-gray-900 dark:text-white">{{ paidOrder.order_type === 'balance' ? '$' : '¥' }}{{ paidOrder.amount.toFixed(2) }}</span>
+            <span class="font-medium text-gray-900 dark:text-white">{{ creditedAmountSymbol }}{{ paidOrder.amount.toFixed(2) }}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.payAmount') }}</span>
-            <span class="font-medium text-gray-900 dark:text-white">¥{{ paidOrder.pay_amount.toFixed(2) }}</span>
+            <span class="font-medium text-gray-900 dark:text-white">{{ paymentAmountSymbol(paidOrder) }}{{ paidOrder.pay_amount.toFixed(2) }}</span>
           </div>
         </div>
       </div>
@@ -82,6 +82,7 @@ import { extractI18nErrorMessage } from '@/utils/apiError'
 import { getPaymentPopupFeatures } from '@/components/payment/providerConfig'
 import { isAlipayLikeVisibleMethod } from '@/components/payment/paymentFlow'
 import type { PaymentOrder } from '@/types/payment'
+import { currencySymbol } from '@/components/payment/currency'
 import QRCode from 'qrcode'
 import alipayIcon from '@/assets/icons/alipay.svg'
 import ustdUsdcIcon from '@/assets/icons/ustd-usdc.svg'
@@ -113,6 +114,7 @@ const expired = ref(false)
 const cancelling = ref(false)
 const success = ref(false)
 const paidOrder = ref<PaymentOrder | null>(null)
+const creditedAmountSymbol = currencySymbol('USD')
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let countdownTimer: ReturnType<typeof setInterval> | null = null
@@ -140,6 +142,10 @@ const scanHint = computed(() => {
   if (isWxpay.value) return t('payment.qr.scanWxpayHint')
   return ''
 })
+
+function paymentAmountSymbol(order: PaymentOrder): string {
+  return currencySymbol(order.currency)
+}
 
 const countdownDisplay = computed(() => {
   const m = Math.floor(remainingSeconds.value / 60)
