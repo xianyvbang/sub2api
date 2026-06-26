@@ -13,6 +13,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // claudeCodeValidator is a singleton validator for Claude Code client detection
@@ -43,6 +44,9 @@ func SetClaudeCodeClientContext(c *gin.Context, body []byte, parsedReq *service.
 			_ = json.Unmarshal(body, &bodyMap)
 		}
 		isClaudeCode = claudeCodeValidator.Validate(c.Request, bodyMap)
+		if !isClaudeCode {
+			logClaudeCodeDetectionFailure(c, bodyMap, parsedReq)
+		}
 	}
 
 	// 更新 request context
@@ -56,6 +60,42 @@ func SetClaudeCodeClientContext(c *gin.Context, body []byte, parsedReq *service.
 	}
 
 	c.Request = c.Request.WithContext(ctx)
+}
+
+func logClaudeCodeDetectionFailure(c *gin.Context, bodyMap map[string]any, parsedReq *service.ParsedRequest) {
+	if c == nil || c.Request == nil {
+		return
+	}
+
+	metadataUserID := ""
+	if parsedReq != nil {
+		metadataUserID = parsedReq.MetadataUserID
+	}
+	metadataValid := metadataUserID != "" && service.ParseMetadataUserID(metadataUserID) != nil
+
+	hasModel := false
+	hasSystem := false
+	systemRecognized := false
+	if bodyMap != nil {
+		_, hasModel = bodyMap["model"].(string)
+		if _, ok := bodyMap["system"]; ok {
+			hasSystem = true
+			systemRecognized = claudeCodeValidator.IncludesClaudeCodeSystemPrompt(bodyMap)
+		}
+	}
+
+	requestLogger(c, "handler.gateway.messages").Info("claude_code.detection_failed",
+		zap.Bool("has_body_map", bodyMap != nil),
+		zap.Bool("has_model", hasModel),
+		zap.Bool("has_system", hasSystem),
+		zap.Bool("system_recognized", systemRecognized),
+		zap.Bool("has_x_app", c.GetHeader("X-App") != ""),
+		zap.Bool("has_anthropic_beta", c.GetHeader("anthropic-beta") != ""),
+		zap.Bool("has_anthropic_version", c.GetHeader("anthropic-version") != ""),
+		zap.Bool("has_metadata_user_id", metadataUserID != ""),
+		zap.Bool("metadata_user_id_valid", metadataValid),
+		zap.Int("metadata_user_id_len", len(metadataUserID)),
+	)
 }
 
 func claudeCodeBodyMapFromParsedRequest(parsedReq *service.ParsedRequest) map[string]any {
