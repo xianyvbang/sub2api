@@ -266,7 +266,7 @@ func (s *ModelMarketplaceService) buildMarketplaceGroupOffer(
 	case marketplaceHasExplicitChannelPricing(channelPricing):
 		pricingSource = ModelMarketplacePricingSourceChannel
 		originalPricing = normalizeMarketplacePricing(channelPricing)
-		currentPricing = cloneMarketplacePricing(originalPricing)
+		currentPricing = marketplaceCurrentChannelPricing(originalPricing, group.RateMultiplier)
 	default:
 		originalPricing = s.marketplaceBasePricing(modelName, channelPricing)
 		currentPricing = scaleMarketplacePricing(originalPricing, group.RateMultiplier)
@@ -308,6 +308,9 @@ func (s *ModelMarketplaceService) marketplaceImagePricing(
 ) (string, *ChannelModelPricing, *ChannelModelPricing) {
 	if marketplaceHasExplicitChannelPricing(channelPricing) {
 		original := sanitizeMarketplaceImagePricing(normalizeMarketplacePricing(channelPricing))
+		if marketplacePricingMode(channelPricing) == BillingModeToken {
+			return ModelMarketplacePricingSourceChannel, original, scaleMarketplacePricing(original, group.RateMultiplier)
+		}
 		return ModelMarketplacePricingSourceChannel, original, cloneMarketplacePricing(original)
 	}
 
@@ -473,6 +476,23 @@ func cloneMarketplacePricing(pricing *ChannelModelPricing) *ChannelModelPricing 
 	}
 	cp := pricing.Clone()
 	return &cp
+}
+
+func marketplaceCurrentChannelPricing(pricing *ChannelModelPricing, groupRate float64) *ChannelModelPricing {
+	if pricing == nil {
+		return nil
+	}
+	if marketplacePricingMode(pricing) == BillingModeToken {
+		return scaleMarketplacePricing(pricing, groupRate)
+	}
+	return cloneMarketplacePricing(pricing)
+}
+
+func marketplacePricingMode(pricing *ChannelModelPricing) BillingMode {
+	if pricing == nil || pricing.BillingMode == "" {
+		return BillingModeToken
+	}
+	return pricing.BillingMode
 }
 
 func scaleMarketplacePricing(pricing *ChannelModelPricing, factor float64) *ChannelModelPricing {

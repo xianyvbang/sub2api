@@ -56,7 +56,7 @@ func TestListModelMarketplace_AggregatesModelsAndChoosesLowestCurrentPrice(t *te
 	require.InDelta(t, 0.8e-6, *card.CurrentPricing.InputPrice, 1e-12)
 }
 
-func TestListModelMarketplace_ChannelPricingWinsWithoutApplyingGroupMultiplier(t *testing.T) {
+func TestListModelMarketplace_ChannelTokenPricingAppliesGroupMultiplierToCurrentPrice(t *testing.T) {
 	channel := Channel{
 		ID:       1,
 		Status:   StatusActive,
@@ -107,7 +107,79 @@ func TestListModelMarketplace_ChannelPricingWinsWithoutApplyingGroupMultiplier(t
 	require.NotNil(t, card.OriginalPricing.InputPrice)
 	require.NotNil(t, card.CurrentPricing.InputPrice)
 	require.InDelta(t, 9.9e-5, *card.OriginalPricing.InputPrice, 1e-12)
-	require.InDelta(t, 9.9e-5, *card.CurrentPricing.InputPrice, 1e-12)
+	require.InDelta(t, 3.465e-4, *card.CurrentPricing.InputPrice, 1e-12)
+	require.NotNil(t, card.OriginalPricing.OutputPrice)
+	require.NotNil(t, card.CurrentPricing.OutputPrice)
+	require.InDelta(t, 1.99e-4, *card.OriginalPricing.OutputPrice, 1e-12)
+	require.InDelta(t, 6.965e-4, *card.CurrentPricing.OutputPrice, 1e-12)
+}
+
+func TestListModelMarketplace_ChannelTokenIntervalPricingAppliesGroupMultiplierToCurrentPrice(t *testing.T) {
+	channel := Channel{
+		ID:       1,
+		Status:   StatusActive,
+		GroupIDs: []int64{10},
+		ModelPricing: []ChannelModelPricing{
+			{
+				ID:          100,
+				Platform:    "openai",
+				Models:      []string{"gpt-4o"},
+				BillingMode: BillingModeToken,
+				Intervals: []PricingInterval{
+					{
+						MinTokens:       0,
+						MaxTokens:       testPtrInt(128000),
+						InputPrice:      testPtrFloat64(1e-6),
+						OutputPrice:     testPtrFloat64(2e-6),
+						CacheWritePrice: testPtrFloat64(3e-6),
+						CacheReadPrice:  testPtrFloat64(4e-6),
+					},
+				},
+			},
+		},
+	}
+
+	channelSvc := NewChannelService(
+		makeStandardRepo(channel, map[int64]string{10: "openai"}),
+		&stubGroupRepoForAvailable{},
+		nil,
+		&PricingService{
+			pricingData: map[string]*LiteLLMModelPricing{
+				"gpt-4o": {
+					InputCostPerToken:  1e-6,
+					OutputCostPerToken: 2e-6,
+					LiteLLMProvider:    "openai",
+					Mode:               "chat",
+				},
+			},
+		},
+	)
+	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
+		accountsByGroup: map[int64][]Account{
+			10: {{Platform: "openai", Credentials: map[string]any{"model_mapping": map[string]any{"gpt-4o": "gpt-4o"}}}},
+		},
+	}, channelSvc, channelSvc.pricingService)
+
+	cards, err := svc.ListModelMarketplace(context.Background(), []Group{
+		{ID: 10, Name: "enterprise", Platform: "openai", RateMultiplier: 2.5, Status: StatusActive},
+	})
+	require.NoError(t, err)
+	require.Len(t, cards, 1)
+
+	card := cards[0]
+	require.Equal(t, ModelMarketplacePricingSourceChannel, card.PricingSource)
+	require.NotNil(t, card.OriginalPricing)
+	require.NotNil(t, card.CurrentPricing)
+	require.Len(t, card.OriginalPricing.Intervals, 1)
+	require.Len(t, card.CurrentPricing.Intervals, 1)
+	require.InDelta(t, 1e-6, *card.OriginalPricing.Intervals[0].InputPrice, 1e-12)
+	require.InDelta(t, 2.5e-6, *card.CurrentPricing.Intervals[0].InputPrice, 1e-12)
+	require.InDelta(t, 2e-6, *card.OriginalPricing.Intervals[0].OutputPrice, 1e-12)
+	require.InDelta(t, 5e-6, *card.CurrentPricing.Intervals[0].OutputPrice, 1e-12)
+	require.InDelta(t, 3e-6, *card.OriginalPricing.Intervals[0].CacheWritePrice, 1e-12)
+	require.InDelta(t, 7.5e-6, *card.CurrentPricing.Intervals[0].CacheWritePrice, 1e-12)
+	require.InDelta(t, 4e-6, *card.OriginalPricing.Intervals[0].CacheReadPrice, 1e-12)
+	require.InDelta(t, 10e-6, *card.CurrentPricing.Intervals[0].CacheReadPrice, 1e-12)
 }
 
 func TestListModelMarketplace_ModelsWithoutPricingRemainVisibleAndSortLast(t *testing.T) {
@@ -345,9 +417,12 @@ func TestListModelMarketplace_ImageModelChannelImagePriceWins(t *testing.T) {
 	card := cards[0]
 	require.Equal(t, ModelMarketplacePricingSourceChannel, card.PricingSource)
 	require.Equal(t, string(BillingModeImage), card.BillingType)
+	require.NotNil(t, card.OriginalPricing)
+	require.NotNil(t, card.OriginalPricing.ImageOutputPrice)
+	require.InDelta(t, 3.2e-5, *card.OriginalPricing.ImageOutputPrice, 1e-12)
 	require.NotNil(t, card.CurrentPricing)
 	require.NotNil(t, card.CurrentPricing.ImageOutputPrice)
-	require.InDelta(t, 3.2e-5, *card.CurrentPricing.ImageOutputPrice, 1e-12)
+	require.InDelta(t, 9.6e-5, *card.CurrentPricing.ImageOutputPrice, 1e-12)
 	require.Nil(t, card.CurrentPricing.InputPrice)
 	require.Nil(t, card.CurrentPricing.OutputPrice)
 	require.Nil(t, card.CurrentPricing.PerRequestPrice)
