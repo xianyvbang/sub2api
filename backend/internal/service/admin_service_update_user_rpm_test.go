@@ -16,6 +16,13 @@ type rpmUserRepoStub struct {
 	lastUpdated *User
 }
 
+type updateUserGroupRateRepoStub struct {
+	*userGroupRateRepoStubForGroupRate
+	syncedUserID int64
+	syncedRates  map[int64]*float64
+	syncUserErr  error
+}
+
 func (s *rpmUserRepoStub) Update(_ context.Context, user *User) error {
 	if user == nil {
 		return nil
@@ -26,6 +33,12 @@ func (s *rpmUserRepoStub) Update(_ context.Context, user *User) error {
 		s.userRepoStub.user = &clone
 	}
 	return nil
+}
+
+func (s *updateUserGroupRateRepoStub) SyncUserGroupRates(_ context.Context, userID int64, rates map[int64]*float64) error {
+	s.syncedUserID = userID
+	s.syncedRates = rates
+	return s.syncUserErr
 }
 
 func TestAdminService_UpdateUser_InvalidatesAuthCacheOnRPMLimitChange(t *testing.T) {
@@ -66,4 +79,27 @@ func TestAdminService_UpdateUser_NoInvalidateWhenRPMLimitUnchanged(t *testing.T)
 	})
 	require.NoError(t, err)
 	require.Empty(t, invalidator.userIDs, "只改 username 不应触发认证缓存失效")
+}
+
+func TestAdminService_UpdateUser_InvalidatesAuthCacheOnGroupRatesChange(t *testing.T) {
+	base := &userRepoStub{user: &User{ID: 42, Email: "u@example.com", RPMLimit: 10}}
+	repo := &rpmUserRepoStub{userRepoStub: base}
+	groupRateRepo := &updateUserGroupRateRepoStub{userGroupRateRepoStubForGroupRate: &userGroupRateRepoStubForGroupRate{}}
+	invalidator := &authCacheInvalidatorStub{}
+	svc := &adminServiceImpl{
+		userRepo:             repo,
+		userGroupRateRepo:    groupRateRepo,
+		redeemCodeRepo:       &redeemRepoStub{},
+		authCacheInvalidator: invalidator,
+	}
+
+	groupRates := map[int64]*float64{10: ptrFloat(1.7)}
+	_, err := svc.UpdateUser(context.Background(), 42, &UpdateUserInput{
+		GroupRates: groupRates,
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, int64(42), groupRateRepo.syncedUserID)
+	require.Equal(t, groupRates, groupRateRepo.syncedRates)
+	require.Equal(t, []int64{42}, invalidator.userIDs, "修改用户专属分组倍率后应失效 API Key 认证缓存")
 }

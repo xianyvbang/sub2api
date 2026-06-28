@@ -806,8 +806,10 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 		return nil, err
 	}
 
+	groupRatesTouched := false
 	// 同步用户专属分组倍率
 	if input.GroupRates != nil && s.userGroupRateRepo != nil {
+		groupRatesTouched = true
 		if err := s.userGroupRateRepo.SyncUserGroupRates(ctx, user.ID, input.GroupRates); err != nil {
 			logger.LegacyPrintf("service.admin", "failed to sync user group rates: user_id=%d err=%v", user.ID, err)
 		}
@@ -815,8 +817,8 @@ func (s *adminServiceImpl) UpdateUser(ctx context.Context, id int64, input *Upda
 
 	if s.authCacheInvalidator != nil {
 		// RPMLimit 直接参与 billing_cache_service.checkRPM 的三级级联，
-		// allowed_groups 参与 API Key 专属分组授权判断；不失效缓存会让修改在一个 L2 TTL 内失去效果。
-		if user.Concurrency != oldConcurrency || user.Status != oldStatus || user.Role != oldRole || user.RPMLimit != oldRPMLimit || !sameInt64Set(user.AllowedGroups, oldAllowedGroups) {
+		// allowed_groups 参与 API Key 专属分组授权判断；专属分组倍率参与 API Key 倍率保护判断。
+		if user.Concurrency != oldConcurrency || user.Status != oldStatus || user.Role != oldRole || user.RPMLimit != oldRPMLimit || !sameInt64Set(user.AllowedGroups, oldAllowedGroups) || groupRatesTouched {
 			s.authCacheInvalidator.InvalidateAuthCacheByUserID(ctx, user.ID)
 		}
 	}
@@ -2303,6 +2305,10 @@ func (s *adminServiceImpl) ClearGroupRateMultipliers(ctx context.Context, groupI
 	if s.userGroupRateRepo == nil {
 		return nil
 	}
+	// 用户专属分组倍率已嵌入 auth cache snapshot，变更后必须失效相关缓存。
+	if s.authCacheInvalidator != nil {
+		defer s.authCacheInvalidator.InvalidateAuthCacheByGroupID(ctx, groupID)
+	}
 	return s.userGroupRateRepo.DeleteByGroupID(ctx, groupID)
 }
 
@@ -2314,6 +2320,10 @@ func (s *adminServiceImpl) BatchSetGroupRateMultipliers(ctx context.Context, gro
 		if e.RateMultiplier <= 0 {
 			return fmt.Errorf("rate_multiplier must be > 0 (user_id=%d)", e.UserID)
 		}
+	}
+	// 用户专属分组倍率已嵌入 auth cache snapshot，变更后必须失效相关缓存。
+	if s.authCacheInvalidator != nil {
+		defer s.authCacheInvalidator.InvalidateAuthCacheByGroupID(ctx, groupID)
 	}
 	return s.userGroupRateRepo.SyncGroupRateMultipliers(ctx, groupID, entries)
 }

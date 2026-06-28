@@ -9,6 +9,7 @@ import (
 func TestAPIKeyRateMultiplierProtectionExceeded(t *testing.T) {
 	groupID := int64(10)
 	userRate := 1.5
+	lowerUserRate := 1.0
 
 	tests := []struct {
 		name    string
@@ -25,6 +26,17 @@ func TestAPIKeyRateMultiplierProtectionExceeded(t *testing.T) {
 				MaxRateMultiplier:       1.2,
 			},
 			wantHit: true,
+		},
+		{
+			name: "allows when user group rate is within max even if group default exceeds",
+			key: &APIKey{
+				GroupID:                 &groupID,
+				Group:                   &Group{ID: groupID, RateMultiplier: 1.5},
+				UserGroupRateMultiplier: &lowerUserRate,
+				RateProtectionEnabled:   true,
+				MaxRateMultiplier:       1.2,
+			},
+			wantHit: false,
 		},
 		{
 			name: "allows when effective rate equals max",

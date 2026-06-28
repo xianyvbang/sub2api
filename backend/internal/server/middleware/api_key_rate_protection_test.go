@@ -118,6 +118,11 @@ func newRateProtectionAPIKey(rate, max float64, enabled bool) *service.APIKey {
 	}
 }
 
+func withUserGroupRateMultiplier(key *service.APIKey, rate float64) *service.APIKey {
+	key.UserGroupRateMultiplier = &rate
+	return key
+}
+
 func TestAPIKeyAuthRateProtection(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -134,6 +139,19 @@ func TestAPIKeyAuthRateProtection(t *testing.T) {
 			path:       "/t",
 			wantStatus: http.StatusForbidden,
 			wantCode:   "API_KEY_RATE_MULTIPLIER_EXCEEDED",
+		},
+		{
+			name:       "blocks when user-specific rate exceeds max",
+			key:        withUserGroupRateMultiplier(newRateProtectionAPIKey(1.0, 1.2, true), 1.5),
+			path:       "/t",
+			wantStatus: http.StatusForbidden,
+			wantCode:   "API_KEY_RATE_MULTIPLIER_EXCEEDED",
+		},
+		{
+			name:       "allows when user-specific rate is within max even if group default exceeds",
+			key:        withUserGroupRateMultiplier(newRateProtectionAPIKey(1.5, 1.2, true), 1.0),
+			path:       "/t",
+			wantStatus: http.StatusOK,
 		},
 		{
 			name:       "allows when effective rate equals max",
@@ -192,7 +210,7 @@ func TestAPIKeyAuthGoogleRateProtection(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	cfg := &config.Config{RunMode: config.RunModeSimple}
-	apiKey := newRateProtectionAPIKey(1.5, 1.2, true)
+	apiKey := withUserGroupRateMultiplier(newRateProtectionAPIKey(1.0, 1.2, true), 1.5)
 	apiKeyService := service.NewAPIKeyService(rateProtectionAPIKeyRepo{key: apiKey}, nil, nil, nil, nil, nil, cfg)
 	router := gin.New()
 	router.Use(APIKeyAuthWithSubscriptionGoogle(apiKeyService, nil, cfg))

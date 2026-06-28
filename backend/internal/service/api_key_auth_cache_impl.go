@@ -14,7 +14,7 @@ import (
 	"github.com/dgraph-io/ristretto"
 )
 
-const apiKeyAuthSnapshotVersion = 13 // v13: include API key rate multiplier protection fields
+const apiKeyAuthSnapshotVersion = 14 // v14: refresh snapshots after user-specific group rate cache invalidation fix
 
 type apiKeyAuthCacheConfig struct {
 	l1Size        int
