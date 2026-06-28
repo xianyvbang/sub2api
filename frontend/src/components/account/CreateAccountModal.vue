@@ -4445,6 +4445,12 @@ const buildOpenAIExtra = (base?: Record<string, unknown>): Record<string, unknow
     delete extra.openai_responses_mode
   }
 
+  if (typeof extra.codex_image_generation_bridge !== 'boolean' &&
+    typeof extra.codex_image_generation_bridge_enabled !== 'boolean') {
+    extra.codex_image_generation_bridge = false
+  }
+  delete extra.codex_image_generation_bridge_enabled
+
   return Object.keys(extra).length > 0 ? extra : undefined
 }
 

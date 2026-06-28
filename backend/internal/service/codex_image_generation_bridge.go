@@ -4,6 +4,23 @@ import "strings"
 
 const featureKeyCodexImageGenerationBridge = "codex_image_generation_bridge"
 
+func withDefaultOpenAICodexImageGenerationBridgeDisabled(platform string, extra map[string]any) map[string]any {
+	if strings.TrimSpace(platform) != PlatformOpenAI {
+		return extra
+	}
+	if boolOverrideFromMap(extra, featureKeyCodexImageGenerationBridge, "codex_image_generation_bridge_enabled") != nil {
+		return extra
+	}
+	if nested, _ := extra[PlatformOpenAI].(map[string]any); boolOverrideFromMap(nested, featureKeyCodexImageGenerationBridge, "codex_image_generation_bridge_enabled") != nil {
+		return extra
+	}
+	if extra == nil {
+		extra = make(map[string]any, 1)
+	}
+	extra[featureKeyCodexImageGenerationBridge] = false
+	return extra
+}
+
 func boolOverridePtr(v bool) *bool {
 	return &v
 }
