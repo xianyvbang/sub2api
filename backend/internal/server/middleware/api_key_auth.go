@@ -29,6 +29,8 @@ func NewAPIKeyAuthMiddleware(apiKeyService *service.APIKeyService, subscriptionS
 func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscriptionService *service.SubscriptionService, cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// ── 1. 提取 API Key ──────────────────────────────────────────
+		// skipBilling: /v1/usage 只需鉴权，跳过所有计费执行和倍率保护。
+		skipBilling := c.Request.URL.Path == "/v1/usage"
 
 		queryKey := strings.TrimSpace(c.Query("key"))
 		queryApiKey := strings.TrimSpace(c.Query("api_key"))
@@ -126,6 +128,9 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 		if abortIfAPIKeyGroupNotAllowed(c, apiKey) {
 			return
 		}
+		if !skipBilling && abortIfAPIKeyRateMultiplierExceeded(c, apiKey) {
+			return
+		}
 
 		// ── 4. SimpleMode → early return ─────────────────────────────
 
@@ -143,9 +148,6 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 		}
 
 		// ── 5. 加载订阅（订阅模式时始终加载） ───────────────────────
-
-		// skipBilling: /v1/usage 只需鉴权，跳过所有计费执行
-		skipBilling := c.Request.URL.Path == "/v1/usage"
 
 		var subscription *service.UserSubscription
 		isSubscriptionType := apiKey.Group != nil && apiKey.Group.IsSubscriptionType()
@@ -305,6 +307,15 @@ func abortIfAPIKeyGroupNotAllowed(c *gin.Context, apiKey *service.APIKey) bool {
 	}
 	service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonAPIKeyGroupUnavailable)
 	AbortWithError(c, 403, "GROUP_NOT_ALLOWED", "API Key 所属专属分组不再允许当前用户使用")
+	return true
+}
+
+func abortIfAPIKeyRateMultiplierExceeded(c *gin.Context, apiKey *service.APIKey) bool {
+	if apiKey == nil || !apiKey.RateMultiplierProtectionExceeded() {
+		return false
+	}
+	service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonAPIKeyRateMultiplier)
+	AbortWithError(c, 403, "API_KEY_RATE_MULTIPLIER_EXCEEDED", service.APIKeyRateMultiplierExceededMessage)
 	return true
 }
 

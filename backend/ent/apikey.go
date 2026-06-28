@@ -66,6 +66,10 @@ type APIKey struct {
 	Window1dStart *time.Time `json:"window_1d_start,omitempty"`
 	// Start time of the current 7d rate limit window
 	Window7dStart *time.Time `json:"window_7d_start,omitempty"`
+	// Whether this API key blocks usage when effective group rate exceeds max_rate_multiplier
+	RateProtectionEnabled bool `json:"rate_protection_enabled,omitempty"`
+	// Maximum effective group rate multiplier allowed for this API key (0 = unset)
+	MaxRateMultiplier float64 `json:"max_rate_multiplier,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the APIKeyQuery when eager-loading is set.
 	Edges        APIKeyEdges `json:"edges"`
@@ -123,8 +127,10 @@ func (*APIKey) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case apikey.FieldIPWhitelist, apikey.FieldIPBlacklist:
 			values[i] = new([]byte)
-		case apikey.FieldQuota, apikey.FieldQuotaUsed, apikey.FieldRateLimit5h, apikey.FieldRateLimit1d, apikey.FieldRateLimit7d, apikey.FieldUsage5h, apikey.FieldUsage1d, apikey.FieldUsage7d:
+		case apikey.FieldQuota, apikey.FieldQuotaUsed, apikey.FieldRateLimit5h, apikey.FieldRateLimit1d, apikey.FieldRateLimit7d, apikey.FieldUsage5h, apikey.FieldUsage1d, apikey.FieldUsage7d, apikey.FieldMaxRateMultiplier:
 			values[i] = new(sql.NullFloat64)
+		case apikey.FieldRateProtectionEnabled:
+			values[i] = new(sql.NullBool)
 		case apikey.FieldID, apikey.FieldUserID, apikey.FieldGroupID:
 			values[i] = new(sql.NullInt64)
 		case apikey.FieldKey, apikey.FieldName, apikey.FieldStatus:
@@ -301,6 +307,18 @@ func (_m *APIKey) assignValues(columns []string, values []any) error {
 				_m.Window7dStart = new(time.Time)
 				*_m.Window7dStart = value.Time
 			}
+		case apikey.FieldRateProtectionEnabled:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field rate_protection_enabled", values[i])
+			} else if value.Valid {
+				_m.RateProtectionEnabled = value.Bool
+			}
+		case apikey.FieldMaxRateMultiplier:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field max_rate_multiplier", values[i])
+			} else if value.Valid {
+				_m.MaxRateMultiplier = value.Float64
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -434,6 +452,12 @@ func (_m *APIKey) String() string {
 		builder.WriteString("window_7d_start=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("rate_protection_enabled=")
+	builder.WriteString(fmt.Sprintf("%v", _m.RateProtectionEnabled))
+	builder.WriteString(", ")
+	builder.WriteString("max_rate_multiplier=")
+	builder.WriteString(fmt.Sprintf("%v", _m.MaxRateMultiplier))
 	builder.WriteByte(')')
 	return builder.String()
 }

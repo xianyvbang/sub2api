@@ -21,13 +21,14 @@ import (
 )
 
 var (
-	ErrAPIKeyNotFound     = infraerrors.NotFound("API_KEY_NOT_FOUND", "api key not found")
-	ErrGroupNotAllowed    = infraerrors.Forbidden("GROUP_NOT_ALLOWED", "user is not allowed to bind this group")
-	ErrAPIKeyExists       = infraerrors.Conflict("API_KEY_EXISTS", "api key already exists")
-	ErrAPIKeyTooShort     = infraerrors.BadRequest("API_KEY_TOO_SHORT", "api key must be at least 16 characters")
-	ErrAPIKeyInvalidChars = infraerrors.BadRequest("API_KEY_INVALID_CHARS", "api key can only contain letters, numbers, underscores, and hyphens")
-	ErrAPIKeyRateLimited  = infraerrors.TooManyRequests("API_KEY_RATE_LIMITED", "too many failed attempts, please try again later")
-	ErrInvalidIPPattern   = infraerrors.BadRequest("INVALID_IP_PATTERN", "invalid IP or CIDR pattern")
+	ErrAPIKeyNotFound               = infraerrors.NotFound("API_KEY_NOT_FOUND", "api key not found")
+	ErrGroupNotAllowed              = infraerrors.Forbidden("GROUP_NOT_ALLOWED", "user is not allowed to bind this group")
+	ErrAPIKeyExists                 = infraerrors.Conflict("API_KEY_EXISTS", "api key already exists")
+	ErrAPIKeyTooShort               = infraerrors.BadRequest("API_KEY_TOO_SHORT", "api key must be at least 16 characters")
+	ErrAPIKeyInvalidChars           = infraerrors.BadRequest("API_KEY_INVALID_CHARS", "api key can only contain letters, numbers, underscores, and hyphens")
+	ErrAPIKeyRateLimited            = infraerrors.TooManyRequests("API_KEY_RATE_LIMITED", "too many failed attempts, please try again later")
+	ErrInvalidIPPattern             = infraerrors.BadRequest("INVALID_IP_PATTERN", "invalid IP or CIDR pattern")
+	ErrAPIKeyRateMultiplierExceeded = infraerrors.Forbidden("API_KEY_RATE_MULTIPLIER_EXCEEDED", APIKeyRateMultiplierExceededMessage)
 	// ErrAPIKeyExpired        = infraerrors.Forbidden("API_KEY_EXPIRED", "api key has expired")
 	ErrAPIKeyExpired = infraerrors.Forbidden("API_KEY_EXPIRED", "api key 已过期")
 	// ErrAPIKeyQuotaExhausted = infraerrors.TooManyRequests("API_KEY_QUOTA_EXHAUSTED", "api key quota exhausted")
@@ -163,9 +164,11 @@ type CreateAPIKeyRequest struct {
 	ExpiresInDays *int    `json:"expires_in_days"` // Days until expiry (nil = never expires)
 
 	// Rate limit fields (0 = unlimited)
-	RateLimit5h float64 `json:"rate_limit_5h"`
-	RateLimit1d float64 `json:"rate_limit_1d"`
-	RateLimit7d float64 `json:"rate_limit_7d"`
+	RateLimit5h           float64  `json:"rate_limit_5h"`
+	RateLimit1d           float64  `json:"rate_limit_1d"`
+	RateLimit7d           float64  `json:"rate_limit_7d"`
+	RateProtectionEnabled *bool    `json:"rate_protection_enabled"`
+	MaxRateMultiplier     *float64 `json:"max_rate_multiplier"`
 }
 
 // UpdateAPIKeyRequest 更新API Key请求
@@ -183,10 +186,12 @@ type UpdateAPIKeyRequest struct {
 	ResetQuota      *bool      `json:"reset_quota"` // Reset quota_used to 0
 
 	// Rate limit fields (nil = no change, 0 = unlimited)
-	RateLimit5h         *float64 `json:"rate_limit_5h"`
-	RateLimit1d         *float64 `json:"rate_limit_1d"`
-	RateLimit7d         *float64 `json:"rate_limit_7d"`
-	ResetRateLimitUsage *bool    `json:"reset_rate_limit_usage"` // Reset all usage counters to 0
+	RateLimit5h           *float64 `json:"rate_limit_5h"`
+	RateLimit1d           *float64 `json:"rate_limit_1d"`
+	RateLimit7d           *float64 `json:"rate_limit_7d"`
+	ResetRateLimitUsage   *bool    `json:"reset_rate_limit_usage"` // Reset all usage counters to 0
+	RateProtectionEnabled *bool    `json:"rate_protection_enabled"`
+	MaxRateMultiplier     *float64 `json:"max_rate_multiplier"`
 }
 
 // APIKeyService API Key服务
@@ -328,6 +333,41 @@ func (s *APIKeyService) canUserBindGroup(ctx context.Context, user *User, group 
 	return user.CanBindGroup(group.ID, group.IsExclusive)
 }
 
+func (s *APIKeyService) defaultRateMultiplier() float64 {
+	if s != nil && s.cfg != nil && s.cfg.Default.RateMultiplier > 0 {
+		return s.cfg.Default.RateMultiplier
+	}
+	return 1.0
+}
+
+func (s *APIKeyService) resolveEffectiveGroupRateMultiplier(ctx context.Context, userID int64, group *Group) (float64, error) {
+	if group == nil {
+		return s.defaultRateMultiplier(), nil
+	}
+	multiplier := group.RateMultiplier
+	if s.userGroupRateRepo == nil {
+		return multiplier, nil
+	}
+	userRate, err := s.userGroupRateRepo.GetByUserAndGroup(ctx, userID, group.ID)
+	if err != nil {
+		return 0, err
+	}
+	if userRate != nil {
+		multiplier = *userRate
+	}
+	return multiplier, nil
+}
+
+func (s *APIKeyService) hydrateAPIKeyUserGroupRate(ctx context.Context, apiKey *APIKey) {
+	if s == nil || apiKey == nil || apiKey.GroupID == nil || *apiKey.GroupID <= 0 || s.userGroupRateRepo == nil {
+		return
+	}
+	userRate, err := s.userGroupRateRepo.GetByUserAndGroup(ctx, apiKey.UserID, *apiKey.GroupID)
+	if err == nil && userRate != nil {
+		apiKey.UserGroupRateMultiplier = userRate
+	}
+}
+
 // Create 创建API Key
 func (s *APIKeyService) Create(ctx context.Context, userID int64, req CreateAPIKeyRequest) (*APIKey, error) {
 	// 验证用户存在
@@ -350,12 +390,14 @@ func (s *APIKeyService) Create(ctx context.Context, userID int64, req CreateAPIK
 		}
 	}
 
+	var selectedGroup *Group
 	// 验证分组权限（如果指定了分组）
 	if req.GroupID != nil {
 		group, err := s.groupRepo.GetByID(ctx, *req.GroupID)
 		if err != nil {
 			return nil, fmt.Errorf("get group: %w", err)
 		}
+		selectedGroup = group
 
 		// 检查用户是否可以绑定该分组
 		if !s.canUserBindGroup(ctx, user, group) {
@@ -398,20 +440,37 @@ func (s *APIKeyService) Create(ctx context.Context, userID int64, req CreateAPIK
 		}
 	}
 
+	rateProtectionEnabled := true
+	if req.RateProtectionEnabled != nil {
+		rateProtectionEnabled = *req.RateProtectionEnabled
+	}
+	maxRateMultiplier := 0.0
+	if req.MaxRateMultiplier != nil {
+		maxRateMultiplier = *req.MaxRateMultiplier
+	} else {
+		var err error
+		maxRateMultiplier, err = s.resolveEffectiveGroupRateMultiplier(ctx, userID, selectedGroup)
+		if err != nil {
+			return nil, fmt.Errorf("get user group rate: %w", err)
+		}
+	}
+
 	// 创建API Key记录
 	apiKey := &APIKey{
-		UserID:      userID,
-		Key:         key,
-		Name:        html.EscapeString(req.Name),
-		GroupID:     req.GroupID,
-		Status:      StatusActive,
-		IPWhitelist: req.IPWhitelist,
-		IPBlacklist: req.IPBlacklist,
-		Quota:       req.Quota,
-		QuotaUsed:   0,
-		RateLimit5h: req.RateLimit5h,
-		RateLimit1d: req.RateLimit1d,
-		RateLimit7d: req.RateLimit7d,
+		UserID:                userID,
+		Key:                   key,
+		Name:                  html.EscapeString(req.Name),
+		GroupID:               req.GroupID,
+		Status:                StatusActive,
+		IPWhitelist:           req.IPWhitelist,
+		IPBlacklist:           req.IPBlacklist,
+		Quota:                 req.Quota,
+		QuotaUsed:             0,
+		RateLimit5h:           req.RateLimit5h,
+		RateLimit1d:           req.RateLimit1d,
+		RateLimit7d:           req.RateLimit7d,
+		RateProtectionEnabled: rateProtectionEnabled,
+		MaxRateMultiplier:     maxRateMultiplier,
 	}
 
 	// Set expiration time if specified
@@ -509,6 +568,7 @@ func (s *APIKeyService) GetByKey(ctx context.Context, key string) (*APIKey, erro
 		return nil, fmt.Errorf("get api key: %w", err)
 	}
 	apiKey.Key = key
+	s.hydrateAPIKeyUserGroupRate(ctx, apiKey)
 	s.compileAPIKeyIPRules(apiKey)
 	return apiKey, nil
 }
@@ -622,6 +682,12 @@ func (s *APIKeyService) Update(ctx context.Context, id int64, userID int64, req 
 		apiKey.Window5hStart = nil
 		apiKey.Window1dStart = nil
 		apiKey.Window7dStart = nil
+	}
+	if req.RateProtectionEnabled != nil {
+		apiKey.RateProtectionEnabled = *req.RateProtectionEnabled
+	}
+	if req.MaxRateMultiplier != nil {
+		apiKey.MaxRateMultiplier = *req.MaxRateMultiplier
 	}
 
 	if err := s.apiKeyRepo.Update(ctx, apiKey); err != nil {

@@ -141,6 +141,14 @@ func init() {
 	apikeyDescUsage7d := apikeyFields[16].Descriptor()
 	// apikey.DefaultUsage7d holds the default value on creation for the usage_7d field.
 	apikey.DefaultUsage7d = apikeyDescUsage7d.Default.(float64)
+	// apikeyDescRateProtectionEnabled is the schema descriptor for rate_protection_enabled field.
+	apikeyDescRateProtectionEnabled := apikeyFields[20].Descriptor()
+	// apikey.DefaultRateProtectionEnabled holds the default value on creation for the rate_protection_enabled field.
+	apikey.DefaultRateProtectionEnabled = apikeyDescRateProtectionEnabled.Default.(bool)
+	// apikeyDescMaxRateMultiplier is the schema descriptor for max_rate_multiplier field.
+	apikeyDescMaxRateMultiplier := apikeyFields[21].Descriptor()
+	// apikey.DefaultMaxRateMultiplier holds the default value on creation for the max_rate_multiplier field.
+	apikey.DefaultMaxRateMultiplier = apikeyDescMaxRateMultiplier.Default.(float64)
 	accountMixin := schema.Account{}.Mixin()
 	accountMixinHooks1 := accountMixin[1].Hooks()
 	account.Hooks[0] = accountMixinHooks1[0]

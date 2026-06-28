@@ -438,6 +438,41 @@ func (_u *APIKeyUpdate) ClearWindow7dStart() *APIKeyUpdate {
 	return _u
 }
 
+// SetRateProtectionEnabled sets the "rate_protection_enabled" field.
+func (_u *APIKeyUpdate) SetRateProtectionEnabled(v bool) *APIKeyUpdate {
+	_u.mutation.SetRateProtectionEnabled(v)
+	return _u
+}
+
+// SetNillableRateProtectionEnabled sets the "rate_protection_enabled" field if the given value is not nil.
+func (_u *APIKeyUpdate) SetNillableRateProtectionEnabled(v *bool) *APIKeyUpdate {
+	if v != nil {
+		_u.SetRateProtectionEnabled(*v)
+	}
+	return _u
+}
+
+// SetMaxRateMultiplier sets the "max_rate_multiplier" field.
+func (_u *APIKeyUpdate) SetMaxRateMultiplier(v float64) *APIKeyUpdate {
+	_u.mutation.ResetMaxRateMultiplier()
+	_u.mutation.SetMaxRateMultiplier(v)
+	return _u
+}
+
+// SetNillableMaxRateMultiplier sets the "max_rate_multiplier" field if the given value is not nil.
+func (_u *APIKeyUpdate) SetNillableMaxRateMultiplier(v *float64) *APIKeyUpdate {
+	if v != nil {
+		_u.SetMaxRateMultiplier(*v)
+	}
+	return _u
+}
+
+// AddMaxRateMultiplier adds value to the "max_rate_multiplier" field.
+func (_u *APIKeyUpdate) AddMaxRateMultiplier(v float64) *APIKeyUpdate {
+	_u.mutation.AddMaxRateMultiplier(v)
+	return _u
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (_u *APIKeyUpdate) SetUser(v *User) *APIKeyUpdate {
 	return _u.SetUserID(v.ID)
@@ -695,6 +730,15 @@ func (_u *APIKeyUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.Window7dStartCleared() {
 		_spec.ClearField(apikey.FieldWindow7dStart, field.TypeTime)
+	}
+	if value, ok := _u.mutation.RateProtectionEnabled(); ok {
+		_spec.SetField(apikey.FieldRateProtectionEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.MaxRateMultiplier(); ok {
+		_spec.SetField(apikey.FieldMaxRateMultiplier, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedMaxRateMultiplier(); ok {
+		_spec.AddField(apikey.FieldMaxRateMultiplier, field.TypeFloat64, value)
 	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1225,6 +1269,41 @@ func (_u *APIKeyUpdateOne) ClearWindow7dStart() *APIKeyUpdateOne {
 	return _u
 }
 
+// SetRateProtectionEnabled sets the "rate_protection_enabled" field.
+func (_u *APIKeyUpdateOne) SetRateProtectionEnabled(v bool) *APIKeyUpdateOne {
+	_u.mutation.SetRateProtectionEnabled(v)
+	return _u
+}
+
+// SetNillableRateProtectionEnabled sets the "rate_protection_enabled" field if the given value is not nil.
+func (_u *APIKeyUpdateOne) SetNillableRateProtectionEnabled(v *bool) *APIKeyUpdateOne {
+	if v != nil {
+		_u.SetRateProtectionEnabled(*v)
+	}
+	return _u
+}
+
+// SetMaxRateMultiplier sets the "max_rate_multiplier" field.
+func (_u *APIKeyUpdateOne) SetMaxRateMultiplier(v float64) *APIKeyUpdateOne {
+	_u.mutation.ResetMaxRateMultiplier()
+	_u.mutation.SetMaxRateMultiplier(v)
+	return _u
+}
+
+// SetNillableMaxRateMultiplier sets the "max_rate_multiplier" field if the given value is not nil.
+func (_u *APIKeyUpdateOne) SetNillableMaxRateMultiplier(v *float64) *APIKeyUpdateOne {
+	if v != nil {
+		_u.SetMaxRateMultiplier(*v)
+	}
+	return _u
+}
+
+// AddMaxRateMultiplier adds value to the "max_rate_multiplier" field.
+func (_u *APIKeyUpdateOne) AddMaxRateMultiplier(v float64) *APIKeyUpdateOne {
+	_u.mutation.AddMaxRateMultiplier(v)
+	return _u
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (_u *APIKeyUpdateOne) SetUser(v *User) *APIKeyUpdateOne {
 	return _u.SetUserID(v.ID)
@@ -1512,6 +1591,15 @@ func (_u *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err erro
 	}
 	if _u.mutation.Window7dStartCleared() {
 		_spec.ClearField(apikey.FieldWindow7dStart, field.TypeTime)
+	}
+	if value, ok := _u.mutation.RateProtectionEnabled(); ok {
+		_spec.SetField(apikey.FieldRateProtectionEnabled, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.MaxRateMultiplier(); ok {
+		_spec.SetField(apikey.FieldMaxRateMultiplier, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedMaxRateMultiplier(); ok {
+		_spec.AddField(apikey.FieldMaxRateMultiplier, field.TypeFloat64, value)
 	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{

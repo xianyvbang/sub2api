@@ -115,6 +115,15 @@ func (APIKey) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			Comment("Start time of the current 7d rate limit window"),
+
+		// ========== Rate multiplier protection fields ==========
+		field.Bool("rate_protection_enabled").
+			Default(true).
+			Comment("Whether this API key blocks usage when effective group rate exceeds max_rate_multiplier"),
+		field.Float("max_rate_multiplier").
+			SchemaType(map[string]string{dialect.Postgres: "decimal(10,4)"}).
+			Default(0).
+			Comment("Maximum effective group rate multiplier allowed for this API key (0 = unset)"),
 	}
 }
 

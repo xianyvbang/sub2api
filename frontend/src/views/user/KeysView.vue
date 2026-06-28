@@ -407,12 +407,13 @@
         <div>
           <label class="input-label">{{ t('keys.groupLabel') }}</label>
           <Select
-            v-model="formData.group_id"
+            :model-value="formData.group_id"
             :options="groupOptions"
             :placeholder="t('keys.selectGroup')"
             :searchable="true"
             :search-placeholder="t('keys.searchGroup')"
             data-tour="key-form-group"
+            @update:model-value="onFormGroupChange"
           >
             <template #selected="{ option }">
               <GroupBadge
@@ -437,6 +438,41 @@
               />
             </template>
           </Select>
+        </div>
+
+        <!-- Rate Protection Section -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="input-label mb-0">{{ t('keys.rateProtection') }}</label>
+            <button
+              type="button"
+              @click="formData.rate_protection_enabled = !formData.rate_protection_enabled"
+              :class="[
+                'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+                formData.rate_protection_enabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              ]"
+            >
+              <span
+                :class="[
+                  'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                  formData.rate_protection_enabled ? 'translate-x-4' : 'translate-x-0'
+                ]"
+              />
+            </button>
+          </div>
+
+          <div v-if="formData.rate_protection_enabled" class="space-y-2 pt-2">
+            <label class="input-label">{{ t('keys.maxRateMultiplier') }}</label>
+            <input
+              v-model.number="formData.max_rate_multiplier"
+              type="number"
+              step="0.0001"
+              min="0"
+              class="input"
+              :placeholder="t('keys.maxRateMultiplierPlaceholder')"
+            />
+            <p class="input-hint">{{ t('keys.rateProtectionHint') }}</p>
+          </div>
         </div>
 
         <!-- Custom Key Section (only for create) -->
@@ -1185,6 +1221,8 @@ const formData = ref({
   rate_limit_5h: null as number | null,
   rate_limit_1d: null as number | null,
   rate_limit_7d: null as number | null,
+  rate_protection_enabled: true,
+  max_rate_multiplier: null as number | null,
   enable_expiration: false,
   expiration_preset: '30' as '7' | '30' | '90' | 'custom',
   expiration_date: ''
@@ -1253,6 +1291,23 @@ const groupOptions = computed(() =>
     platform: group.platform
   }))
 )
+
+const getEffectiveGroupRateMultiplier = (groupId: number | null | undefined): number | null => {
+  if (groupId === null || groupId === undefined) return null
+  const userRate = userGroupRates.value[groupId]
+  if (userRate !== undefined && userRate !== null) return userRate
+  const group = groups.value.find((item) => item.id === groupId)
+  return group?.rate_multiplier ?? null
+}
+
+const onFormGroupChange = (value: string | number | boolean | null) => {
+  const groupId = typeof value === 'number' ? value : null
+  formData.value.group_id = groupId
+  const multiplier = getEffectiveGroupRateMultiplier(groupId)
+  if (multiplier !== null) {
+    formData.value.max_rate_multiplier = multiplier
+  }
+}
 
 // Group dropdown search
 const groupSearchQuery = ref('')
@@ -1346,6 +1401,12 @@ const loadGroups = async () => {
 const loadUserGroupRates = async () => {
   try {
     userGroupRates.value = await userGroupsAPI.getUserGroupRates()
+    if (showCreateModal.value && formData.value.group_id !== null) {
+      const multiplier = getEffectiveGroupRateMultiplier(formData.value.group_id)
+      if (multiplier !== null) {
+        formData.value.max_rate_multiplier = multiplier
+      }
+    }
   } catch (error) {
     console.error('Failed to load user group rates:', error)
   }
@@ -1406,6 +1467,8 @@ const editKey = (key: ApiKey) => {
     rate_limit_5h: key.rate_limit_5h || null,
     rate_limit_1d: key.rate_limit_1d || null,
     rate_limit_7d: key.rate_limit_7d || null,
+    rate_protection_enabled: key.rate_protection_enabled ?? true,
+    max_rate_multiplier: key.max_rate_multiplier || getEffectiveGroupRateMultiplier(key.group_id),
     enable_expiration: hasExpiration,
     expiration_preset: 'custom',
     expiration_date: key.expires_at ? formatDateTimeLocal(key.expires_at) : ''
@@ -1463,7 +1526,11 @@ const changeGroup = async (key: ApiKey, newGroupId: number | null) => {
   if (key.group_id === newGroupId) return
 
   try {
-    await keysAPI.update(key.id, { group_id: newGroupId })
+    const maxRateMultiplier = getEffectiveGroupRateMultiplier(newGroupId)
+    await keysAPI.update(key.id, {
+      group_id: newGroupId,
+      ...(maxRateMultiplier !== null ? { max_rate_multiplier: maxRateMultiplier } : {})
+    })
     appStore.showSuccess(t('keys.groupChangedSuccess'))
     loadApiKeys()
   } catch (error) {
@@ -1538,6 +1605,15 @@ const handleSubmit = async () => {
     rate_limit_1d: formData.value.rate_limit_1d && formData.value.rate_limit_1d > 0 ? formData.value.rate_limit_1d : 0,
     rate_limit_7d: formData.value.rate_limit_7d && formData.value.rate_limit_7d > 0 ? formData.value.rate_limit_7d : 0,
   } : { rate_limit_5h: 0, rate_limit_1d: 0, rate_limit_7d: 0 }
+  const fallbackRateMultiplier = getEffectiveGroupRateMultiplier(formData.value.group_id)
+  const maxRateMultiplier =
+    formData.value.max_rate_multiplier && formData.value.max_rate_multiplier > 0
+      ? formData.value.max_rate_multiplier
+      : fallbackRateMultiplier ?? 0
+  const rateProtectionData = {
+    rate_protection_enabled: formData.value.rate_protection_enabled,
+    max_rate_multiplier: maxRateMultiplier
+  }
 
   submitting.value = true
   try {
@@ -1553,6 +1629,8 @@ const handleSubmit = async () => {
         rate_limit_5h: rateLimitData.rate_limit_5h,
         rate_limit_1d: rateLimitData.rate_limit_1d,
         rate_limit_7d: rateLimitData.rate_limit_7d,
+        rate_protection_enabled: rateProtectionData.rate_protection_enabled,
+        max_rate_multiplier: rateProtectionData.max_rate_multiplier,
       })
       appStore.showSuccess(t('keys.keyUpdatedSuccess'))
     } else {
@@ -1565,7 +1643,8 @@ const handleSubmit = async () => {
         ipBlacklist,
         quota,
         expiresInDays,
-        rateLimitData
+        rateLimitData,
+        rateProtectionData
       )
       appStore.showSuccess(t('keys.keyCreatedSuccess'))
       // Only advance tour if active, on submit step, and creation succeeded
@@ -1623,6 +1702,8 @@ const closeModals = () => {
     rate_limit_5h: null,
     rate_limit_1d: null,
     rate_limit_7d: null,
+    rate_protection_enabled: true,
+    max_rate_multiplier: null,
     enable_expiration: false,
     expiration_preset: '30',
     expiration_date: ''

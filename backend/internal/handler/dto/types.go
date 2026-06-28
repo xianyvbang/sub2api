@@ -78,6 +78,9 @@ type APIKey struct {
 	Reset1dAt     *time.Time `json:"reset_1d_at,omitempty"`
 	Reset7dAt     *time.Time `json:"reset_7d_at,omitempty"`
 
+	RateProtectionEnabled bool    `json:"rate_protection_enabled"`
+	MaxRateMultiplier     float64 `json:"max_rate_multiplier"`
+
 	User  *User  `json:"user,omitempty"`
 	Group *Group `json:"group,omitempty"`
 }

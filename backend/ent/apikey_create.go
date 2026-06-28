@@ -307,6 +307,34 @@ func (_c *APIKeyCreate) SetNillableWindow7dStart(v *time.Time) *APIKeyCreate {
 	return _c
 }
 
+// SetRateProtectionEnabled sets the "rate_protection_enabled" field.
+func (_c *APIKeyCreate) SetRateProtectionEnabled(v bool) *APIKeyCreate {
+	_c.mutation.SetRateProtectionEnabled(v)
+	return _c
+}
+
+// SetNillableRateProtectionEnabled sets the "rate_protection_enabled" field if the given value is not nil.
+func (_c *APIKeyCreate) SetNillableRateProtectionEnabled(v *bool) *APIKeyCreate {
+	if v != nil {
+		_c.SetRateProtectionEnabled(*v)
+	}
+	return _c
+}
+
+// SetMaxRateMultiplier sets the "max_rate_multiplier" field.
+func (_c *APIKeyCreate) SetMaxRateMultiplier(v float64) *APIKeyCreate {
+	_c.mutation.SetMaxRateMultiplier(v)
+	return _c
+}
+
+// SetNillableMaxRateMultiplier sets the "max_rate_multiplier" field if the given value is not nil.
+func (_c *APIKeyCreate) SetNillableMaxRateMultiplier(v *float64) *APIKeyCreate {
+	if v != nil {
+		_c.SetMaxRateMultiplier(*v)
+	}
+	return _c
+}
+
 // SetUser sets the "user" edge to the User entity.
 func (_c *APIKeyCreate) SetUser(v *User) *APIKeyCreate {
 	return _c.SetUserID(v.ID)
@@ -419,6 +447,14 @@ func (_c *APIKeyCreate) defaults() error {
 		v := apikey.DefaultUsage7d
 		_c.mutation.SetUsage7d(v)
 	}
+	if _, ok := _c.mutation.RateProtectionEnabled(); !ok {
+		v := apikey.DefaultRateProtectionEnabled
+		_c.mutation.SetRateProtectionEnabled(v)
+	}
+	if _, ok := _c.mutation.MaxRateMultiplier(); !ok {
+		v := apikey.DefaultMaxRateMultiplier
+		_c.mutation.SetMaxRateMultiplier(v)
+	}
 	return nil
 }
 
@@ -480,6 +516,12 @@ func (_c *APIKeyCreate) check() error {
 	}
 	if _, ok := _c.mutation.Usage7d(); !ok {
 		return &ValidationError{Name: "usage_7d", err: errors.New(`ent: missing required field "APIKey.usage_7d"`)}
+	}
+	if _, ok := _c.mutation.RateProtectionEnabled(); !ok {
+		return &ValidationError{Name: "rate_protection_enabled", err: errors.New(`ent: missing required field "APIKey.rate_protection_enabled"`)}
+	}
+	if _, ok := _c.mutation.MaxRateMultiplier(); !ok {
+		return &ValidationError{Name: "max_rate_multiplier", err: errors.New(`ent: missing required field "APIKey.max_rate_multiplier"`)}
 	}
 	if len(_c.mutation.UserIDs()) == 0 {
 		return &ValidationError{Name: "user", err: errors.New(`ent: missing required edge "APIKey.user"`)}
@@ -594,6 +636,14 @@ func (_c *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Window7dStart(); ok {
 		_spec.SetField(apikey.FieldWindow7dStart, field.TypeTime, value)
 		_node.Window7dStart = &value
+	}
+	if value, ok := _c.mutation.RateProtectionEnabled(); ok {
+		_spec.SetField(apikey.FieldRateProtectionEnabled, field.TypeBool, value)
+		_node.RateProtectionEnabled = value
+	}
+	if value, ok := _c.mutation.MaxRateMultiplier(); ok {
+		_spec.SetField(apikey.FieldMaxRateMultiplier, field.TypeFloat64, value)
+		_node.MaxRateMultiplier = value
 	}
 	if nodes := _c.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

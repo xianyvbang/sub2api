@@ -26,6 +26,11 @@ type APIKeyAuthSnapshot struct {
 	RateLimit5h float64 `json:"rate_limit_5h"`
 	RateLimit1d float64 `json:"rate_limit_1d"`
 	RateLimit7d float64 `json:"rate_limit_7d"`
+
+	// Rate multiplier protection configuration.
+	RateProtectionEnabled   bool     `json:"rate_protection_enabled"`
+	MaxRateMultiplier       float64  `json:"max_rate_multiplier"`
+	UserGroupRateMultiplier *float64 `json:"user_group_rate_multiplier,omitempty"`
 }
 
 // APIKeyAuthUserSnapshot 用户快照

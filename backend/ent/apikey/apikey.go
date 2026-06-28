@@ -61,6 +61,10 @@ const (
 	FieldWindow1dStart = "window_1d_start"
 	// FieldWindow7dStart holds the string denoting the window_7d_start field in the database.
 	FieldWindow7dStart = "window_7d_start"
+	// FieldRateProtectionEnabled holds the string denoting the rate_protection_enabled field in the database.
+	FieldRateProtectionEnabled = "rate_protection_enabled"
+	// FieldMaxRateMultiplier holds the string denoting the max_rate_multiplier field in the database.
+	FieldMaxRateMultiplier = "max_rate_multiplier"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeGroup holds the string denoting the group edge name in mutations.
@@ -118,6 +122,8 @@ var Columns = []string{
 	FieldWindow5hStart,
 	FieldWindow1dStart,
 	FieldWindow7dStart,
+	FieldRateProtectionEnabled,
+	FieldMaxRateMultiplier,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -168,6 +174,10 @@ var (
 	DefaultUsage1d float64
 	// DefaultUsage7d holds the default value on creation for the "usage_7d" field.
 	DefaultUsage7d float64
+	// DefaultRateProtectionEnabled holds the default value on creation for the "rate_protection_enabled" field.
+	DefaultRateProtectionEnabled bool
+	// DefaultMaxRateMultiplier holds the default value on creation for the "max_rate_multiplier" field.
+	DefaultMaxRateMultiplier float64
 )
 
 // OrderOption defines the ordering options for the APIKey queries.
@@ -281,6 +291,16 @@ func ByWindow1dStart(opts ...sql.OrderTermOption) OrderOption {
 // ByWindow7dStart orders the results by the window_7d_start field.
 func ByWindow7dStart(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldWindow7dStart, opts...).ToFunc()
+}
+
+// ByRateProtectionEnabled orders the results by the rate_protection_enabled field.
+func ByRateProtectionEnabled(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRateProtectionEnabled, opts...).ToFunc()
+}
+
+// ByMaxRateMultiplier orders the results by the max_rate_multiplier field.
+func ByMaxRateMultiplier(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMaxRateMultiplier, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.

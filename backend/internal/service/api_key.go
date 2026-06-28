@@ -14,6 +14,8 @@ const (
 	StatusAPIKeyExpired        = "expired"
 )
 
+const APIKeyRateMultiplierExceededMessage = "分组倍率已超过最高倍率，暂时无法使用"
+
 // Rate limit window durations
 const (
 	RateLimitWindow5h = 5 * time.Hour
@@ -60,6 +62,12 @@ type APIKey struct {
 	Window5hStart *time.Time // Start of current 5h window
 	Window1dStart *time.Time // Start of current 1d window
 	Window7dStart *time.Time // Start of current 7d window
+
+	// Rate multiplier protection fields
+	RateProtectionEnabled bool
+	MaxRateMultiplier     float64
+	// UserGroupRateMultiplier is the auth-cache snapshot of the effective user-specific group multiplier.
+	UserGroupRateMultiplier *float64
 }
 
 func (k *APIKey) IsActive() bool {
@@ -133,6 +141,31 @@ func (k *APIKey) EffectiveUsage7d() float64 {
 		return 0
 	}
 	return k.Usage7d
+}
+
+func (k *APIKey) EffectiveGroupRateMultiplier() float64 {
+	if k == nil {
+		return 0
+	}
+	if k.UserGroupRateMultiplier != nil {
+		return *k.UserGroupRateMultiplier
+	}
+	if k.User != nil && k.GroupID != nil && k.User.GroupRates != nil {
+		if multiplier, ok := k.User.GroupRates[*k.GroupID]; ok {
+			return multiplier
+		}
+	}
+	if k.Group != nil {
+		return k.Group.RateMultiplier
+	}
+	return 0
+}
+
+func (k *APIKey) RateMultiplierProtectionExceeded() bool {
+	if k == nil || !k.RateProtectionEnabled || k.MaxRateMultiplier <= 0 {
+		return false
+	}
+	return k.EffectiveGroupRateMultiplier() > k.MaxRateMultiplier
 }
 
 // APIKeyListFilters holds optional filtering parameters for listing API keys.
