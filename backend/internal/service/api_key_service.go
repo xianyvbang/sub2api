@@ -440,14 +440,14 @@ func (s *APIKeyService) Create(ctx context.Context, userID int64, req CreateAPIK
 		}
 	}
 
-	rateProtectionEnabled := true
+	rateProtectionEnabled := false
 	if req.RateProtectionEnabled != nil {
 		rateProtectionEnabled = *req.RateProtectionEnabled
 	}
 	maxRateMultiplier := 0.0
 	if req.MaxRateMultiplier != nil {
 		maxRateMultiplier = *req.MaxRateMultiplier
-	} else {
+	} else if rateProtectionEnabled {
 		var err error
 		maxRateMultiplier, err = s.resolveEffectiveGroupRateMultiplier(ctx, userID, selectedGroup)
 		if err != nil {

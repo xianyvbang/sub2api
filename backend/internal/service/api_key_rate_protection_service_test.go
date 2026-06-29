@@ -76,7 +76,7 @@ func (r rateProtectionServiceUserGroupRateRepo) GetByUserAndGroup(context.Contex
 	return r.rate, nil
 }
 
-func TestAPIKeyServiceCreateDefaultsRateProtectionToEffectiveGroupRate(t *testing.T) {
+func TestAPIKeyServiceCreateDefaultsRateProtectionOff(t *testing.T) {
 	groupID := int64(12)
 	userRate := 2.5
 	apiKeyRepo := &rateProtectionServiceAPIKeyRepo{}
@@ -93,6 +93,34 @@ func TestAPIKeyServiceCreateDefaultsRateProtectionToEffectiveGroupRate(t *testin
 	created, err := svc.Create(context.Background(), 7, CreateAPIKeyRequest{
 		Name:    "protected",
 		GroupID: &groupID,
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, created)
+	require.NotNil(t, apiKeyRepo.created)
+	require.False(t, apiKeyRepo.created.RateProtectionEnabled)
+	require.Zero(t, apiKeyRepo.created.MaxRateMultiplier)
+}
+
+func TestAPIKeyServiceCreateDefaultsMaxMultiplierWhenRateProtectionEnabled(t *testing.T) {
+	groupID := int64(12)
+	userRate := 2.5
+	apiKeyRepo := &rateProtectionServiceAPIKeyRepo{}
+	svc := NewAPIKeyService(
+		apiKeyRepo,
+		rateProtectionServiceUserRepo{user: &User{ID: 7, Status: StatusActive}},
+		rateProtectionServiceGroupRepo{group: &Group{ID: groupID, Status: StatusActive, RateMultiplier: 1.2}},
+		nil,
+		rateProtectionServiceUserGroupRateRepo{rate: &userRate},
+		nil,
+		&config.Config{Default: config.DefaultConfig{APIKeyPrefix: "sk-test-", RateMultiplier: 1.0}},
+	)
+
+	enabled := true
+	created, err := svc.Create(context.Background(), 7, CreateAPIKeyRequest{
+		Name:                  "protected",
+		GroupID:               &groupID,
+		RateProtectionEnabled: &enabled,
 	})
 
 	require.NoError(t, err)

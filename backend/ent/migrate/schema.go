@@ -33,7 +33,7 @@ var (
 		{Name: "window_5h_start", Type: field.TypeTime, Nullable: true},
 		{Name: "window_1d_start", Type: field.TypeTime, Nullable: true},
 		{Name: "window_7d_start", Type: field.TypeTime, Nullable: true},
-		{Name: "rate_protection_enabled", Type: field.TypeBool, Default: true},
+		{Name: "rate_protection_enabled", Type: field.TypeBool, Default: false},
 		{Name: "max_rate_multiplier", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "decimal(10,4)"}},
 		{Name: "group_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "user_id", Type: field.TypeInt64},

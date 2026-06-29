@@ -446,7 +446,8 @@
             <label class="input-label mb-0">{{ t('keys.rateProtection') }}</label>
             <button
               type="button"
-              @click="formData.rate_protection_enabled = !formData.rate_protection_enabled"
+              data-testid="key-form-rate-protection-toggle"
+              @click="toggleRateProtection"
               :class="[
                 'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
                 formData.rate_protection_enabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
@@ -1221,7 +1222,7 @@ const formData = ref({
   rate_limit_5h: null as number | null,
   rate_limit_1d: null as number | null,
   rate_limit_7d: null as number | null,
-  rate_protection_enabled: true,
+  rate_protection_enabled: false,
   max_rate_multiplier: null as number | null,
   enable_expiration: false,
   expiration_preset: '30' as '7' | '30' | '90' | 'custom',
@@ -1304,6 +1305,15 @@ const onFormGroupChange = (value: string | number | boolean | null) => {
   const groupId = typeof value === 'number' ? value : null
   formData.value.group_id = groupId
   const multiplier = getEffectiveGroupRateMultiplier(groupId)
+  if (multiplier !== null) {
+    formData.value.max_rate_multiplier = multiplier
+  }
+}
+
+const toggleRateProtection = () => {
+  formData.value.rate_protection_enabled = !formData.value.rate_protection_enabled
+  if (!formData.value.rate_protection_enabled || formData.value.max_rate_multiplier) return
+  const multiplier = getEffectiveGroupRateMultiplier(formData.value.group_id)
   if (multiplier !== null) {
     formData.value.max_rate_multiplier = multiplier
   }
@@ -1467,7 +1477,7 @@ const editKey = (key: ApiKey) => {
     rate_limit_5h: key.rate_limit_5h || null,
     rate_limit_1d: key.rate_limit_1d || null,
     rate_limit_7d: key.rate_limit_7d || null,
-    rate_protection_enabled: key.rate_protection_enabled ?? true,
+    rate_protection_enabled: key.rate_protection_enabled ?? false,
     max_rate_multiplier: key.max_rate_multiplier || getEffectiveGroupRateMultiplier(key.group_id),
     enable_expiration: hasExpiration,
     expiration_preset: 'custom',
@@ -1605,9 +1615,11 @@ const handleSubmit = async () => {
     rate_limit_1d: formData.value.rate_limit_1d && formData.value.rate_limit_1d > 0 ? formData.value.rate_limit_1d : 0,
     rate_limit_7d: formData.value.rate_limit_7d && formData.value.rate_limit_7d > 0 ? formData.value.rate_limit_7d : 0,
   } : { rate_limit_5h: 0, rate_limit_1d: 0, rate_limit_7d: 0 }
-  const fallbackRateMultiplier = getEffectiveGroupRateMultiplier(formData.value.group_id)
+  const fallbackRateMultiplier = formData.value.rate_protection_enabled
+    ? getEffectiveGroupRateMultiplier(formData.value.group_id)
+    : null
   const maxRateMultiplier =
-    formData.value.max_rate_multiplier && formData.value.max_rate_multiplier > 0
+    formData.value.rate_protection_enabled && formData.value.max_rate_multiplier && formData.value.max_rate_multiplier > 0
       ? formData.value.max_rate_multiplier
       : fallbackRateMultiplier ?? 0
   const rateProtectionData = {
@@ -1702,7 +1714,7 @@ const closeModals = () => {
     rate_limit_5h: null,
     rate_limit_1d: null,
     rate_limit_7d: null,
-    rate_protection_enabled: true,
+    rate_protection_enabled: false,
     max_rate_multiplier: null,
     enable_expiration: false,
     expiration_preset: '30',

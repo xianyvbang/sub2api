@@ -118,7 +118,7 @@ func (APIKey) Fields() []ent.Field {
 
 		// ========== Rate multiplier protection fields ==========
 		field.Bool("rate_protection_enabled").
-			Default(true).
+			Default(false).
 			Comment("Whether this API key blocks usage when effective group rate exceeds max_rate_multiplier"),
 		field.Float("max_rate_multiplier").
 			SchemaType(map[string]string{dialect.Postgres: "decimal(10,4)"}).

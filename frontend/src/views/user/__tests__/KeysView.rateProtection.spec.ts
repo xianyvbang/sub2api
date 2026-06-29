@@ -215,13 +215,41 @@ describe('KeysView rate protection', () => {
     getPublicSettings.mockResolvedValue({ hide_ccs_import_button: true })
   })
 
-  it('defaults max multiplier to effective user group rate after selecting a group and includes protection fields on create', async () => {
+  it('keeps rate protection off by default when creating a key', async () => {
     const wrapper = await mountKeysView()
 
     await wrapper.find('[data-tour="keys-create-btn"]').trigger('click')
     const selects = wrapper.findAll('select.select-stub')
     const groupSelect = selects[2]
     await groupSelect.setValue('2')
+
+    expect(wrapper.find('input[type="number"][step="0.0001"]').exists()).toBe(false)
+
+    await wrapper.find('input[data-tour="key-form-name"]').setValue('Created')
+    await wrapper.find('form#key-form').trigger('submit')
+    await flushPromises()
+
+    expect(createKey).toHaveBeenCalledWith(
+      'Created',
+      2,
+      undefined,
+      [],
+      [],
+      0,
+      undefined,
+      { rate_limit_5h: 0, rate_limit_1d: 0, rate_limit_7d: 0 },
+      { rate_protection_enabled: false, max_rate_multiplier: 0 },
+    )
+  })
+
+  it('defaults max multiplier to effective user group rate when rate protection is enabled on create', async () => {
+    const wrapper = await mountKeysView()
+
+    await wrapper.find('[data-tour="keys-create-btn"]').trigger('click')
+    const selects = wrapper.findAll('select.select-stub')
+    const groupSelect = selects[2]
+    await groupSelect.setValue('2')
+    await wrapper.find('[data-testid="key-form-rate-protection-toggle"]').trigger('click')
 
     const maxInput = wrapper.find('input[type="number"][step="0.0001"]')
     expect((maxInput.element as HTMLInputElement).value).toBe('2.75')
