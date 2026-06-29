@@ -87,6 +87,16 @@
           <template #cell-name="{ value, row }">
             <div class="flex items-center gap-1.5">
               <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+              <span
+                v-if="shouldShowRateProtectionBadge(row)"
+                :class="[
+                  'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold leading-none',
+                  rateProtectionBadgeClass(row)
+                ]"
+                :title="t('keys.rateProtection')"
+              >
+                {{ formatRateProtectionMultiplier(row.max_rate_multiplier) }}
+              </span>
               <Icon
                 v-if="row.ip_whitelist?.length > 0 || row.ip_blacklist?.length > 0"
                 name="shield"
@@ -461,6 +471,7 @@
               />
             </button>
           </div>
+          <p class="input-hint">{{ t('keys.rateProtectionHint') }}</p>
 
           <div v-if="formData.rate_protection_enabled" class="space-y-2 pt-2">
             <label class="input-label">{{ t('keys.maxRateMultiplier') }}</label>
@@ -472,7 +483,6 @@
               class="input"
               :placeholder="t('keys.maxRateMultiplierPlaceholder')"
             />
-            <p class="input-hint">{{ t('keys.rateProtectionHint') }}</p>
           </div>
         </div>
 
@@ -1114,6 +1124,7 @@ import {
   buildCcSwitchImportDeeplink,
   type CcSwitchClientType
 } from '@/utils/ccswitchImport'
+import { platformBadgeLightClass } from '@/utils/platformColors'
 
 // Helper to format date for datetime-local input
 const formatDateTimeLocal = (isoDate: string): string => {
@@ -1299,6 +1310,20 @@ const getEffectiveGroupRateMultiplier = (groupId: number | null | undefined): nu
   if (userRate !== undefined && userRate !== null) return userRate
   const group = groups.value.find((item) => item.id === groupId)
   return group?.rate_multiplier ?? null
+}
+
+const shouldShowRateProtectionBadge = (key: ApiKey) => {
+  return key.rate_protection_enabled === true && Number(key.max_rate_multiplier) > 0
+}
+
+const formatRateProtectionMultiplier = (value: number | null | undefined) => {
+  const multiplier = Number(value)
+  if (!Number.isFinite(multiplier) || multiplier <= 0) return ''
+  return `≤${Number(multiplier.toFixed(4)).toString()}x`
+}
+
+const rateProtectionBadgeClass = (key: ApiKey) => {
+  return platformBadgeLightClass(key.group?.platform || '')
 }
 
 const onFormGroupChange = (value: string | number | boolean | null) => {

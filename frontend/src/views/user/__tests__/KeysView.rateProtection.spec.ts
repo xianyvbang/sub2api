@@ -113,6 +113,7 @@ const DataTableStub = defineComponent({
   template: `
     <div>
       <div v-for="row in data" :key="row.id" class="row-stub">
+        <slot name="cell-name" :value="row.name" :row="row" />
         <slot name="cell-actions" :row="row" />
       </div>
       <slot v-if="data.length === 0" name="empty" />
@@ -183,6 +184,14 @@ const makeApiKey = (overrides: Partial<Record<string, unknown>> = {}) => ({
   reset_7d_at: null,
   rate_protection_enabled: true,
   max_rate_multiplier: 1.1,
+  group: {
+    id: 1,
+    name: 'Default',
+    description: '',
+    platform: 'openai',
+    subscription_type: 'standard',
+    rate_multiplier: 1.25,
+  },
   ...overrides,
 })
 
@@ -302,5 +311,34 @@ describe('KeysView rate protection', () => {
       rate_protection_enabled: true,
       max_rate_multiplier: 1.8,
     }))
+  })
+
+  it('shows enabled rate protection multiplier after the key name with platform color', async () => {
+    listKeys.mockResolvedValue({
+      items: [
+        makeApiKey({
+          name: 'Protected',
+          rate_protection_enabled: true,
+          max_rate_multiplier: 1.23456,
+        }),
+        makeApiKey({
+          id: 2,
+          name: 'Unprotected',
+          rate_protection_enabled: false,
+          max_rate_multiplier: 2,
+        }),
+      ],
+      total: 2,
+      pages: 1,
+    })
+
+    const wrapper = await mountKeysView()
+    const rows = wrapper.findAll('.row-stub')
+
+    expect(rows[0].text()).toContain('Protected')
+    expect(rows[0].text()).toContain('≤1.2346x')
+    expect(rows[0].find('.text-green-600').exists()).toBe(true)
+    expect(rows[1].text()).toContain('Unprotected')
+    expect(rows[1].text()).not.toContain('≤2x')
   })
 })
