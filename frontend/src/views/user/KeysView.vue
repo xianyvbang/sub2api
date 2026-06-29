@@ -401,7 +401,7 @@
       width="normal"
       @close="closeModals"
     >
-      <form id="key-form" @submit.prevent="handleSubmit" class="space-y-5">
+      <form id="key-form" ref="keyFormRef" @submit.prevent="handleSubmit" class="space-y-5">
         <div>
           <label class="input-label">{{ t('keys.nameLabel') }}</label>
           <input
@@ -476,12 +476,15 @@
           <div v-if="formData.rate_protection_enabled" class="space-y-2 pt-2">
             <label class="input-label">{{ t('keys.maxRateMultiplier') }}</label>
             <input
+              ref="maxRateMultiplierInputRef"
               v-model.number="formData.max_rate_multiplier"
               type="number"
               step="0.0001"
-              min="0"
+              min="0.0001"
+              required
               class="input"
               :placeholder="t('keys.maxRateMultiplierPlaceholder')"
+              @input="clearMaxRateMultiplierValidity"
             />
           </div>
         </div>
@@ -1195,6 +1198,8 @@ const showCcsClientSelect = ref(false)
 const pendingCcsRow = ref<ApiKey | null>(null)
 const selectedKey = ref<ApiKey | null>(null)
 const copiedKeyId = ref<number | null>(null)
+const keyFormRef = ref<HTMLFormElement | null>(null)
+const maxRateMultiplierInputRef = ref<HTMLInputElement | null>(null)
 const groupSelectorKeyId = ref<number | null>(null)
 const publicSettings = ref<PublicSettings | null>(null)
 const dropdownRef = ref<HTMLElement | null>(null)
@@ -1324,6 +1329,47 @@ const formatRateProtectionMultiplier = (value: number | null | undefined) => {
 
 const rateProtectionBadgeClass = (key: ApiKey) => {
   return platformBadgeLightClass(key.group?.platform || '')
+}
+
+const reportKeyFormValidity = () => {
+  const form = keyFormRef.value
+  if (!form) return true
+  if (typeof form.reportValidity === 'function') {
+    return form.reportValidity()
+  }
+  if (typeof form.checkValidity === 'function') {
+    return form.checkValidity()
+  }
+  return true
+}
+
+const normalizePositiveRateMultiplier = (value: number | null | undefined) => {
+  const multiplier = Number(value)
+  return Number.isFinite(multiplier) && multiplier > 0 ? multiplier : null
+}
+
+const clearMaxRateMultiplierValidity = () => {
+  maxRateMultiplierInputRef.value?.setCustomValidity('')
+}
+
+const validateRateProtectionForm = () => {
+  if (!formData.value.rate_protection_enabled) return true
+
+  const multiplier = normalizePositiveRateMultiplier(formData.value.max_rate_multiplier)
+  if (multiplier !== null) {
+    clearMaxRateMultiplierValidity()
+    return true
+  }
+
+  const input = maxRateMultiplierInputRef.value
+  const message = t('keys.maxRateMultiplierRequired')
+  if (input) {
+    input.setCustomValidity(message)
+    input.reportValidity()
+  } else {
+    appStore.showError(message)
+  }
+  return false
 }
 
 const onFormGroupChange = (value: string | number | boolean | null) => {
@@ -1588,6 +1634,9 @@ const confirmDelete = (key: ApiKey) => {
 }
 
 const handleSubmit = async () => {
+  if (!reportKeyFormValidity()) return
+  if (!validateRateProtectionForm()) return
+
   // Validate group_id is required
   if (formData.value.group_id === null) {
     appStore.showError(t('keys.groupRequired'))
@@ -1640,13 +1689,11 @@ const handleSubmit = async () => {
     rate_limit_1d: formData.value.rate_limit_1d && formData.value.rate_limit_1d > 0 ? formData.value.rate_limit_1d : 0,
     rate_limit_7d: formData.value.rate_limit_7d && formData.value.rate_limit_7d > 0 ? formData.value.rate_limit_7d : 0,
   } : { rate_limit_5h: 0, rate_limit_1d: 0, rate_limit_7d: 0 }
-  const fallbackRateMultiplier = formData.value.rate_protection_enabled
-    ? getEffectiveGroupRateMultiplier(formData.value.group_id)
-    : null
+  const normalizedMaxRateMultiplier = normalizePositiveRateMultiplier(formData.value.max_rate_multiplier)
   const maxRateMultiplier =
-    formData.value.rate_protection_enabled && formData.value.max_rate_multiplier && formData.value.max_rate_multiplier > 0
-      ? formData.value.max_rate_multiplier
-      : fallbackRateMultiplier ?? 0
+    formData.value.rate_protection_enabled && normalizedMaxRateMultiplier !== null
+      ? normalizedMaxRateMultiplier
+      : 0
   const rateProtectionData = {
     rate_protection_enabled: formData.value.rate_protection_enabled,
     max_rate_multiplier: maxRateMultiplier

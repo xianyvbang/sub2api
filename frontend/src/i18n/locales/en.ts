@@ -852,6 +852,7 @@ export default {
     rateProtection: 'Rate Protection',
     maxRateMultiplier: 'Max Multiplier',
     maxRateMultiplierPlaceholder: 'Enter max multiplier',
+    maxRateMultiplierRequired: 'Enter a max multiplier greater than 0',
     rateProtectionHint: 'When enabled, this key is blocked if the current effective group multiplier exceeds the max multiplier.',
     resetNow: 'Resetting soon',
     expiration: 'Expiration',

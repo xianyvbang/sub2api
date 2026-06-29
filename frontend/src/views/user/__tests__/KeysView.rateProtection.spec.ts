@@ -280,6 +280,44 @@ describe('KeysView rate protection', () => {
     )
   })
 
+  it.each([
+    ['', 'empty'],
+    ['0', 'zero'],
+  ])('requires a positive max multiplier and blocks create submission when value is %s', async (value) => {
+    const formReportValiditySpy = vi
+      .spyOn(HTMLFormElement.prototype, 'reportValidity')
+      .mockReturnValue(true)
+    const inputReportValiditySpy = vi
+      .spyOn(HTMLInputElement.prototype, 'reportValidity')
+      .mockReturnValue(false)
+    const setCustomValiditySpy = vi.spyOn(HTMLInputElement.prototype, 'setCustomValidity')
+    const wrapper = await mountKeysView()
+
+    await wrapper.find('[data-tour="keys-create-btn"]').trigger('click')
+    const selects = wrapper.findAll('select.select-stub')
+    const groupSelect = selects[2]
+    await groupSelect.setValue('2')
+    await wrapper.find('[data-testid="key-form-rate-protection-toggle"]').trigger('click')
+
+    const maxInput = wrapper.find('input[type="number"][step="0.0001"]')
+    expect(maxInput.attributes('required')).toBeDefined()
+    expect(maxInput.attributes('min')).toBe('0.0001')
+
+    await maxInput.setValue(value)
+    await wrapper.find('input[data-tour="key-form-name"]').setValue('Created')
+    await wrapper.find('form#key-form').trigger('submit')
+    await flushPromises()
+
+    expect(formReportValiditySpy).toHaveBeenCalled()
+    expect(setCustomValiditySpy).toHaveBeenCalledWith('keys.maxRateMultiplierRequired')
+    expect(inputReportValiditySpy).toHaveBeenCalled()
+    expect(createKey).not.toHaveBeenCalled()
+
+    formReportValiditySpy.mockRestore()
+    inputReportValiditySpy.mockRestore()
+    setCustomValiditySpy.mockRestore()
+  })
+
   it('echoes existing protection fields in edit modal and submits updates', async () => {
     listKeys.mockResolvedValue({
       items: [

@@ -856,6 +856,7 @@ export default {
     rateProtection: '倍率保护',
     maxRateMultiplier: '最高倍率',
     maxRateMultiplierPlaceholder: '输入最高倍率',
+    maxRateMultiplierRequired: '请输入大于 0 的最高倍率',
     rateProtectionHint: '开启后，如果当前分组有效倍率超过最高倍率，此密钥将暂时无法使用。',
     resetNow: '即将重置',
     expiration: '密钥有效期',
