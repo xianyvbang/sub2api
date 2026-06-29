@@ -137,14 +137,14 @@ func TestAPIKeyAuthRateProtection(t *testing.T) {
 			name:       "blocks when effective rate exceeds max",
 			key:        newRateProtectionAPIKey(1.5, 1.2, true),
 			path:       "/t",
-			wantStatus: http.StatusForbidden,
+			wantStatus: http.StatusServiceUnavailable,
 			wantCode:   "API_KEY_RATE_MULTIPLIER_EXCEEDED",
 		},
 		{
 			name:       "blocks when user-specific rate exceeds max",
 			key:        withUserGroupRateMultiplier(newRateProtectionAPIKey(1.0, 1.2, true), 1.5),
 			path:       "/t",
-			wantStatus: http.StatusForbidden,
+			wantStatus: http.StatusServiceUnavailable,
 			wantCode:   "API_KEY_RATE_MULTIPLIER_EXCEEDED",
 		},
 		{
@@ -221,7 +221,7 @@ func TestAPIKeyAuthGoogleRateProtection(t *testing.T) {
 	req.Header.Set("x-goog-api-key", apiKey.Key)
 	router.ServeHTTP(rec, req)
 
-	require.Equal(t, http.StatusForbidden, rec.Code)
+	require.Equal(t, http.StatusServiceUnavailable, rec.Code)
 	var resp struct {
 		Error struct {
 			Code    int    `json:"code"`
@@ -230,7 +230,7 @@ func TestAPIKeyAuthGoogleRateProtection(t *testing.T) {
 		} `json:"error"`
 	}
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
-	require.Equal(t, http.StatusForbidden, resp.Error.Code)
+	require.Equal(t, http.StatusServiceUnavailable, resp.Error.Code)
 	require.Equal(t, service.APIKeyRateMultiplierExceededMessage, resp.Error.Message)
-	require.Equal(t, "PERMISSION_DENIED", resp.Error.Status)
+	require.Equal(t, "UNAVAILABLE", resp.Error.Status)
 }

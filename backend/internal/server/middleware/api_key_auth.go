@@ -315,7 +315,7 @@ func abortIfAPIKeyRateMultiplierExceeded(c *gin.Context, apiKey *service.APIKey)
 		return false
 	}
 	service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonAPIKeyRateMultiplier)
-	AbortWithError(c, 403, "API_KEY_RATE_MULTIPLIER_EXCEEDED", service.APIKeyRateMultiplierExceededMessage)
+	AbortWithError(c, http.StatusServiceUnavailable, "API_KEY_RATE_MULTIPLIER_EXCEEDED", service.APIKeyRateMultiplierExceededMessage)
 	return true
 }
 

@@ -67,7 +67,7 @@ func APIKeyAuthWithSubscriptionGoogle(apiKeyService *service.APIKeyService, subs
 		}
 		if !skipBilling && apiKey.RateMultiplierProtectionExceeded() {
 			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonAPIKeyRateMultiplier)
-			abortWithGoogleError(c, 403, service.APIKeyRateMultiplierExceededMessage)
+			abortWithGoogleError(c, http.StatusServiceUnavailable, service.APIKeyRateMultiplierExceededMessage)
 			return
 		}
 

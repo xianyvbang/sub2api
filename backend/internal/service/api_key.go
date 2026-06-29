@@ -14,7 +14,7 @@ const (
 	StatusAPIKeyExpired        = "expired"
 )
 
-const APIKeyRateMultiplierExceededMessage = "分组倍率已超过最高倍率，暂时无法使用"
+const APIKeyRateMultiplierExceededMessage = "No available accounts: no available accounts one"
 
 // Rate limit window durations
 const (
