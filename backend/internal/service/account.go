@@ -1403,6 +1403,19 @@ func (a *Account) IsOpenAIPassthroughEnabled() bool {
 	return false
 }
 
+// IsOpenAIImageModelNameValidationSkipped returns whether the account skips
+// local gpt-image-* name validation for dedicated OpenAI images endpoints.
+//
+// Field: accounts.extra.openai_skip_image_model_name_validation.
+// Missing or invalid values are treated as false.
+func (a *Account) IsOpenAIImageModelNameValidationSkipped() bool {
+	if a == nil || !a.IsOpenAI() || a.Extra == nil {
+		return false
+	}
+	enabled, ok := a.Extra["openai_skip_image_model_name_validation"].(bool)
+	return ok && enabled
+}
+
 // IsOpenAIResponsesWebSocketV2Enabled 返回 OpenAI 账号是否开启 Responses WebSocket v2。
 //
 // 分类型新字段：

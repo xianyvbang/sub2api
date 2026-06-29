@@ -215,9 +215,6 @@ func (s *OpenAIGatewayService) ParseOpenAIImagesRequest(c *gin.Context, body []b
 	}
 
 	applyOpenAIImagesDefaults(req)
-	if err := validateOpenAIImagesModel(req.Model); err != nil {
-		return nil, err
-	}
 	req.SizeTier = normalizeOpenAIImageSizeTier(req.Size)
 	req.RequiredCapability = classifyOpenAIImagesCapability(req)
 	return req, nil
@@ -458,15 +455,31 @@ func isOpenAIImageGenerationModel(model string) bool {
 	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(model)), "gpt-image-")
 }
 
+type OpenAIImagesModelValidationError struct {
+	Model string
+}
+
+func (e *OpenAIImagesModelValidationError) Error() string {
+	model := strings.TrimSpace(e.Model)
+	if model == "" {
+		return "images endpoint requires an image model"
+	}
+	return fmt.Sprintf("images endpoint requires an image model, got %q", model)
+}
+
 func validateOpenAIImagesModel(model string) error {
 	model = strings.TrimSpace(model)
 	if isOpenAIImageGenerationModel(model) {
 		return nil
 	}
-	if model == "" {
-		return fmt.Errorf("images endpoint requires an image model")
+	return &OpenAIImagesModelValidationError{Model: model}
+}
+
+func validateOpenAIImagesModelForAccount(model string, account *Account) error {
+	if account != nil && account.IsOpenAIImageModelNameValidationSkipped() {
+		return nil
 	}
-	return fmt.Errorf("images endpoint requires an image model, got %q", model)
+	return validateOpenAIImagesModel(model)
 }
 
 func normalizeOpenAIImagesEndpointPath(path string) string {
@@ -569,11 +582,11 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesAPIKey(
 	if mapped := strings.TrimSpace(channelMappedModel); mapped != "" {
 		requestModel = mapped
 	}
-	if err := validateOpenAIImagesModel(requestModel); err != nil {
+	if err := validateOpenAIImagesModelForAccount(requestModel, account); err != nil {
 		return nil, err
 	}
 	upstreamModel := account.GetMappedModel(requestModel)
-	if err := validateOpenAIImagesModel(upstreamModel); err != nil {
+	if err := validateOpenAIImagesModelForAccount(upstreamModel, account); err != nil {
 		return nil, err
 	}
 	logger.LegacyPrintf(

@@ -1506,7 +1506,7 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesOAuth(
 	if requestModel == "" {
 		requestModel = "gpt-image-2"
 	}
-	if err := validateOpenAIImagesModel(requestModel); err != nil {
+	if err := validateOpenAIImagesModelForAccount(requestModel, account); err != nil {
 		return nil, err
 	}
 	logger.LegacyPrintf(

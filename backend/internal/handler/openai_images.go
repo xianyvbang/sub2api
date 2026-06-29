@@ -238,6 +238,11 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 					zap.Error(err),
 				)
 			} else {
+				var modelValidationErr *service.OpenAIImagesModelValidationError
+				if errors.As(err, &modelValidationErr) {
+					h.handleStreamingAwareError(c, http.StatusBadRequest, "invalid_request_error", modelValidationErr.Error(), streamStarted)
+					return
+				}
 				var imageUpstreamErr *service.OpenAIImagesUpstreamError
 				if errors.As(err, &imageUpstreamErr) {
 					retryableServerError := service.IsOpenAIImagesRetryableUpstreamError(imageUpstreamErr)
