@@ -1,8 +1,28 @@
 package googleapi
 
 import (
+	"net/http"
 	"testing"
 )
+
+func TestHTTPStatusToGoogleStatus(t *testing.T) {
+	tests := []struct {
+		name   string
+		status int
+		want   string
+	}{
+		{name: "service unavailable", status: http.StatusServiceUnavailable, want: "UNAVAILABLE"},
+		{name: "internal server error", status: http.StatusInternalServerError, want: "INTERNAL"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := HTTPStatusToGoogleStatus(tt.status); got != tt.want {
+				t.Fatalf("HTTPStatusToGoogleStatus(%d) = %q, want %q", tt.status, got, tt.want)
+			}
+		})
+	}
+}
 
 func TestExtractActivationURL(t *testing.T) {
 	// Test case from the user's error message
