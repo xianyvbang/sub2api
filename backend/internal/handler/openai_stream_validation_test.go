@@ -124,6 +124,19 @@ func TestGatewayOpenAICompatibleHandlersAllowBooleanStreamToContinue(t *testing.
 	}
 }
 
+func TestGatewayResponsesRejectsImageGenerationWhenGroupDisabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	body := `{"model":"gpt-5","stream":false,"input":"draw a cat","tools":[{"type":"image_generation"}]}`
+	c, rec := newOpenAICompatibleStreamValidationContext("/v1/responses", body, false)
+
+	(&GatewayHandler{}).Responses(c)
+
+	require.Equal(t, http.StatusForbidden, rec.Code)
+	require.Equal(t, "permission_error", gjson.GetBytes(rec.Body.Bytes(), "error.code").String())
+	require.Equal(t, service.ImageGenerationPermissionMessage(), gjson.GetBytes(rec.Body.Bytes(), "error.message").String())
+}
+
 func newOpenAICompatibleStreamValidationContext(path, body string, claudeCodeOnly bool) (*gin.Context, *httptest.ResponseRecorder) {
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
