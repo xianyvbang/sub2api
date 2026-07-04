@@ -38,6 +38,10 @@ func (r *redeemRejectRepo) GetByCode(ctx context.Context, code string) (*RedeemC
 	return &clone, nil
 }
 
+func (r *redeemRejectRepo) GetByCodeForUpdate(ctx context.Context, code string) (*RedeemCode, error) {
+	return r.GetByCode(ctx, code)
+}
+
 func (r *redeemRejectRepo) Update(ctx context.Context, code *RedeemCode) error {
 	panic("unexpected Update call")
 }
@@ -50,11 +54,23 @@ func (r *redeemRejectRepo) Delete(ctx context.Context, id int64) error {
 	panic("unexpected Delete call")
 }
 
+func (r *redeemRejectRepo) DeleteGiftParent(ctx context.Context, id int64) error {
+	panic("unexpected DeleteGiftParent call")
+}
+
+func (r *redeemRejectRepo) DeleteGiftChild(ctx context.Context, id, parentID int64) error {
+	panic("unexpected DeleteGiftChild call")
+}
+
 func (r *redeemRejectRepo) Use(ctx context.Context, id, userID int64) error {
 	r.useCalled = true
 	r.code.Status = StatusUsed
 	r.code.UsedBy = &userID
 	return nil
+}
+
+func (r *redeemRejectRepo) UseGiftChild(ctx context.Context, parentID, userID int64) (*RedeemCode, error) {
+	panic("unexpected UseGiftChild call")
 }
 
 func (r *redeemRejectRepo) List(ctx context.Context, params pagination.PaginationParams) ([]RedeemCode, *pagination.PaginationResult, error) {
@@ -63,6 +79,18 @@ func (r *redeemRejectRepo) List(ctx context.Context, params pagination.Paginatio
 
 func (r *redeemRejectRepo) ListWithFilters(ctx context.Context, params pagination.PaginationParams, codeType, status, search string) ([]RedeemCode, *pagination.PaginationResult, error) {
 	panic("unexpected ListWithFilters call")
+}
+
+func (r *redeemRejectRepo) ListGiftChildren(ctx context.Context, parentID int64, params pagination.PaginationParams) ([]RedeemCode, *pagination.PaginationResult, error) {
+	panic("unexpected ListGiftChildren call")
+}
+
+func (r *redeemRejectRepo) CountGiftChildrenByStatus(ctx context.Context, parentID int64, status string) (int64, error) {
+	panic("unexpected CountGiftChildrenByStatus call")
+}
+
+func (r *redeemRejectRepo) CountGiftChildrenByUser(ctx context.Context, parentID, userID int64) (int64, error) {
+	panic("unexpected CountGiftChildrenByUser call")
 }
 
 func (r *redeemRejectRepo) ListByUser(ctx context.Context, userID int64, limit int) ([]RedeemCode, error) {
