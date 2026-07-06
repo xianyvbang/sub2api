@@ -483,7 +483,8 @@ func summarizeEasyPayResponse(body []byte) string {
 }
 
 func (e *EasyPay) resolveCID(paymentType string) string {
-	if strings.TrimSpace(paymentType) == string(payment.TypeUstdUsdc) {
+	paymentType = strings.TrimSpace(paymentType)
+	if paymentType == string(payment.TypeUstdUsdc) {
 		if v := e.config["cidUstdUsdc"]; v != "" {
 			return v
 		}
@@ -491,7 +492,7 @@ func (e *EasyPay) resolveCID(paymentType string) string {
 			return v
 		}
 	}
-	if strings.HasPrefix(paymentType, "alipay") {
+	if strings.HasPrefix(e.upstreamPaymentType(paymentType), "alipay") {
 		if v := e.config["cidAlipay"]; v != "" {
 			return v
 		}
