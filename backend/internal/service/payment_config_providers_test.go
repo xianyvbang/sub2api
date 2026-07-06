@@ -140,9 +140,9 @@ func TestValidateEasyPayCustomMethods(t *testing.T) {
 		wantErr        string
 	}{
 		{
-			name:           "valid custom methods",
+			name:           "valid custom methods with builtin ustd usdc",
 			config:         map[string]string{"customMethods": `[{"type":"ldc","upstreamType":"epay","displayName":"LDC"}]`},
-			supportedTypes: "alipay,wxpay,ldc",
+			supportedTypes: "alipay,wxpay,ustd_usdc,ldc",
 		},
 		{
 			name:           "malformed custom methods json",
@@ -187,6 +187,12 @@ func TestValidateEasyPayCustomMethods(t *testing.T) {
 			wantErr:        "customMethods type cannot start with alipay or wxpay",
 		},
 		{
+			name:           "custom type uses builtin ustd usdc",
+			config:         map[string]string{"customMethods": `[{"type":"ustd_usdc","upstreamType":"epay"}]`},
+			supportedTypes: "alipay,wxpay,ustd_usdc",
+			wantErr:        "customMethods type cannot use a built-in payment type",
+		},
+		{
 			name:           "supported custom type missing mapping",
 			config:         map[string]string{"customMethods": `[{"type":"ldc","upstreamType":"epay"}]`},
 			supportedTypes: "alipay,wxpay,ldc,usdt_trc20",
@@ -214,6 +220,62 @@ func TestValidateEasyPayCustomMethods(t *testing.T) {
 			require.Contains(t, err.Error(), tc.wantErr)
 		})
 	}
+}
+
+func TestCreateProviderInstanceAllowsEasyPayCustomMethods(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+	svc := &PaymentConfigService{
+		entClient:     client,
+		encryptionKey: []byte("0123456789abcdef0123456789abcdef"),
+	}
+	cfg := validEasyPayProviderConfig(t)
+	cfg["customMethods"] = `[{"type":"ldc","upstreamType":"epay","displayName":"LDC"}]`
+
+	created, err := svc.CreateProviderInstance(ctx, CreateProviderInstanceRequest{
+		ProviderKey:    payment.TypeEasyPay,
+		Name:           "EasyPay Custom",
+		Config:         cfg,
+		SupportedTypes: []string{payment.TypeAlipay, payment.TypeUstdUsdc, "ldc"},
+		Enabled:        true,
+	})
+	require.NoError(t, err)
+
+	saved, err := client.PaymentProviderInstance.Get(ctx, created.ID)
+	require.NoError(t, err)
+	require.Equal(t, "alipay,ustd_usdc,ldc", saved.SupportedTypes)
+}
+
+func TestUpdateProviderInstanceAllowsAddingEasyPayCustomMethods(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	client := newPaymentConfigServiceTestClient(t)
+	svc := &PaymentConfigService{
+		entClient:     client,
+		encryptionKey: []byte("0123456789abcdef0123456789abcdef"),
+	}
+
+	instance, err := svc.CreateProviderInstance(ctx, CreateProviderInstanceRequest{
+		ProviderKey:    payment.TypeEasyPay,
+		Name:           "EasyPay",
+		Config:         validEasyPayProviderConfig(t),
+		SupportedTypes: []string{payment.TypeAlipay},
+		Enabled:        false,
+	})
+	require.NoError(t, err)
+
+	_, err = svc.UpdateProviderInstance(ctx, instance.ID, UpdateProviderInstanceRequest{
+		Config:         map[string]string{"customMethods": `[{"type":"ldc","upstreamType":"epay","displayName":"LDC"}]`},
+		SupportedTypes: []string{payment.TypeAlipay, "ldc"},
+	})
+	require.NoError(t, err)
+
+	saved, err := client.PaymentProviderInstance.Get(ctx, instance.ID)
+	require.NoError(t, err)
+	require.Equal(t, "alipay,ldc", saved.SupportedTypes)
 }
 
 func TestIsSensitiveProviderConfigField(t *testing.T) {

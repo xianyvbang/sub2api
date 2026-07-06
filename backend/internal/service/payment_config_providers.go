@@ -261,6 +261,9 @@ func validateProviderSupportedTypes(providerKey, supportedTypes string) error {
 		if _, ok := allowed[supportedType]; ok {
 			continue
 		}
+		if providerKey == payment.TypeEasyPay && isValidEasyPayCustomSupportedType(supportedType) {
+			continue
+		}
 		return infraerrors.BadRequest("VALIDATION_ERROR", fmt.Sprintf("unsupported payment type %s for provider %s", supportedType, providerKey))
 	}
 	return nil
@@ -299,6 +302,9 @@ func validateEasyPayCustomMethods(config map[string]string, supportedTypes strin
 		if !easyPayCustomMethodCodePattern.MatchString(method.UpstreamType) {
 			return infraerrors.BadRequest("VALIDATION_ERROR", "customMethods upstreamType may only contain lowercase letters, digits, underscores, and hyphens")
 		}
+		if easyPayBuiltinSupportedType(method.Type) {
+			return infraerrors.BadRequest("VALIDATION_ERROR", "customMethods type cannot use a built-in payment type")
+		}
 		if easyPayCustomMethodTypeConflictsWithBuiltin(method.Type) {
 			return infraerrors.BadRequest("VALIDATION_ERROR", "customMethods type cannot start with alipay or wxpay")
 		}
@@ -310,7 +316,7 @@ func validateEasyPayCustomMethods(config map[string]string, supportedTypes strin
 
 	for _, supportedType := range splitTypes(supportedTypes) {
 		supportedType = strings.TrimSpace(supportedType)
-		if supportedType == "" || supportedType == payment.TypeAlipay || supportedType == payment.TypeWxpay {
+		if supportedType == "" || easyPayBuiltinSupportedType(supportedType) {
 			continue
 		}
 		if !easyPayCustomMethodCodePattern.MatchString(supportedType) {
@@ -321,6 +327,18 @@ func validateEasyPayCustomMethods(config map[string]string, supportedTypes strin
 		}
 	}
 	return nil
+}
+
+func isValidEasyPayCustomSupportedType(supportedType string) bool {
+	supportedType = strings.TrimSpace(supportedType)
+	return supportedType != "" &&
+		easyPayCustomMethodCodePattern.MatchString(supportedType) &&
+		!easyPayCustomMethodTypeConflictsWithBuiltin(supportedType)
+}
+
+func easyPayBuiltinSupportedType(methodType string) bool {
+	_, ok := providerSupportedTypeAllowlist[payment.TypeEasyPay][strings.TrimSpace(methodType)]
+	return ok
 }
 
 func easyPayCustomMethodTypeConflictsWithBuiltin(methodType string) bool {
