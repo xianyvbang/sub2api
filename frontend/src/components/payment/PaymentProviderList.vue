@@ -61,7 +61,7 @@
             <ProviderCard
               :provider="p"
               :enabled="isEnabled(p.provider_key)"
-              :available-types="getTypes(p.provider_key)"
+              :available-types="getTypes(p)"
               @toggle-field="(field) => emit('toggleField', p, field)"
               @toggle-type="(type) => emit('toggleType', p, type)"
               @edit="emit('edit', p)"
@@ -99,7 +99,7 @@ import Icon from '@/components/icons/Icon.vue'
 import ProviderCard from './ProviderCard.vue'
 import type { ProviderInstance } from '@/types/payment'
 import type { TypeOption } from './providerConfig'
-import { getAvailableTypes, PROVIDER_SUPPORTED_TYPES } from './providerConfig'
+import { getAvailableTypes, parseEasyPayCustomMethods, PROVIDER_SUPPORTED_TYPES } from './providerConfig'
 
 const props = defineProps<{
   providers: ProviderInstance[]
@@ -142,11 +142,32 @@ function isEnabled(providerKey: string): boolean {
     supportedTypes.some(type => props.enabledPaymentTypes.includes(type))
 }
 
-function getTypes(providerKey: string): TypeOption[] {
-  return getAvailableTypes(providerKey, props.allPaymentTypes, props.redirectLabel)
+function getTypes(provider: ProviderInstance): TypeOption[] {
+  const types = getAvailableTypes(provider.provider_key, props.allPaymentTypes, props.redirectLabel)
+  if (provider.provider_key === 'easypay') {
+    mergeEasyPayCustomTypes(types, provider)
+  }
+  return types
     .map(opt => opt.label === opt.value
       ? { ...opt, label: t(`payment.methods.${opt.value}`, opt.value) }
       : opt,
     )
+}
+
+function mergeEasyPayCustomTypes(types: TypeOption[], provider: ProviderInstance) {
+  const seen = new Set(types.map(type => type.value))
+  const addType = (value: string, label = value) => {
+    const normalized = value.trim()
+    if (!normalized || seen.has(normalized)) return
+    seen.add(normalized)
+    types.push({ value: normalized, label: label.trim() || normalized })
+  }
+
+  for (const method of parseEasyPayCustomMethods(provider.config?.customMethods)) {
+    addType(method.type, method.displayName || method.type)
+  }
+  for (const type of Array.isArray(provider.supported_types) ? provider.supported_types : []) {
+    addType(type)
+  }
 }
 </script>
