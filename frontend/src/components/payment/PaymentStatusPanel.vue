@@ -128,7 +128,7 @@ import { usePaymentStore } from '@/stores/payment'
 import { useAppStore } from '@/stores'
 import { paymentAPI } from '@/api/payment'
 import { extractI18nErrorMessage } from '@/utils/apiError'
-import { getPaymentPopupFeatures } from '@/components/payment/providerConfig'
+import { getPaymentPopupFeatures, isBuiltInAlipayMethod, isBuiltInWxpayMethod } from '@/components/payment/providerConfig'
 import { isAlipayLikeVisibleMethod } from '@/components/payment/paymentFlow'
 import { currencySymbol, formatPaymentAmount, normalizePaymentCurrency } from '@/components/payment/currency'
 import type { PaymentOrder } from '@/types/payment'
@@ -137,6 +137,7 @@ import QRCode from 'qrcode'
 import alipayIcon from '@/assets/icons/alipay.svg'
 import ustdUsdcIcon from '@/assets/icons/ustd-usdc.svg'
 import wxpayIcon from '@/assets/icons/wxpay.svg'
+import paymentIcon from '@/assets/icons/payment.svg'
 
 const props = defineProps<{
   orderId: number
@@ -185,8 +186,8 @@ const VERIFY_RETRY_INTERVAL_MS = 15000
 const VERIFY_RETRY_MAX_ATTEMPTS = 6
 
 const isUstdUsdc = computed(() => props.paymentType === 'ustd_usdc')
-const isAlipay = computed(() => isAlipayLikeVisibleMethod(props.paymentType) || props.paymentType.includes('alipay'))
-const isWxpay = computed(() => props.paymentType.includes('wxpay'))
+const isAlipay = computed(() => isAlipayLikeVisibleMethod(props.paymentType) || isBuiltInAlipayMethod(props.paymentType))
+const isWxpay = computed(() => isBuiltInWxpayMethod(props.paymentType))
 
 const qrBorderClass = computed(() => {
   if (isUstdUsdc.value) return 'border-[#16A34A] bg-emerald-50 dark:border-[#16A34A]/70 dark:bg-emerald-950/20'
@@ -205,7 +206,8 @@ const qrLogoBgClass = computed(() => {
 const qrLogoIcon = computed(() => {
   if (isUstdUsdc.value) return ustdUsdcIcon
   if (isAlipay.value) return alipayIcon
-  return wxpayIcon
+  if (isWxpay.value) return wxpayIcon
+  return paymentIcon
 })
 
 const scanTitle = computed(() => {

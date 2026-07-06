@@ -41,6 +41,7 @@ import { usePaymentStore } from '@/stores/payment'
 import { paymentAPI } from '@/api/payment'
 import { extractI18nErrorMessage } from '@/utils/apiError'
 import { useAppStore } from '@/stores'
+import { isBuiltInAlipayMethod, isBuiltInWxpayMethod } from '@/components/payment/providerConfig'
 import { isAlipayLikeVisibleMethod } from '@/components/payment/paymentFlow'
 import QRCode from 'qrcode'
 import alipayIcon from '@/assets/icons/alipay.svg'
@@ -72,8 +73,8 @@ const countdownDisplay = computed(() => {
 })
 
 const isUstdUsdc = computed(() => paymentType.value === 'ustd_usdc')
-const isAlipay = computed(() => isAlipayLikeVisibleMethod(paymentType.value) || paymentType.value.includes('alipay'))
-const isWxpay = computed(() => paymentType.value.includes('wxpay'))
+const isAlipay = computed(() => isAlipayLikeVisibleMethod(paymentType.value) || isBuiltInAlipayMethod(paymentType.value))
+const isWxpay = computed(() => isBuiltInWxpayMethod(paymentType.value))
 
 const scanTitle = computed(() => {
   if (isUstdUsdc.value) return t('payment.methods.ustd_usdc')
