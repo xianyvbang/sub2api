@@ -827,7 +827,9 @@ func TestStripOpenAIImageGenerationTools_RemovesNamespaceTools(t *testing.T) {
 	tools, ok := reqBody["tools"].([]any)
 	require.True(t, ok)
 	require.Len(t, tools, 1)
-	require.Equal(t, "code_tools", tools[0].(map[string]any)["name"])
+	tool, ok := tools[0].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "code_tools", tool["name"])
 }
 
 func TestStripOpenAIImageGenerationTools_RemovesInputAdditionalTools(t *testing.T) {
@@ -851,11 +853,14 @@ func TestStripOpenAIImageGenerationTools_RemovesInputAdditionalTools(t *testing.
 	input, ok := reqBody["input"].([]any)
 	require.True(t, ok)
 	require.Len(t, input, 2)
-	additionalTools := input[1].(map[string]any)
+	additionalTools, ok := input[1].(map[string]any)
+	require.True(t, ok)
 	tools, ok := additionalTools["tools"].([]any)
 	require.True(t, ok)
 	require.Len(t, tools, 1)
-	require.Equal(t, "code_tools", tools[0].(map[string]any)["name"])
+	tool, ok := tools[0].(map[string]any)
+	require.True(t, ok)
+	require.Equal(t, "code_tools", tool["name"])
 }
 
 func TestNormalizeOpenAIResponsesImageOnlyModel_BuildsImageToolRequest(t *testing.T) {
