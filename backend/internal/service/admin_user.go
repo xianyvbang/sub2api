@@ -1112,9 +1112,31 @@ func (s *adminServiceImpl) GetRedeemCode(ctx context.Context, id int64) (*Redeem
 	return s.redeemCodeRepo.GetByID(ctx, id)
 }
 
+func (s *adminServiceImpl) ListRedeemCodeChildren(ctx context.Context, id int64, page, pageSize int) ([]RedeemCode, int64, error) {
+	parent, err := s.redeemCodeRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, 0, err
+	}
+	if parent.Type != RedeemTypeGiftBalance || parent.GiftParentID != nil {
+		return nil, 0, infraerrors.BadRequest("REDEEM_CODE_NOT_GIFT_BALANCE", "redeem code is not a gift balance parent code")
+	}
+	params := pagination.PaginationParams{Page: page, PageSize: pageSize, SortBy: "id", SortOrder: "asc"}
+	codes, result, err := s.redeemCodeRepo.ListGiftChildren(ctx, id, params)
+	if err != nil {
+		return nil, 0, err
+	}
+	return codes, result.Total, nil
+}
+
 func (s *adminServiceImpl) GenerateRedeemCodes(ctx context.Context, input *GenerateRedeemCodesInput) ([]RedeemCode, error) {
 	if input.ExpiresAt != nil && !input.ExpiresAt.After(time.Now()) {
 		return nil, ErrRedeemCodeExpired
+	}
+	if input.Count <= 0 {
+		return nil, infraerrors.BadRequest("REDEEM_CODE_COUNT_INVALID", "count must be greater than zero")
+	}
+	if input.Type == "" {
+		input.Type = RedeemTypeBalance
 	}
 
 	// 如果是订阅类型，验证必须有 GroupID
@@ -1131,6 +1153,27 @@ func (s *adminServiceImpl) GenerateRedeemCodes(ctx context.Context, input *Gener
 			return nil, errors.New("group must be subscription type")
 		}
 	}
+	if input.Type == RedeemTypeGiftBalance {
+		if input.Value <= 0 {
+			return nil, infraerrors.BadRequest("GIFT_BALANCE_VALUE_INVALID", "gift balance value must be greater than zero")
+		}
+		if input.UsageLimit <= 0 {
+			input.UsageLimit = 1
+		}
+		if input.PerUserLimit <= 0 {
+			input.PerUserLimit = 1
+		}
+		if input.PerUserLimit > input.UsageLimit {
+			return nil, infraerrors.BadRequest("GIFT_BALANCE_LIMIT_INVALID", "per_user_limit cannot exceed usage_limit")
+		}
+	}
+
+	tx, err := s.entClient.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	txCtx := dbent.NewTxContext(ctx, tx)
+	defer func() { _ = tx.Rollback() }()
 
 	codes := make([]RedeemCode, 0, input.Count)
 	for i := 0; i < input.Count; i++ {
@@ -1145,6 +1188,12 @@ func (s *adminServiceImpl) GenerateRedeemCodes(ctx context.Context, input *Gener
 			Status:    StatusUnused,
 			ExpiresAt: input.ExpiresAt,
 		}
+		if code.Type == RedeemTypeGiftBalance {
+			code.UsageLimit = input.UsageLimit
+			code.PerUserLimit = input.PerUserLimit
+			code.UsageRemaining = input.UsageLimit
+			code.UsageTotal = input.UsageLimit
+		}
 		// 订阅类型专用字段
 		if input.Type == RedeemTypeSubscription {
 			code.GroupID = input.GroupID
@@ -1153,22 +1202,77 @@ func (s *adminServiceImpl) GenerateRedeemCodes(ctx context.Context, input *Gener
 				code.ValidityDays = 30 // 默认30天
 			}
 		}
-		if err := s.redeemCodeRepo.Create(ctx, &code); err != nil {
+		if err := s.redeemCodeRepo.Create(txCtx, &code); err != nil {
 			return nil, err
 		}
+		if input.Type == RedeemTypeGiftBalance {
+			for j := 0; j < input.UsageLimit; j++ {
+				childCodeValue, err := GenerateRedeemCode()
+				if err != nil {
+					return nil, err
+				}
+				child := RedeemCode{
+					Code:         childCodeValue,
+					Type:         RedeemTypeBalance,
+					Value:        input.Value,
+					Status:       StatusUnused,
+					ExpiresAt:    input.ExpiresAt,
+					UsageLimit:   1,
+					PerUserLimit: 1,
+					GiftParentID: &code.ID,
+				}
+				if err := s.redeemCodeRepo.Create(txCtx, &child); err != nil {
+					return nil, err
+				}
+			}
+		}
 		codes = append(codes, code)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit transaction: %w", err)
 	}
 	return codes, nil
 }
 
 func (s *adminServiceImpl) DeleteRedeemCode(ctx context.Context, id int64) error {
-	return s.redeemCodeRepo.Delete(ctx, id)
+	code, err := s.redeemCodeRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if code.Type == RedeemTypeGiftBalance && code.GiftParentID == nil {
+		return s.redeemCodeRepo.DeleteGiftParent(ctx, id)
+	}
+	if code.GiftParentID == nil {
+		return s.redeemCodeRepo.Delete(ctx, id)
+	}
+	if code.Status != StatusUnused {
+		return ErrRedeemCodeUsed
+	}
+	parentID := *code.GiftParentID
+	if err := s.redeemCodeRepo.DeleteGiftChild(ctx, id, parentID); err != nil {
+		return err
+	}
+	parent, err := s.redeemCodeRepo.GetByID(ctx, parentID)
+	if err != nil {
+		return nil
+	}
+	remaining, err := s.redeemCodeRepo.CountGiftChildrenByStatus(ctx, parentID, StatusUnused)
+	if err != nil {
+		return err
+	}
+	if remaining == 0 && parent.Status == StatusUnused {
+		parent.Status = StatusUsed
+		if err := s.redeemCodeRepo.Update(ctx, parent); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *adminServiceImpl) BatchDeleteRedeemCodes(ctx context.Context, ids []int64) (int64, error) {
 	var deleted int64
 	for _, id := range ids {
-		if err := s.redeemCodeRepo.Delete(ctx, id); err == nil {
+		if err := s.DeleteRedeemCode(ctx, id); err == nil {
 			deleted++
 		}
 	}
