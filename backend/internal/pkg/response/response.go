@@ -86,8 +86,9 @@ func ErrorFrom(c *gin.Context, err error) bool {
 
 	statusCode, status := infraerrors.ToHTTP(err)
 
-	// Log internal errors with full details for debugging
-	if statusCode >= 500 && c.Request != nil {
+	// Log internal errors with full details for debugging. Unit tests assert
+	// error responses directly, so avoid emitting expected failure paths there.
+	if statusCode >= 500 && gin.Mode() != gin.TestMode && c.Request != nil {
 		log.Printf("[ERROR] %s %s\n  Error: %s", c.Request.Method, c.Request.URL.Path, logredact.RedactText(err.Error()))
 	}
 

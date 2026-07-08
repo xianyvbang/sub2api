@@ -119,16 +119,16 @@ func (s *AuthService) RegisterOAuthEmailAccount(
 		return nil, nil, ErrEmailReserved
 	}
 	if err := s.validateRegistrationEmailPolicy(ctx, email); err != nil {
-		slog.Error("oauth email register: policy rejected", "email", email, "error", err.Error())
+		slog.Debug("oauth email register: policy rejected", "email", email, "error", err.Error())
 		return nil, nil, err
 	}
 	if err := s.VerifyOAuthEmailCode(ctx, email, verifyCode); err != nil {
-		slog.Error("oauth email register: verify code failed", "email", email, "error", err.Error())
+		slog.Debug("oauth email register: verify code failed", "email", email, "error", err.Error())
 		return nil, nil, err
 	}
 
 	if _, err := s.validateOAuthRegistrationInvitation(ctx, invitationCode); err != nil {
-		slog.Error("oauth email register: invitation failed", "email", email, "error", err.Error())
+		slog.Debug("oauth email register: invitation failed", "email", email, "error", err.Error())
 		return nil, nil, err
 	}
 

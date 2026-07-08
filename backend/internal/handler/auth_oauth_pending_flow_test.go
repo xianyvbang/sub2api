@@ -2382,6 +2382,7 @@ func newOAuthPendingFlowTestHandlerWithDependencies(
 	options oauthPendingFlowTestHandlerOptions,
 ) (*AuthHandler, *dbent.Client) {
 	t.Helper()
+	gin.SetMode(gin.TestMode)
 
 	db, err := sql.Open("sqlite", "file:auth_oauth_pending_flow_handler?mode=memory&cache=shared")
 	require.NoError(t, err)
