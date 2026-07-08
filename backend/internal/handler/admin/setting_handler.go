@@ -49,6 +49,10 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
+func fallbackPaymentConfig() *service.PaymentConfig {
+	return &service.PaymentConfig{SubscriptionEnabled: true}
+}
+
 // SettingHandler 系统设置处理器
 type SettingHandler struct {
 	settingService           *service.SettingService
@@ -110,7 +114,7 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 		paymentCfg, _ = h.paymentConfigService.GetPaymentConfig(c.Request.Context())
 	}
 	if paymentCfg == nil {
-		paymentCfg = &service.PaymentConfig{}
+		paymentCfg = fallbackPaymentConfig()
 	}
 
 	payload := dto.SystemSettings{

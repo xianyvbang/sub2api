@@ -1686,7 +1686,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		updatedPaymentCfg, _ = h.paymentConfigService.GetPaymentConfig(c.Request.Context())
 	}
 	if updatedPaymentCfg == nil {
-		updatedPaymentCfg = &service.PaymentConfig{}
+		updatedPaymentCfg = fallbackPaymentConfig()
 	}
 
 	payload := dto.SystemSettings{
