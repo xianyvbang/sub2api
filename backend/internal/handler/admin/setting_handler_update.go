@@ -299,6 +299,10 @@ type UpdateSettingsRequest struct {
 	// Available Channels feature switch (user-facing)
 	AvailableChannelsEnabled *bool `json:"available_channels_enabled"`
 
+	// Model Marketplace feature switches
+	ModelMarketplaceEnabled       *bool `json:"model_marketplace_enabled"`
+	ModelMarketplaceRequiresLogin *bool `json:"model_marketplace_requires_login"`
+
 	// Affiliate (邀请返利) feature switch
 	AffiliateEnabled *bool `json:"affiliate_enabled"`
 
@@ -1505,6 +1509,18 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			}
 			return previousSettings.AvailableChannelsEnabled
 		}(),
+		ModelMarketplaceEnabled: func() bool {
+			if req.ModelMarketplaceEnabled != nil {
+				return *req.ModelMarketplaceEnabled
+			}
+			return previousSettings.ModelMarketplaceEnabled
+		}(),
+		ModelMarketplaceRequiresLogin: func() bool {
+			if req.ModelMarketplaceRequiresLogin != nil {
+				return *req.ModelMarketplaceRequiresLogin
+			}
+			return previousSettings.ModelMarketplaceRequiresLogin
+		}(),
 		AffiliateEnabled: func() bool {
 			if req.AffiliateEnabled != nil {
 				return *req.AffiliateEnabled
@@ -1880,6 +1896,9 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		ChannelMonitorDefaultIntervalSeconds: updatedSettings.ChannelMonitorDefaultIntervalSeconds,
 
 		AvailableChannelsEnabled: updatedSettings.AvailableChannelsEnabled,
+
+		ModelMarketplaceEnabled:       updatedSettings.ModelMarketplaceEnabled,
+		ModelMarketplaceRequiresLogin: updatedSettings.ModelMarketplaceRequiresLogin,
 
 		AffiliateEnabled: updatedSettings.AffiliateEnabled,
 

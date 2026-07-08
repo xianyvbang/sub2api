@@ -325,6 +325,9 @@ func (h *SettingHandler) GetSettings(c *gin.Context) {
 
 		AvailableChannelsEnabled: settings.AvailableChannelsEnabled,
 
+		ModelMarketplaceEnabled:       settings.ModelMarketplaceEnabled,
+		ModelMarketplaceRequiresLogin: settings.ModelMarketplaceRequiresLogin,
+
 		AffiliateEnabled: settings.AffiliateEnabled,
 
 		AllowUserViewErrorRequests: settings.AllowUserViewErrorRequests,

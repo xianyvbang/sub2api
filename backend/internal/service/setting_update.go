@@ -332,6 +332,10 @@ func (s *SettingService) buildSystemSettingsUpdates(ctx context.Context, setting
 	// Available channels feature switch
 	updates[SettingKeyAvailableChannelsEnabled] = strconv.FormatBool(settings.AvailableChannelsEnabled)
 
+	// Model marketplace feature switches
+	updates[SettingKeyModelMarketplaceEnabled] = strconv.FormatBool(settings.ModelMarketplaceEnabled)
+	updates[SettingKeyModelMarketplaceRequiresLogin] = strconv.FormatBool(settings.ModelMarketplaceRequiresLogin)
+
 	// Affiliate (邀请返利) feature switch
 	updates[SettingKeyAffiliateEnabled] = strconv.FormatBool(settings.AffiliateEnabled)
 
