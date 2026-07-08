@@ -552,12 +552,24 @@ function getRingOffset(ring: RingItem): number {
   return CIRCUMFERENCE - (Math.min(ring.pct, 100) / 100) * CIRCUMFERENCE
 }
 
+function scheduleFrame(callback: (time: number) => void) {
+  if (typeof globalThis.requestAnimationFrame === 'function') {
+    return globalThis.requestAnimationFrame(callback)
+  }
+  return globalThis.setTimeout(() => {
+    const now = typeof globalThis.performance?.now === 'function'
+      ? globalThis.performance.now()
+      : Date.now()
+    callback(now)
+  }, 16)
+}
+
 function triggerRingAnimation(items: RingItem[]) {
   ringAnimated.value = false
   displayPcts.value = items.map(() => 0)
 
   nextTick(() => {
-    requestAnimationFrame(() => {
+    scheduleFrame(() => {
       setTimeout(() => {
         ringAnimated.value = true
 
@@ -571,9 +583,9 @@ function triggerRingAnimation(items: RingItem[]) {
           const p = Math.min(elapsed / duration, 1)
           const ease = 1 - Math.pow(1 - p, 3)
           displayPcts.value = targets.map(target => Math.round(ease * target))
-          if (p < 1) requestAnimationFrame(tick)
+          if (p < 1) scheduleFrame(tick)
         }
-        requestAnimationFrame(tick)
+        scheduleFrame(tick)
       }, 50)
     })
   })
