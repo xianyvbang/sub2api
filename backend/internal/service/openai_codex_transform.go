@@ -648,44 +648,78 @@ func inputContainsImageGenNamespace(rawInput any) bool {
 }
 
 func stripOpenAIImageGenerationTools(reqBody map[string]any) bool {
-	rawTools, ok := reqBody["tools"]
-	if !ok || rawTools == nil {
-		if openAIAnyToolChoiceSelectsImageGeneration(reqBody["tool_choice"]) {
-			delete(reqBody, "tool_choice")
-			return true
-		}
+	removed := stripOpenAIImageGenerationToolsAtKey(reqBody, "tools")
+	removed = stripOpenAIImageGenerationAdditionalTools(reqBody) || removed
+	if openAIAnyToolChoiceSelectsImageGeneration(reqBody["tool_choice"]) {
+		delete(reqBody, "tool_choice")
+		removed = true
+	}
+	return removed
+}
+
+func stripOpenAIImageGenerationToolsAtKey(values map[string]any, key string) bool {
+	if values == nil {
 		return false
 	}
-	tools, ok := rawTools.([]any)
+	tools, ok := values[key].([]any)
 	if !ok {
-		if openAIAnyToolChoiceSelectsImageGeneration(reqBody["tool_choice"]) {
-			delete(reqBody, "tool_choice")
-			return true
-		}
 		return false
 	}
+	filtered, removed := filterOpenAIImageGenerationTools(tools)
+	if !removed {
+		return false
+	}
+	if len(filtered) == 0 {
+		delete(values, key)
+	} else {
+		values[key] = filtered
+	}
+	return true
+}
+
+func filterOpenAIImageGenerationTools(tools []any) ([]any, bool) {
 	filtered := make([]any, 0, len(tools))
 	removed := false
 	for _, rawTool := range tools {
-		if toolMap, ok := rawTool.(map[string]any); ok &&
-			strings.TrimSpace(firstNonEmptyString(toolMap["type"])) == "image_generation" {
+		toolMap, ok := rawTool.(map[string]any)
+		if ok && (strings.TrimSpace(firstNonEmptyString(toolMap["type"])) == "image_generation" || isImageGenNamespaceToolMap(toolMap)) {
 			removed = true
 			continue
 		}
 		filtered = append(filtered, rawTool)
 	}
-	if !removed && !openAIAnyToolChoiceSelectsImageGeneration(reqBody["tool_choice"]) {
+	return filtered, removed
+}
+
+func stripOpenAIImageGenerationAdditionalTools(reqBody map[string]any) bool {
+	input, ok := reqBody["input"].([]any)
+	if !ok {
 		return false
 	}
-	if removed {
-		if len(filtered) == 0 {
-			delete(reqBody, "tools")
-		} else {
-			reqBody["tools"] = filtered
+	filteredInput := make([]any, 0, len(input))
+	removed := false
+	for _, rawItem := range input {
+		item, ok := rawItem.(map[string]any)
+		if !ok || strings.TrimSpace(firstNonEmptyString(item["type"])) != "additional_tools" {
+			filteredInput = append(filteredInput, rawItem)
+			continue
 		}
+		if stripOpenAIImageGenerationToolsAtKey(item, "tools") {
+			removed = true
+		}
+		if _, hasTools := item["tools"]; hasTools {
+			filteredInput = append(filteredInput, item)
+			continue
+		}
+		removed = true
 	}
-	if openAIAnyToolChoiceSelectsImageGeneration(reqBody["tool_choice"]) {
-		delete(reqBody, "tool_choice")
+	if !removed {
+		return false
+	}
+	if len(filteredInput) == 0 {
+		delete(reqBody, "input")
+	} else {
+		reqBody["input"] = filteredInput
 	}
 	return true
 }

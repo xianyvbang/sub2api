@@ -810,6 +810,54 @@ func TestApplyCodexOAuthTransform_KeepsImageGenerationToolForNonSpark(t *testing
 	require.True(t, hasOpenAIImageGenerationTool(reqBody))
 }
 
+func TestStripOpenAIImageGenerationTools_RemovesNamespaceTools(t *testing.T) {
+	reqBody := map[string]any{
+		"model": "gpt-5.5",
+		"tools": []any{
+			map[string]any{"type": "namespace", "name": "code_tools"},
+			map[string]any{"type": "namespace", "name": "image_gen"},
+		},
+		"tool_choice": map[string]any{"type": "image_generation"},
+	}
+
+	require.True(t, stripOpenAIImageGenerationTools(reqBody))
+	require.False(t, hasOpenAIImageGenerationTool(reqBody))
+	require.False(t, openAIAnyToolChoiceSelectsImageGeneration(reqBody["tool_choice"]))
+
+	tools, ok := reqBody["tools"].([]any)
+	require.True(t, ok)
+	require.Len(t, tools, 1)
+	require.Equal(t, "code_tools", tools[0].(map[string]any)["name"])
+}
+
+func TestStripOpenAIImageGenerationTools_RemovesInputAdditionalTools(t *testing.T) {
+	reqBody := map[string]any{
+		"model": "gpt-5.5",
+		"input": []any{
+			map[string]any{"type": "message", "content": "hello"},
+			map[string]any{
+				"type": "additional_tools",
+				"tools": []any{
+					map[string]any{"type": "namespace", "name": "image_gen"},
+					map[string]any{"type": "namespace", "name": "code_tools"},
+				},
+			},
+		},
+	}
+
+	require.True(t, stripOpenAIImageGenerationTools(reqBody))
+	require.False(t, hasOpenAIImageGenerationTool(reqBody))
+
+	input, ok := reqBody["input"].([]any)
+	require.True(t, ok)
+	require.Len(t, input, 2)
+	additionalTools := input[1].(map[string]any)
+	tools, ok := additionalTools["tools"].([]any)
+	require.True(t, ok)
+	require.Len(t, tools, 1)
+	require.Equal(t, "code_tools", tools[0].(map[string]any)["name"])
+}
+
 func TestNormalizeOpenAIResponsesImageOnlyModel_BuildsImageToolRequest(t *testing.T) {
 	reqBody := map[string]any{
 		"model":         "gpt-image-2",
