@@ -16,6 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func init() { gin.SetMode(gin.TestMode) }
+
 type storeUnavailableRepoStub struct{}
 
 func (storeUnavailableRepoStub) CreateProcessing(context.Context, *service.IdempotencyRecord) (bool, error) {
