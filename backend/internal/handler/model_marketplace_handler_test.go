@@ -208,7 +208,7 @@ func newMarketplaceHandler() *ModelMarketplaceHandler {
 		settingService: &marketplaceSettingServiceStub{
 			runtime: service.ModelMarketplaceRuntime{
 				Enabled:       true,
-				RequiresLogin: true,
+				RequiresLogin: false,
 			},
 		},
 	}
@@ -267,6 +267,25 @@ func TestModelMarketplace_AuthenticatedCanSeeExclusiveGroupOffer(t *testing.T) {
 	firstGroups, ok := rows[0]["groups"].([]any)
 	require.True(t, ok)
 	require.Len(t, firstGroups, 2)
+}
+
+func TestModelMarketplace_RequiresLoginRejectsAnonymous(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := newMarketplaceHandler()
+	h.settingService = &marketplaceSettingServiceStub{
+		runtime: service.ModelMarketplaceRuntime{
+			Enabled:       true,
+			RequiresLogin: true,
+		},
+	}
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/model-marketplace", nil)
+
+	h.List(c)
+
+	require.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
 func TestModelMarketplace_DisabledReturnsEmptyList(t *testing.T) {

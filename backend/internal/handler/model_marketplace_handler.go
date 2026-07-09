@@ -103,6 +103,11 @@ func (h *ModelMarketplaceHandler) List(c *gin.Context) {
 		response.Success(c, []modelMarketplaceCardDTO{})
 		return
 	}
+	subject, authenticated := middleware.GetAuthSubjectFromContext(c)
+	if runtime.RequiresLogin && !authenticated {
+		response.Unauthorized(c, "User not authenticated")
+		return
+	}
 
 	publicGroups, err := h.groupService.ListPublicMarketplaceGroups(c.Request.Context())
 	if err != nil {
@@ -111,7 +116,7 @@ func (h *ModelMarketplaceHandler) List(c *gin.Context) {
 	}
 
 	visibleGroups := publicGroups
-	if subject, ok := middleware.GetAuthSubjectFromContext(c); ok {
+	if authenticated {
 		allowedGroups, err := h.apiKeyService.GetAvailableGroups(c.Request.Context(), subject.UserID)
 		if err != nil {
 			response.ErrorFrom(c, err)
