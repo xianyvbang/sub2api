@@ -141,19 +141,16 @@ func resolvePageImagePath(pagesDir, imagesDir, filename string) (string, bool) {
 		return "", false
 	}
 
-	realPagesDir, err := filepath.EvalSymlinks(cleanedPagesDir)
-	if err != nil {
-		return "", false
+	realPagesDir, pagesErr := filepath.EvalSymlinks(cleanedPagesDir)
+	realImagesDir, imagesErr := filepath.EvalSymlinks(cleanedImagesDir)
+	realTarget, targetErr := filepath.EvalSymlinks(cleanedTarget)
+	if pagesErr == nil && imagesErr == nil && targetErr == nil &&
+		isExistingPathWithinBase(realImagesDir, realPagesDir) &&
+		isExistingPathWithinBase(realTarget, realImagesDir) {
+		return realTarget, true
 	}
-	realImagesDir, err := filepath.EvalSymlinks(cleanedImagesDir)
-	if err != nil || !isPathWithinBase(realImagesDir, realPagesDir) {
-		return "", false
-	}
-	realTarget, err := filepath.EvalSymlinks(cleanedTarget)
-	if err != nil || !isPathWithinBase(realTarget, realImagesDir) {
-		return "", false
-	}
-	return realTarget, true
+
+	return resolvePageImagePathWithoutSymlinkFallback(cleanedPagesDir, cleanedImagesDir, cleanedTarget)
 }
 
 func cleanPageImageRelativePath(filename string) (string, bool) {
@@ -199,6 +196,85 @@ func isPathWithinBase(path, base string) bool {
 		return false
 	}
 	return rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+}
+
+func resolvePageImagePathWithoutSymlinkFallback(cleanedPagesDir, cleanedImagesDir, cleanedTarget string) (string, bool) {
+	if !isPathWithinBase(cleanedImagesDir, cleanedPagesDir) || !isPathWithinBase(cleanedTarget, cleanedImagesDir) {
+		return "", false
+	}
+	hasSymlink, err := hasSymlinkComponentWithinBase(cleanedPagesDir, cleanedTarget)
+	if err != nil || hasSymlink {
+		return "", false
+	}
+	if _, err := os.Stat(cleanedTarget); err != nil {
+		return "", false
+	}
+	return cleanedTarget, true
+}
+
+func isExistingPathWithinBase(path, base string) bool {
+	baseInfo, err := os.Stat(base)
+	if err != nil {
+		return false
+	}
+
+	current := filepath.Clean(path)
+	first := true
+	for {
+		info, err := os.Stat(current)
+		if err != nil {
+			return false
+		}
+		if os.SameFile(info, baseInfo) {
+			return !first
+		}
+
+		parent := filepath.Dir(current)
+		if parent == current {
+			return false
+		}
+		current = parent
+		first = false
+	}
+}
+
+func hasSymlinkComponentWithinBase(base, target string) (bool, error) {
+	base = filepath.Clean(base)
+	target = filepath.Clean(target)
+	rel, err := filepath.Rel(base, target)
+	if err != nil {
+		return false, err
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return false, nil
+	}
+
+	current := base
+	info, err := os.Lstat(current)
+	if err != nil {
+		return false, err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return true, nil
+	}
+
+	if rel == "." {
+		return false, nil
+	}
+	for _, part := range strings.Split(rel, string(filepath.Separator)) {
+		if part == "" || part == "." {
+			continue
+		}
+		current = filepath.Join(current, part)
+		info, err = os.Lstat(current)
+		if err != nil {
+			return false, err
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // findSlugVisibility looks up the slug in custom_menu_items and returns (visibility, found).

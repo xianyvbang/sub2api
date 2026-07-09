@@ -152,6 +152,8 @@ func newRedeemServiceTestEnt(t *testing.T) *dbent.Client {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = db.Close() })
 	db.SetMaxOpenConns(1)
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	require.NoError(t, err)
 
 	drv := entsql.OpenDB(dialect.SQLite, db)
 	client := enttest.NewClient(t, enttest.WithOptions(dbent.Driver(drv)))

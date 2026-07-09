@@ -106,6 +106,9 @@ func mustEvalSymlinks(t *testing.T, path string) string {
 
 	realPath, err := filepath.EvalSymlinks(path)
 	if err != nil {
+		if os.IsPermission(err) {
+			return filepath.Clean(path)
+		}
 		t.Fatalf("eval symlinks for %q: %v", path, err)
 	}
 	return realPath
