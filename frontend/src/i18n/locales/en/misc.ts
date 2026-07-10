@@ -606,4 +606,7 @@ export default {
     },
   },
 
+  modelMarketplace: {
+    groupCount: '{count} groups',
+  },
 }

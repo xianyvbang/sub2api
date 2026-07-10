@@ -629,4 +629,7 @@ export default {
     },
   },
 
+  modelMarketplace: {
+    groupCount: '{count} 个分组',
+  },
 }
