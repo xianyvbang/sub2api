@@ -505,6 +505,9 @@ export default {
         oauthPassthrough: '自动透传（仅替换认证）',
         oauthPassthroughDesc:
           '开启后，该 OpenAI 账号将自动透传请求与响应，仅替换认证并保留计费/并发/审计及必要安全过滤；如遇兼容性问题可随时关闭回滚。',
+        skipImageModelNameValidation: '跳过图片模型名称校验',
+        skipImageModelNameValidationDesc:
+          '开启后，图片生成请求不会校验模型名称是否为预设图片模型。仅在上游支持自定义图片模型名称时启用。',
         responsesWebsocketsV2: 'Responses WebSocket v2',
         responsesWebsocketsV2Desc:
           '默认关闭。开启后可启用 responses_websockets_v2 协议能力（受网关全局开关与账号类型开关约束）。',
