@@ -677,6 +677,7 @@ export default {
         wxpayGuideH5Call: '移动端非微信浏览器且有客户端 IP 时调用 H5 支付，跳转微信收银台。',
         wxpayGuideH5Fallback: '未开通 H5 或下单失败时，自动改走扫码支付。',
         noProviders: '暂无服务商实例',
+        noSupportedTypesSelected: '未选择支持的支付方式',
         supportedTypes: '支持的支付方式',
         supportedTypesHint: '逗号分隔，如 alipay,wxpay',
         refundEnabled: '允许退款',

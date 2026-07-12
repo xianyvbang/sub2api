@@ -681,6 +681,7 @@ export default {
         wxpayGuideH5Call: 'On mobile browsers outside WeChat, the app calls H5 payment when a client IP is available.',
         wxpayGuideH5Fallback: 'If H5 is unavailable or order creation fails, the flow falls back to QR payment.',
         noProviders: 'No provider instances configured',
+        noSupportedTypesSelected: 'No supported payment types selected',
         supportedTypes: 'Supported Payment Types',
         supportedTypesHint: 'Comma-separated, e.g. alipay,wxpay',
         refundEnabled: 'Allow Refund',
