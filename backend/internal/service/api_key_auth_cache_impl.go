@@ -249,9 +249,11 @@ func (s *APIKeyService) snapshotFromAPIKey(ctx context.Context, apiKey *APIKey) 
 		}
 		// 查询失败或无 override 时留 nil，checkRPM 会回退到 DB 查询
 
-		userRate, err := s.userGroupRateRepo.GetByUserAndGroup(ctx, apiKey.UserID, *apiKey.GroupID)
-		if err == nil && userRate != nil {
-			snapshot.UserGroupRateMultiplier = userRate
+		if apiKey.RateProtectionEnabled && apiKey.MaxRateMultiplier > 0 {
+			userRate, err := s.userGroupRateRepo.GetByUserAndGroup(ctx, apiKey.UserID, *apiKey.GroupID)
+			if err == nil && userRate != nil {
+				snapshot.UserGroupRateMultiplier = userRate
+			}
 		}
 	}
 	if apiKey.Group != nil {

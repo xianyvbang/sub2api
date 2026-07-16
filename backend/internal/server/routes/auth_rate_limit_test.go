@@ -31,6 +31,9 @@ func newAuthRoutesTestRouter(redisClient *redis.Client) *gin.Engine {
 		servermiddleware.OptionalJWTAuthMiddleware(func(c *gin.Context) {
 			c.Next()
 		}),
+		servermiddleware.AuditLogMiddleware(func(c *gin.Context) {
+			c.Next()
+		}),
 		redisClient,
 		nil,
 	)

@@ -370,7 +370,7 @@ func (s *APIKeyService) resolveEffectiveGroupRateMultiplier(ctx context.Context,
 }
 
 func (s *APIKeyService) hydrateAPIKeyUserGroupRate(ctx context.Context, apiKey *APIKey) {
-	if s == nil || apiKey == nil || apiKey.GroupID == nil || *apiKey.GroupID <= 0 || s.userGroupRateRepo == nil {
+	if s == nil || apiKey == nil || !apiKey.RateProtectionEnabled || apiKey.MaxRateMultiplier <= 0 || apiKey.GroupID == nil || *apiKey.GroupID <= 0 || s.userGroupRateRepo == nil {
 		return
 	}
 	userRate, err := s.userGroupRateRepo.GetByUserAndGroup(ctx, apiKey.UserID, *apiKey.GroupID)
