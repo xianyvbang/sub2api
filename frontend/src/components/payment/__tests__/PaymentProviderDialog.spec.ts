@@ -13,6 +13,7 @@ const messages: Record<string, string> = {
   'admin.settings.payment.customMethodType': 'Payment type',
   'admin.settings.payment.customMethodUpstreamType': 'Upstream type',
   'admin.settings.payment.customMethodDisplayName': 'Display name',
+  'admin.settings.payment.customMethodDisplayNamePlaceholder': '信用卡',
   'admin.settings.payment.paymentGuideTrigger': 'View payment guide',
   'payment.methods.alipay': 'Alipay',
   'payment.methods.ustd_usdc': 'USTD/USDC',
