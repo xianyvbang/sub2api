@@ -201,6 +201,10 @@ export default {
   },
 
   modelMarketplace: {
+    heroDescription: 'Publish available models, providers, groups, and pricing in a dedicated marketplace.',
+    adminEnabledHint: 'Show the model marketplace page and its navigation entry.',
+    adminLoginRequired: 'Require sign-in',
+    adminLoginRequiredHint: 'Redirect signed-out visitors to the sign-in page before showing the marketplace.',
     groupLabel: 'Group',
     supplierLabel: 'Provider',
     billingType: 'Billing Type',

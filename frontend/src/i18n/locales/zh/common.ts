@@ -201,6 +201,10 @@ export default {
   },
 
   modelMarketplace: {
+    heroDescription: '集中展示可用模型、供应商、分组和价格信息。',
+    adminEnabledHint: '显示独立的模型广场页面和导航入口。',
+    adminLoginRequired: '需要登录',
+    adminLoginRequiredHint: '开启后，未登录用户访问模型广场时将跳转到登录页。',
     groupLabel: '分组',
     supplierLabel: '供应商',
     billingType: '计费类型',
