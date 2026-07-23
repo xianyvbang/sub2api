@@ -440,7 +440,6 @@ const baseSettingsResponse = {
   antigravity_user_agent_version: "",
   openai_codex_user_agent: "",
   payment_enabled: true,
-  payment_subscription_enabled: true,
   payment_min_amount: 1,
   payment_max_amount: 10000,
   payment_daily_limit: 50000,
@@ -767,119 +766,6 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(payload).not.toHaveProperty("payment_visible_method_wxpay_source");
     expect(payload).not.toHaveProperty("payment_visible_method_alipay_enabled");
     expect(payload).not.toHaveProperty("payment_visible_method_wxpay_enabled");
-  });
-
-  it("submits payment subscription visibility setting", async () => {
-    const wrapper = mountView();
-
-    await flushPromises();
-    await openPaymentTab(wrapper);
-    await wrapper.find("form").trigger("submit.prevent");
-    await flushPromises();
-
-    expect(updateSettings).toHaveBeenCalledWith(
-      expect.objectContaining({
-        payment_subscription_enabled: true,
-      }),
-    );
-  });
-
-  it("keeps USTD/USDC out of enabled providers while preserving supported payment methods", async () => {
-    getSettings.mockResolvedValueOnce({
-      ...baseSettingsResponse,
-      payment_enabled_types: ["alipay", "ustd_usdc"],
-    });
-
-    const providerListProps: unknown[] = [];
-    const providerDialogProps: unknown[] = [];
-
-    const PaymentProviderListStub = defineComponent({
-      props: [
-        "providers",
-        "loading",
-        "canCreate",
-        "enabledPaymentTypes",
-        "allPaymentTypes",
-        "redirectLabel",
-      ],
-      setup(props) {
-        providerListProps.push(props);
-        return () => h("div", { class: "provider-list-stub" });
-      },
-    });
-
-    const PaymentProviderDialogStub = defineComponent({
-      props: [
-        "show",
-        "saving",
-        "editing",
-        "allKeyOptions",
-        "enabledKeyOptions",
-        "allPaymentTypes",
-        "redirectLabel",
-      ],
-      setup(props, { expose }) {
-        providerDialogProps.push(props);
-        expose({
-          reset: vi.fn(),
-          loadProvider: vi.fn(),
-        });
-        return () => h("div", { class: "provider-dialog-stub" });
-      },
-    });
-
-    const wrapper = mount(SettingsView, {
-      global: {
-        stubs: {
-          AppLayout: AppLayoutStub,
-          Select: SelectStub,
-          Toggle: ToggleStub,
-          Icon: true,
-          ConfirmDialog: true,
-          PaymentProviderList: PaymentProviderListStub,
-          PaymentProviderDialog: PaymentProviderDialogStub,
-          GroupBadge: true,
-          GroupOptionItem: true,
-          ProxySelector: true,
-          ImageUpload: ImageUploadStub,
-          BackupSettings: true,
-        },
-      },
-    });
-
-    await flushPromises();
-    await openPaymentTab(wrapper);
-
-    expect(wrapper.text()).toContain("payment.methods.alipay");
-    expect(wrapper.text()).toContain("payment.methods.wxpay");
-    expect(wrapper.text()).not.toContain("payment.methods.ustd_usdc");
-
-    const listPaymentTypes = providerListProps.at(-1) as {
-      allPaymentTypes: Array<{ value: string }>;
-    };
-    const dialogPaymentTypes = providerDialogProps.at(-1) as {
-      allPaymentTypes: Array<{ value: string }>;
-      enabledKeyOptions: Array<{ value: string }>;
-    };
-
-    expect(listPaymentTypes.allPaymentTypes.map((item) => item.value)).toContain(
-      "ustd_usdc",
-    );
-    expect(dialogPaymentTypes.allPaymentTypes.map((item) => item.value)).toContain(
-      "ustd_usdc",
-    );
-    expect(dialogPaymentTypes.enabledKeyOptions.map((item) => item.value)).toEqual([
-      "alipay",
-    ]);
-
-    await wrapper.find("form").trigger("submit.prevent");
-    await flushPromises();
-
-    expect(updateSettings).toHaveBeenCalledWith(
-      expect.objectContaining({
-        payment_enabled_types: ["alipay"],
-      }),
-    );
   });
 
   it("submits the admin recharge affiliate rebate setting", async () => {

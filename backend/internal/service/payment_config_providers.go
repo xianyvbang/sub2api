@@ -181,32 +181,6 @@ var validProviderKeys = map[string]bool{
 	payment.TypeEasyPay: true, payment.TypeAlipay: true, payment.TypeWxpay: true, payment.TypeStripe: true, payment.TypeAirwallex: true,
 }
 
-var providerSupportedTypeAllowlist = map[string]map[string]struct{}{
-	payment.TypeEasyPay: {
-		payment.TypeAlipay:   {},
-		payment.TypeWxpay:    {},
-		payment.TypeUstdUsdc: {},
-	},
-	payment.TypeAlipay: {
-		payment.TypeAlipay:       {},
-		payment.TypeAlipayDirect: {},
-		payment.TypeUstdUsdc:     {},
-	},
-	payment.TypeWxpay: {
-		payment.TypeWxpay:       {},
-		payment.TypeWxpayDirect: {},
-	},
-	payment.TypeStripe: {
-		payment.TypeCard:   {},
-		payment.TypeAlipay: {},
-		payment.TypeWxpay:  {},
-		payment.TypeLink:   {},
-	},
-	payment.TypeAirwallex: {
-		payment.TypeAirwallex: {},
-	},
-}
-
 func (s *PaymentConfigService) CreateProviderInstance(ctx context.Context, req CreateProviderInstanceRequest) (*dbent.PaymentProviderInstance, error) {
 	typesStr := joinTypes(req.SupportedTypes)
 	if err := validateProviderRequest(req.ProviderKey, req.Name, typesStr); err != nil {
@@ -246,26 +220,6 @@ func validateProviderRequest(providerKey, name, supportedTypes string) error {
 		return infraerrors.BadRequest("VALIDATION_ERROR", fmt.Sprintf("invalid provider key: %s", providerKey))
 	}
 	// supported_types can be empty (provider accepts no payment types until configured)
-	if err := validateProviderSupportedTypes(providerKey, supportedTypes); err != nil {
-		return err
-	}
-	return nil
-}
-
-func validateProviderSupportedTypes(providerKey, supportedTypes string) error {
-	allowed := providerSupportedTypeAllowlist[providerKey]
-	if len(allowed) == 0 {
-		return nil
-	}
-	for _, supportedType := range splitTypes(supportedTypes) {
-		if _, ok := allowed[supportedType]; ok {
-			continue
-		}
-		if providerKey == payment.TypeEasyPay && isValidEasyPayCustomSupportedType(supportedType) {
-			continue
-		}
-		return infraerrors.BadRequest("VALIDATION_ERROR", fmt.Sprintf("unsupported payment type %s for provider %s", supportedType, providerKey))
-	}
 	return nil
 }
 
@@ -302,9 +256,6 @@ func validateEasyPayCustomMethods(config map[string]string, supportedTypes strin
 		if !easyPayCustomMethodCodePattern.MatchString(method.UpstreamType) {
 			return infraerrors.BadRequest("VALIDATION_ERROR", "customMethods upstreamType may only contain lowercase letters, digits, underscores, and hyphens")
 		}
-		if easyPayBuiltinSupportedType(method.Type) {
-			return infraerrors.BadRequest("VALIDATION_ERROR", "customMethods type cannot use a built-in payment type")
-		}
 		if easyPayCustomMethodTypeConflictsWithBuiltin(method.Type) {
 			return infraerrors.BadRequest("VALIDATION_ERROR", "customMethods type cannot start with alipay or wxpay")
 		}
@@ -316,7 +267,7 @@ func validateEasyPayCustomMethods(config map[string]string, supportedTypes strin
 
 	for _, supportedType := range splitTypes(supportedTypes) {
 		supportedType = strings.TrimSpace(supportedType)
-		if supportedType == "" || easyPayBuiltinSupportedType(supportedType) {
+		if supportedType == "" || supportedType == payment.TypeAlipay || supportedType == payment.TypeWxpay {
 			continue
 		}
 		if !easyPayCustomMethodCodePattern.MatchString(supportedType) {
@@ -327,18 +278,6 @@ func validateEasyPayCustomMethods(config map[string]string, supportedTypes strin
 		}
 	}
 	return nil
-}
-
-func isValidEasyPayCustomSupportedType(supportedType string) bool {
-	supportedType = strings.TrimSpace(supportedType)
-	return supportedType != "" &&
-		easyPayCustomMethodCodePattern.MatchString(supportedType) &&
-		!easyPayCustomMethodTypeConflictsWithBuiltin(supportedType)
-}
-
-func easyPayBuiltinSupportedType(methodType string) bool {
-	_, ok := providerSupportedTypeAllowlist[payment.TypeEasyPay][strings.TrimSpace(methodType)]
-	return ok
 }
 
 func easyPayCustomMethodTypeConflictsWithBuiltin(methodType string) bool {
@@ -372,9 +311,6 @@ func (s *PaymentConfigService) UpdateProviderInstance(ctx context.Context, id in
 	nextSupportedTypes := current.SupportedTypes
 	if req.SupportedTypes != nil {
 		nextSupportedTypes = joinTypes(req.SupportedTypes)
-	}
-	if err := validateProviderSupportedTypes(current.ProviderKey, nextSupportedTypes); err != nil {
-		return nil, err
 	}
 	if err := s.validateVisibleMethodEnablementConflicts(ctx, id, current.ProviderKey, nextSupportedTypes, nextEnabled); err != nil {
 		return nil, err

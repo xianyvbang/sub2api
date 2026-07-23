@@ -323,7 +323,6 @@ export default {
     methods: {
       easypay: '易支付',
       alipay: '支付宝',
-      ustd_usdc: 'USDT/USDC',
       wxpay: '微信支付',
       stripe: 'Stripe',
       airwallex: 'Airwallex',
@@ -643,7 +642,4 @@ export default {
     },
   },
 
-  modelMarketplace: {
-    groupCount: '{count} 个分组',
-  },
 }

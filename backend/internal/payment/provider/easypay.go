@@ -46,7 +46,7 @@ type easyPayCustomMethod struct {
 }
 
 // NewEasyPay creates a new EasyPay provider.
-// config keys: pid, pkey, apiBase, notifyUrl, returnUrl, cid, cidAlipay, cidUstdUsdc, cidWxpay
+// config keys: pid, pkey, apiBase, notifyUrl, returnUrl, cid, cidAlipay, cidWxpay
 func NewEasyPay(instanceID string, config map[string]string) (*EasyPay, error) {
 	for _, k := range []string{"pid", "pkey", "apiBase", "notifyUrl", "returnUrl"} {
 		if strings.TrimSpace(config[k]) == "" {
@@ -101,7 +101,7 @@ func (e *EasyPay) apiBase() string {
 func (e *EasyPay) Name() string        { return "EasyPay" }
 func (e *EasyPay) ProviderKey() string { return payment.TypeEasyPay }
 func (e *EasyPay) SupportedTypes() []payment.PaymentType {
-	types := []payment.PaymentType{payment.TypeAlipay, payment.TypeWxpay, payment.TypeUstdUsdc}
+	types := []payment.PaymentType{payment.TypeAlipay, payment.TypeWxpay}
 	for _, method := range e.customMethods() {
 		if method.Type != "" {
 			types = append(types, method.Type)
@@ -143,7 +143,7 @@ func (e *EasyPay) createRedirectPayment(req payment.CreatePaymentRequest) (*paym
 		"return_url": returnURL, "name": req.Subject,
 		"money": req.Amount,
 	}
-	if cid := e.resolveCID(req.PaymentType); cid != "" {
+	if cid := e.resolveCID(paymentType); cid != "" {
 		params["cid"] = cid
 	}
 	if req.IsMobile {
@@ -170,7 +170,7 @@ func (e *EasyPay) createAPIPayment(ctx context.Context, req payment.CreatePaymen
 		"return_url": returnURL, "name": req.Subject,
 		"money": req.Amount, "clientip": req.ClientIP,
 	}
-	if cid := e.resolveCID(req.PaymentType); cid != "" {
+	if cid := e.resolveCID(paymentType); cid != "" {
 		params["cid"] = cid
 	}
 	if req.IsMobile {
@@ -250,7 +250,7 @@ func (e *EasyPay) upstreamPaymentType(paymentType string) string {
 			return method.UpstreamType
 		}
 	}
-	return easyPayUpstreamPaymentType(paymentType)
+	return paymentType
 }
 
 func (e *EasyPay) QueryOrder(ctx context.Context, tradeNo string) (*payment.QueryOrderResponse, error) {
@@ -483,16 +483,7 @@ func summarizeEasyPayResponse(body []byte) string {
 }
 
 func (e *EasyPay) resolveCID(paymentType string) string {
-	paymentType = strings.TrimSpace(paymentType)
-	if paymentType == string(payment.TypeUstdUsdc) {
-		if v := e.config["cidUstdUsdc"]; v != "" {
-			return v
-		}
-		if v := e.config["cid"]; v != "" {
-			return v
-		}
-	}
-	if strings.HasPrefix(e.upstreamPaymentType(paymentType), "alipay") {
+	if strings.HasPrefix(paymentType, "alipay") {
 		if v := e.config["cidAlipay"]; v != "" {
 			return v
 		}
@@ -502,13 +493,6 @@ func (e *EasyPay) resolveCID(paymentType string) string {
 		return v
 	}
 	return e.config["cid"]
-}
-
-func easyPayUpstreamPaymentType(paymentType string) string {
-	if strings.TrimSpace(paymentType) == string(payment.TypeUstdUsdc) {
-		return string(payment.TypeAlipay)
-	}
-	return strings.TrimSpace(paymentType)
 }
 
 func (e *EasyPay) post(ctx context.Context, endpoint string, params map[string]string) ([]byte, error) {

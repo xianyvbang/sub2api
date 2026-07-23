@@ -225,13 +225,11 @@ import { useAppStore } from '@/stores'
 import { paymentAPI } from '@/api/payment'
 import { extractI18nErrorMessage } from '@/utils/apiError'
 import { getPaymentPopupFeatures, isBuiltInAlipayMethod, isBuiltInWxpayMethod } from '@/components/payment/providerConfig'
-import { isAlipayLikeVisibleMethod } from '@/components/payment/paymentFlow'
 import { currencySymbol, formatPaymentAmount, normalizePaymentCurrency } from '@/components/payment/currency'
 import type { PaymentOrder } from '@/types/payment'
 import Icon from '@/components/icons/Icon.vue'
 import QRCode from 'qrcode'
 import alipayIcon from '@/assets/icons/alipay.svg'
-import ustdUsdcIcon from '@/assets/icons/ustd-usdc.svg'
 import wxpayIcon from '@/assets/icons/wxpay.svg'
 import paymentIcon from '@/assets/icons/payment.svg'
 import {
@@ -293,35 +291,30 @@ let alipayLauncher: AlipayDeepLinkLauncher | null = null
 const VERIFY_RETRY_INTERVAL_MS = 15000
 const VERIFY_RETRY_MAX_ATTEMPTS = 6
 
-const isUstdUsdc = computed(() => props.paymentType === 'ustd_usdc')
-const isAlipay = computed(() => isAlipayLikeVisibleMethod(props.paymentType) || isBuiltInAlipayMethod(props.paymentType))
+const isAlipay = computed(() => isBuiltInAlipayMethod(props.paymentType))
 const isWxpay = computed(() => isBuiltInWxpayMethod(props.paymentType))
 const isMobileAlipayDeepLink = computed(() => props.mobileAlipayDeepLink === true && isAlipay.value && !!qrUrl.value)
 const showQRCode = computed(() => !!qrUrl.value && (!isMobileAlipayDeepLink.value || deepLinkFallbackVisible.value))
 
 const qrBorderClass = computed(() => {
-  if (isUstdUsdc.value) return 'border-[#16A34A] bg-emerald-50 dark:border-[#16A34A]/70 dark:bg-emerald-950/20'
   if (isAlipay.value) return 'border-[#00AEEF] bg-blue-50 dark:border-[#00AEEF]/70 dark:bg-blue-950/20'
   if (isWxpay.value) return 'border-[#2BB741] bg-green-50 dark:border-[#2BB741]/70 dark:bg-green-950/20'
   return 'border-gray-200 bg-white dark:border-dark-600 dark:bg-dark-800'
 })
 
 const qrLogoBgClass = computed(() => {
-  if (isUstdUsdc.value) return 'bg-[#16A34A]'
   if (isAlipay.value) return 'bg-[#00AEEF]'
   if (isWxpay.value) return 'bg-[#2BB741]'
   return 'bg-gray-400'
 })
 
 const qrLogoIcon = computed(() => {
-  if (isUstdUsdc.value) return ustdUsdcIcon
   if (isAlipay.value) return alipayIcon
   if (isWxpay.value) return wxpayIcon
   return paymentIcon
 })
 
 const scanTitle = computed(() => {
-  if (isUstdUsdc.value) return t('payment.methods.ustd_usdc')
   if (isAlipay.value) return t('payment.qr.scanAlipay')
   if (isWxpay.value) return t('payment.qr.scanWxpay')
   return t('payment.qr.scanToPay')

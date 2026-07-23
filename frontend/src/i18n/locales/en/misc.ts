@@ -299,7 +299,6 @@ export default {
     methods: {
       easypay: 'EasyPay',
       alipay: 'Alipay',
-      ustd_usdc: 'USDT/USDC',
       wxpay: 'WeChat Pay',
       stripe: 'Stripe',
       airwallex: 'Airwallex',
@@ -619,7 +618,4 @@ export default {
     },
   },
 
-  modelMarketplace: {
-    groupCount: '{count} groups',
-  },
 }

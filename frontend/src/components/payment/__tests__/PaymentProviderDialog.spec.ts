@@ -15,9 +15,6 @@ const messages: Record<string, string> = {
   'admin.settings.payment.customMethodDisplayName': 'Display name',
   'admin.settings.payment.customMethodDisplayNamePlaceholder': '信用卡',
   'admin.settings.payment.paymentGuideTrigger': 'View payment guide',
-  'payment.methods.alipay': 'Alipay',
-  'payment.methods.ustd_usdc': 'USTD/USDC',
-  'payment.methods.wxpay': 'WeChat Pay',
   'admin.settings.payment.alipayGuideSummary': 'Desktop prefers QR precreate and falls back to cashier; mobile prefers WAP checkout.',
   'admin.settings.payment.wxpayGuideSummary': 'Desktop prefers Native QR; mobile routes to JSAPI or H5 based on browser context.',
   'admin.settings.payment.airwallexGuideSummary': 'Use Payment Acceptance read/write only.',
@@ -77,7 +74,6 @@ function mountDialog(options: { editing?: ProviderInstance | null } = {}) {
       ],
       allPaymentTypes: [
         { value: 'alipay', label: 'Alipay' },
-        { value: 'ustd_usdc', label: 'USTD/USDC' },
         { value: 'wxpay', label: 'WeChat Pay' },
       ],
       redirectLabel: 'Redirect',
@@ -141,22 +137,6 @@ describe('PaymentProviderDialog payment guide', () => {
     expect(wrapper.text()).toContain(messages['admin.settings.payment.stripeWebhookHint'])
     expect(wrapper.text()).toContain(`Use Stripe API version ${STRIPE_SDK_API_VERSION}.`)
     expect(wrapper.text()).toContain('/api/v1/payment/webhook/stripe')
-  })
-
-  it('renders USTD/USDC as a separate Alipay provider type', async () => {
-    const wrapper = mountDialog()
-
-    ;(wrapper.vm as unknown as { reset: (key: string) => void }).reset('alipay')
-    await nextTick()
-
-    expect(wrapper.text()).toContain('Alipay')
-    expect(wrapper.text()).toContain('USTD/USDC')
-
-    ;(wrapper.vm as unknown as { reset: (key: string) => void }).reset('easypay')
-    await nextTick()
-
-    expect(wrapper.text()).toContain('Alipay')
-    expect(wrapper.text()).toContain('USTD/USDC')
   })
 
   it('emits an empty Airwallex accountId when the admin clears it', async () => {

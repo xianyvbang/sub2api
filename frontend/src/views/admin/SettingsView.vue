@@ -6208,42 +6208,6 @@
         <div class="card">
           <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-              {{ t('nav.modelMarketplace', '模型广场') }}
-            </h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {{ t('modelMarketplace.heroDescription', '每张卡片展示一个分组 + 供应商 + 模型，并公开展示价格信息。') }}
-            </p>
-          </div>
-          <div class="space-y-5 p-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ t('common.enabled', '启用') }}
-                </label>
-                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  {{ t('modelMarketplace.adminEnabledHint', '开启后显示独立的模型广场页面和导航入口。') }}
-                </p>
-              </div>
-              <Toggle v-model="form.model_marketplace_enabled" />
-            </div>
-
-            <div class="flex items-center justify-between">
-              <div>
-                <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {{ t('modelMarketplace.adminLoginRequired', '需要登录') }}
-                </label>
-                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                  {{ t('modelMarketplace.adminLoginRequiredHint', '开启后，未登录用户访问模型广场会跳转到登录页。') }}
-                </p>
-              </div>
-              <Toggle v-model="form.model_marketplace_requires_login" />
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
               {{ t('admin.settings.features.riskControl.title') }}
             </h2>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -6763,17 +6727,6 @@
                 <Toggle v-model="form.payment_enabled" />
               </div>
               <template v-if="form.payment_enabled">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <label class="font-medium text-gray-900 dark:text-white">{{
-                      t("admin.settings.payment.subscriptionEnabled")
-                    }}</label>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                      {{ t("admin.settings.payment.subscriptionEnabledHint") }}
-                    </p>
-                  </div>
-                  <Toggle v-model="form.payment_subscription_enabled" />
-                </div>
                 <!-- Row 1: Product name -->
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div>
@@ -7186,7 +7139,7 @@
                   }}</label>
                   <div class="mt-1.5 flex flex-wrap gap-2">
                     <button
-                      v-for="pt in paymentProviderTypes"
+                      v-for="pt in allPaymentTypes"
                       :key="pt.value"
                       type="button"
                       @click="togglePaymentType(pt.value)"
@@ -7265,7 +7218,7 @@
             :loading="providersLoading"
             :can-create="hasAnyPaymentTypeEnabled"
             :enabled-payment-types="form.payment_enabled_types"
-            :all-payment-types="paymentSupportedTypes"
+            :all-payment-types="allPaymentTypes"
             :redirect-label="t('admin.settings.payment.easypayRedirect')"
             @refresh="loadProviders"
             @create="openCreateProvider"
@@ -7747,7 +7700,7 @@
         :editing="editingProvider"
         :all-key-options="providerKeyOptions"
         :enabled-key-options="enabledProviderKeyOptions"
-        :all-payment-types="paymentSupportedTypes"
+        :all-payment-types="allPaymentTypes"
         :redirect-label="t('admin.settings.payment.easypayRedirect')"
         @close="showProviderDialog = false"
         @save="handleSaveProvider"
@@ -8551,7 +8504,6 @@ const form = reactive<SettingsForm>({
   backend_mode_enabled: false,
   hide_ccs_import_button: false,
   payment_enabled: false,
-  payment_subscription_enabled: true,
   risk_control_enabled: false,
   cyber_session_block_enabled: false,
   cyber_session_block_ttl_seconds: 3600,
@@ -8755,9 +8707,6 @@ const form = reactive<SettingsForm>({
   channel_monitor_default_interval_seconds: 60,
   // Available Channels feature switch
   available_channels_enabled: false,
-  // Model Marketplace feature switch
-  model_marketplace_enabled: false,
-  model_marketplace_requires_login: true,
   // Affiliate (邀请返利) feature switch
   affiliate_enabled: false,
   // Allow user view error requests
@@ -9667,9 +9616,6 @@ async function loadSettings() {
         (form as Record<string, unknown>)[key] = value;
       }
     }
-    form.payment_enabled_types = normalizeEnabledPaymentProviderTypes(
-      form.payment_enabled_types,
-    );
     if (!form.claude_oauth_system_prompt_blocks?.trim()) {
       form.claude_oauth_system_prompt_blocks =
         defaultClaudeOAuthSystemPromptBlocks;
@@ -10223,7 +10169,6 @@ async function saveSettings() {
       ),
       // Payment configuration
       payment_enabled: form.payment_enabled,
-      payment_subscription_enabled: form.payment_subscription_enabled,
       risk_control_enabled: form.risk_control_enabled,
       cyber_session_block_enabled: form.cyber_session_block_enabled,
       cyber_session_block_ttl_seconds:
@@ -10240,9 +10185,7 @@ async function saveSettings() {
       payment_subscription_usd_to_cny_rate:
         Number(form.payment_subscription_usd_to_cny_rate) || 0,
       payment_recharge_fee_rate: Number(form.payment_recharge_fee_rate) || 0,
-      payment_enabled_types: normalizeEnabledPaymentProviderTypes(
-        form.payment_enabled_types,
-      ),
+      payment_enabled_types: form.payment_enabled_types,
       payment_load_balance_strategy: form.payment_load_balance_strategy,
       payment_product_name_prefix: form.payment_product_name_prefix,
       payment_product_name_suffix: form.payment_product_name_suffix,
@@ -10308,9 +10251,6 @@ async function saveSettings() {
         Number(form.channel_monitor_default_interval_seconds) || 60,
       // Available Channels feature switch
       available_channels_enabled: form.available_channels_enabled,
-      // Model Marketplace feature switch
-      model_marketplace_enabled: form.model_marketplace_enabled,
-      model_marketplace_requires_login: form.model_marketplace_requires_login,
       // Affiliate (邀请返利) feature switch
       affiliate_enabled: form.affiliate_enabled,
       allow_user_view_error_requests: form.allow_user_view_error_requests,
@@ -10977,40 +10917,13 @@ async function saveBetaPolicySettings() {
 
 // ==================== Provider Management ====================
 
-const paymentProviderTypes = computed(() => [
+const allPaymentTypes = computed(() => [
   { value: "easypay", label: t("payment.methods.easypay") },
   { value: "alipay", label: t("payment.methods.alipay") },
   { value: "wxpay", label: t("payment.methods.wxpay") },
   { value: "stripe", label: t("payment.methods.stripe") },
   { value: "airwallex", label: t("payment.methods.airwallex") },
 ]);
-
-const paymentProviderTypeValues = new Set([
-  "easypay",
-  "alipay",
-  "wxpay",
-  "stripe",
-  "airwallex",
-]);
-
-const paymentSupportedTypes = computed(() => [
-  { value: "easypay", label: t("payment.methods.easypay") },
-  { value: "alipay", label: t("payment.methods.alipay") },
-  { value: "ustd_usdc", label: t("payment.methods.ustd_usdc") },
-  { value: "wxpay", label: t("payment.methods.wxpay") },
-  { value: "stripe", label: t("payment.methods.stripe") },
-  { value: "airwallex", label: t("payment.methods.airwallex") },
-]);
-
-function normalizeEnabledPaymentProviderTypes(types: unknown): string[] {
-  if (!Array.isArray(types)) {
-    return [];
-  }
-  return types.filter(
-    (type): type is string =>
-      typeof type === "string" && paymentProviderTypeValues.has(type),
-  );
-}
 
 function isPaymentTypeEnabled(type: string): boolean {
   return form.payment_enabled_types.includes(type);
@@ -11069,16 +10982,9 @@ const providerKeyOptions = computed(() => [
   { value: "airwallex", label: t("admin.settings.payment.providerAirwallex") },
 ]);
 
-function providerKeyAvailableForEnabledType(providerKey: string, enabledType: string): boolean {
-  if (providerKey === enabledType) return true;
-  return false;
-}
-
 const enabledProviderKeyOptions = computed(() => {
   const enabled = form.payment_enabled_types;
-  return providerKeyOptions.value.filter((opt) =>
-    enabled.some((type) => providerKeyAvailableForEnabledType(opt.value, type)),
-  );
+  return providerKeyOptions.value.filter((opt) => enabled.includes(opt.value));
 });
 
 const loadBalanceOptions = computed(() => [
@@ -11116,11 +11022,10 @@ type ProviderEnablementCandidate = Pick<
   ProviderInstance,
   "id" | "provider_key" | "supported_types" | "enabled" | "name"
 >;
-type ProviderVisibleMethod = "alipay" | "wxpay" | "ustd_usdc";
 
 function getProviderVisibleMethods(
   provider: ProviderEnablementCandidate,
-): ProviderVisibleMethod[] {
+): Array<"alipay" | "wxpay"> {
   if (!provider.enabled) {
     return [];
   }
@@ -11128,7 +11033,7 @@ function getProviderVisibleMethods(
   const supportedTypes = Array.isArray(provider.supported_types)
     ? provider.supported_types
     : [];
-  const methods = new Set<ProviderVisibleMethod>();
+  const methods = new Set<"alipay" | "wxpay">();
   const addMethod = (type: string) => {
     const method = normalizeVisibleMethod(type);
     if (method === "alipay" || method === "wxpay") {
@@ -11141,8 +11046,7 @@ function getProviderVisibleMethods(
       methods.add("alipay");
     } else {
       supportedTypes.forEach((type) => {
-        const method = normalizeVisibleMethod(type);
-        if (method === "alipay") {
+        if (normalizeVisibleMethod(type) === "alipay") {
           methods.add("alipay");
         }
       });
@@ -11166,7 +11070,7 @@ function getProviderVisibleMethods(
 
 function findProviderEnablementConflict(
   candidate: ProviderEnablementCandidate,
-): { method: ProviderVisibleMethod; conflicting: ProviderInstance } | null {
+): { method: "alipay" | "wxpay"; conflicting: ProviderInstance } | null {
   const claimedMethods = getProviderVisibleMethods(candidate);
   if (claimedMethods.length === 0) {
     return null;
@@ -11193,7 +11097,7 @@ function findProviderEnablementConflict(
 }
 
 function showProviderEnablementConflict(
-  conflict: { method: ProviderVisibleMethod; conflicting: ProviderInstance },
+  conflict: { method: "alipay" | "wxpay"; conflicting: ProviderInstance },
 ) {
   appStore.showError(
     t("admin.settings.payment.enableConflict", {

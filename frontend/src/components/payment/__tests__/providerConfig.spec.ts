@@ -2,12 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   PAYMENT_CURRENCY_OPTIONS,
   PROVIDER_CONFIG_FIELDS,
-  PROVIDER_SUPPORTED_TYPES,
   isBuiltInAlipayMethod,
   isBuiltInWxpayMethod,
   parseEasyPayCustomMethods,
-  resolveProviderTypeDisplayIcon,
-  resolveProviderTypeDisplayLabel,
   serializeEasyPayCustomMethods,
 } from '@/components/payment/providerConfig'
 
@@ -61,28 +58,6 @@ describe('PROVIDER_CONFIG_FIELDS.stripe', () => {
   })
 })
 
-describe('provider type display labels', () => {
-  it('exposes USTD/USDC for Alipay-like providers only', () => {
-    expect(PROVIDER_SUPPORTED_TYPES.easypay).toContain('ustd_usdc')
-    expect(PROVIDER_SUPPORTED_TYPES.alipay).toContain('ustd_usdc')
-    expect(PROVIDER_SUPPORTED_TYPES.wxpay).not.toContain('ustd_usdc')
-    expect(PROVIDER_SUPPORTED_TYPES.stripe).not.toContain('ustd_usdc')
-    expect(PROVIDER_SUPPORTED_TYPES.airwallex).not.toContain('ustd_usdc')
-  })
-
-  it('keeps Alipay and USTD/USDC as separate provider types', () => {
-    const t = (key: string) => ({
-      'payment.methods.alipay': 'Alipay',
-      'payment.methods.ustd_usdc': 'USTD/USDC',
-    }[key] ?? key)
-
-    expect(resolveProviderTypeDisplayLabel('alipay', t)).toBe('Alipay')
-    expect(resolveProviderTypeDisplayIcon('alipay')).toBeNull()
-    expect(resolveProviderTypeDisplayLabel('ustd_usdc', t)).toBe('USTD/USDC')
-    expect(resolveProviderTypeDisplayIcon('ustd_usdc')).toContain('ustd-usdc')
-  })
-})
-
 describe('EasyPay custom methods config', () => {
   it('parses customMethods from the JSON string stored in provider config', () => {
     expect(parseEasyPayCustomMethods(
@@ -111,7 +86,6 @@ describe('built-in payment method helpers', () => {
   it('only treats exact built-in aliases as Alipay or WeChat Pay', () => {
     expect(isBuiltInAlipayMethod('alipay')).toBe(true)
     expect(isBuiltInAlipayMethod('alipay_direct')).toBe(true)
-    expect(isBuiltInAlipayMethod('ustd_usdc')).toBe(true)
     expect(isBuiltInAlipayMethod('card_alipay')).toBe(false)
 
     expect(isBuiltInWxpayMethod('wxpay')).toBe(true)

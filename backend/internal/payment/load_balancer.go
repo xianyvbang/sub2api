@@ -144,16 +144,6 @@ func (lb *DefaultLoadBalancer) queryEnabledInstances(
 			if inst.ProviderKey == TypeStripe {
 				matched = append(matched, inst)
 			}
-		} else if paymentType == TypeUstdUsdc {
-			if inst.ProviderKey != TypeAlipay && inst.ProviderKey != TypeEasyPay {
-				continue
-			}
-			if strings.TrimSpace(inst.SupportedTypes) == "" {
-				continue
-			}
-			if InstanceSupportsType(inst.SupportedTypes, paymentType) {
-				matched = append(matched, inst)
-			}
 		} else if InstanceSupportsType(inst.SupportedTypes, paymentType) {
 			if expectedWxpayJSAPIAppID != "" && normalizeVisibleMethodSupportType(paymentType) == TypeWxpay && inst.ProviderKey == TypeWxpay {
 				config, cfgErr := lb.decryptConfig(inst.Config)
@@ -404,8 +394,6 @@ func normalizeVisibleMethodSupportType(paymentType PaymentType) PaymentType {
 	switch strings.TrimSpace(paymentType) {
 	case TypeAlipay, TypeAlipayDirect:
 		return TypeAlipay
-	case TypeUstdUsdc:
-		return TypeUstdUsdc
 	case TypeWxpay, TypeWxpayDirect:
 		return TypeWxpay
 	default:
