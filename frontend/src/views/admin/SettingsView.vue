@@ -8504,7 +8504,6 @@ const form = reactive<SettingsForm>({
   backend_mode_enabled: false,
   hide_ccs_import_button: false,
   payment_enabled: false,
-  payment_subscription_enabled: false,
   model_marketplace_enabled: false,
   model_marketplace_requires_login: true,
   risk_control_enabled: false,
