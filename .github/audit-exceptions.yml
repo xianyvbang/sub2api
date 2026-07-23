@@ -1,5 +1,12 @@
 version: 1
 exceptions:
+  - package: postcss
+    advisory: "GHSA-6g55-p6wh-862q"
+    severity: high
+    reason: "PostCSS is used only during the trusted frontend build; no attacker-controlled CSS source is processed in production"
+    mitigation: "Keep PostCSS at the latest 8.x release and review the exception when an upstream fix is available"
+    expires_on: "2026-10-23"
+    owner: "security@your-domain"
   - package: xlsx
     advisory: "GHSA-4r6h-8v6p-xvw6"
     severity: high
