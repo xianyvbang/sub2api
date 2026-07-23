@@ -90,7 +90,12 @@ func (h *GatewayHandler) Responses(c *gin.Context) {
 	setOpsRequestContext(c, reqModel, reqStream)
 	setOpsEndpointContext(c, "", int16(service.RequestTypeFromLegacy(reqStream, false)))
 	requestCtx := c.Request.Context()
-	if service.IsImageGenerationIntentForPlatform("/v1/responses", reqModel, body, openAICompatibleRequestPlatform(c.Request.Context(), apiKey)) {
+	imageIntent := service.IsImageGenerationIntentForPlatform("/v1/responses", reqModel, body, openAICompatibleRequestPlatform(requestCtx, apiKey))
+	if imageIntent && !service.GroupAllowsImageGeneration(apiKey.Group) {
+		h.responsesErrorResponse(c, http.StatusForbidden, "permission_error", service.ImageGenerationPermissionMessage())
+		return
+	}
+	if imageIntent {
 		requestCtx = service.WithOpenAIImageGenerationIntent(requestCtx)
 	}
 
