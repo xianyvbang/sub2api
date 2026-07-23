@@ -36,7 +36,6 @@ describe('getVisibleMethods', () => {
   it('normalizes provider aliases and keeps stripe as a top-level method', () => {
     const visible = getVisibleMethods({
       alipay_direct: methodLimit({ single_min: 5 }),
-      ustd_usdc: methodLimit({ fee_rate: 1.5 }),
       wxpay: methodLimit({ single_max: 100 }),
       stripe: methodLimit({ fee_rate: 3 }),
       airwallex: methodLimit({ single_min: 10 }),
@@ -44,7 +43,6 @@ describe('getVisibleMethods', () => {
 
     expect(visible).toEqual({
       alipay: methodLimit({ single_min: 5 }),
-      ustd_usdc: methodLimit({ fee_rate: 1.5 }),
       wxpay: methodLimit({ single_max: 100 }),
       stripe: methodLimit({ fee_rate: 3 }),
       airwallex: methodLimit({ single_min: 10 }),
@@ -250,6 +248,34 @@ describe('decidePaymentLaunch', () => {
     expect(decision.paymentState.qrCode).toBe('https://pay.example.com/qr/session')
   })
 
+  it('launches the Alipay app for a mobile precreate order', () => {
+    const decision = decidePaymentLaunch(createOrderResult({
+      qr_code: 'https://qr.alipay.com/dynamic-order-101',
+      alipay_mobile_precreate_deep_link: true,
+    }), {
+      visibleMethod: 'alipay',
+      orderType: 'balance',
+      isMobile: true,
+    })
+
+    expect(decision.kind).toBe('alipay_deep_link')
+    expect(decision.paymentState.qrCode).toBe('https://qr.alipay.com/dynamic-order-101')
+    expect(decision.paymentState.alipayMobilePrecreateDeepLink).toBe(true)
+  })
+
+  it('keeps the desktop Alipay QR flow when a precreate marker is present', () => {
+    const decision = decidePaymentLaunch(createOrderResult({
+      qr_code: 'https://qr.alipay.com/dynamic-order-102',
+      alipay_mobile_precreate_deep_link: true,
+    }), {
+      visibleMethod: 'alipay',
+      orderType: 'balance',
+      isMobile: false,
+    })
+
+    expect(decision.kind).toBe('qr_waiting')
+  })
+
   it('does not affect non-alipay methods when forceQRCode is enabled', () => {
     const decision = decidePaymentLaunch(createOrderResult({
       pay_url: 'https://pay.example.com/mobile/session',
@@ -319,32 +345,18 @@ describe('buildCreateOrderPayload', () => {
     })
   })
 
-  it('keeps USTD/USDC as its own payment type', () => {
+  it('keeps is_mobile true when mobile precreate takes priority over forceQRCode', () => {
     expect(buildCreateOrderPayload({
       amount: 50,
-      paymentType: 'ustd_usdc',
-      orderType: 'balance',
-      origin: 'https://app.example.com',
-      isMobile: true,
-      isWechatBrowser: false,
-    })).toMatchObject({
-      payment_type: 'ustd_usdc',
-      is_mobile: true,
-    })
-  })
-
-  it('keeps USTD/USDC independent while using Alipay-like forceQRCode behavior', () => {
-    expect(buildCreateOrderPayload({
-      amount: 50,
-      paymentType: 'ustd_usdc',
+      paymentType: 'alipay',
       orderType: 'balance',
       origin: 'https://app.example.com',
       isMobile: true,
       isWechatBrowser: false,
       forceQRCode: true,
+      mobilePrecreateDeepLink: true,
     })).toMatchObject({
-      payment_type: 'ustd_usdc',
-      is_mobile: false,
+      is_mobile: true,
     })
   })
 

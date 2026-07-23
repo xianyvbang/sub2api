@@ -16,12 +16,16 @@
         <template v-if="paymentPhase === 'paying'">
           <PaymentStatusPanel
             :order-id="paymentState.orderId"
+            :amount="paymentState.amount"
+            :pay-amount="paymentState.payAmount"
             :qr-code="paymentState.qrCode"
             :expires-at="paymentState.expiresAt"
             :payment-type="paymentState.paymentType"
             :pay-url="paymentState.payUrl"
             :order-type="paymentState.orderType"
             :currency="paymentState.currency || selectedCurrency"
+            :out-trade-no="paymentState.outTradeNo"
+            :mobile-alipay-deep-link="paymentState.alipayMobilePrecreateDeepLink"
             @done="onPaymentDone"
             @success="onPaymentSuccess"
             @settled="onPaymentSettled"
@@ -30,7 +34,7 @@
         <!-- Tab content (select phase) -->
         <template v-else>
           <!-- Top-up Tab -->
-          <template v-if="activeTab === 'recharge' && !checkout.balance_disabled">
+          <template v-if="activeTab === 'recharge'">
             <!-- Recharge Account Card -->
             <div class="card p-5">
               <p class="text-xs font-medium text-gray-400 dark:text-gray-500">{{ t('payment.rechargeAccount') }}</p>
@@ -90,7 +94,7 @@
             </template>
           </template>
           <!-- Subscribe Tab -->
-          <template v-else-if="activeTab === 'subscription' && checkout.subscription_enabled">
+          <template v-else-if="activeTab === 'subscription'">
             <!-- Subscription confirm (inline, replaces plan list) -->
             <template v-if="selectedPlan">
               <div class="card p-5">
@@ -212,9 +216,6 @@
               </div>
             </template>
           </template>
-          <div v-else class="card py-16 text-center">
-            <p class="text-gray-500 dark:text-gray-400">{{ t('payment.notAvailable') }}</p>
-          </div>
         </template>
         <div v-if="(checkout.help_text || checkout.help_image_url) && paymentPhase === 'select' && !selectedPlan" class="card p-4">
           <div class="flex flex-col items-center gap-3">
@@ -277,7 +278,6 @@ import {
   clearPaymentRecoverySnapshot,
   decidePaymentLaunch,
   getVisibleMethods,
-  isAlipayLikeVisibleMethod,
   normalizeVisibleMethod,
   readPaymentRecoverySnapshot,
   type PaymentRecoverySnapshot,
@@ -364,6 +364,7 @@ function emptyPaymentState(): PaymentRecoverySnapshot {
     orderType: '',
     paymentMode: '',
     resumeToken: '',
+    alipayMobilePrecreateDeepLink: false,
     createdAt: 0,
   }
 }
@@ -484,12 +485,14 @@ function onPaymentDone() {
   }
 }
 
-function onPaymentSuccess() {
+async function onPaymentSuccess() {
+  const completedPayment = { ...paymentState.value }
   removeRecoverySnapshot()
   authStore.refreshUser()
   if (paymentState.value.orderType === 'subscription') {
     subscriptionStore.fetchActiveSubscriptions(true).catch(() => {})
   }
+  await redirectToPaymentResult(completedPayment)
 }
 
 function onPaymentSettled() {
@@ -499,15 +502,13 @@ function onPaymentSettled() {
 // All checkout data from single API call
 const checkout = ref<CheckoutInfoResponse>({
   methods: {}, global_min: 0, global_max: 0,
-  plans: [], balance_disabled: false, subscription_enabled: true, balance_recharge_multiplier: 1, subscription_usd_to_cny_rate: 0, recharge_fee_rate: 0, help_text: '', help_image_url: '', stripe_publishable_key: '',
+  plans: [], balance_disabled: false, balance_recharge_multiplier: 1, subscription_usd_to_cny_rate: 0, recharge_fee_rate: 0, help_text: '', help_image_url: '', stripe_publishable_key: '',
 })
 
 const tabs = computed(() => {
   const result: { key: 'recharge' | 'subscription'; label: string }[] = []
   if (!checkout.value.balance_disabled) result.push({ key: 'recharge', label: t('payment.tabTopUp') })
-  if (checkout.value.subscription_enabled) {
-    result.push({ key: 'subscription', label: t('payment.tabSubscribe') })
-  }
+  result.push({ key: 'subscription', label: t('payment.tabSubscribe') })
   return result
 })
 
@@ -531,13 +532,6 @@ const planGridClass = computed(() => {
   if (n <= 2) return 'grid grid-cols-1 gap-5 sm:grid-cols-2'
   return 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'
 })
-
-watch(tabs, (nextTabs) => {
-  if (!nextTabs.some((tab) => tab.key === activeTab.value)) {
-    activeTab.value = nextTabs[0]?.key || 'recharge'
-    selectedPlan.value = null
-  }
-}, { immediate: true })
 
 // Check if an amount fits a method's [min, max]. 0 = no limit.
 function amountFitsMethod(amt: number, methodType: string): boolean {
@@ -711,8 +705,6 @@ watch(() => [validAmount.value, selectedMethod.value] as const, ([amt, method]) 
 const paymentButtonClass = computed(() => {
   const m = selectedMethod.value
   if (!m) return 'btn-primary'
-  if (m === 'ustd_usdc') return 'btn-ustd-usdc'
-  if (isAlipayLikeVisibleMethod(m)) return 'btn-alipay'
   if (isBuiltInAlipayMethod(m)) return 'btn-alipay'
   if (isBuiltInWxpayMethod(m)) return 'btn-wxpay'
   if (m === 'stripe') return 'btn-stripe'
@@ -786,7 +778,8 @@ async function createOrder(orderAmount: number, orderType: OrderType, planId?: n
       origin: typeof window !== 'undefined' ? window.location.origin : '',
       isMobile: isMobileDevice(),
       isWechatBrowser: typeof window !== 'undefined' && /MicroMessenger/i.test(window.navigator.userAgent),
-      forceQRCode: !!(checkout.value.alipay_force_qrcode && isAlipayLikeVisibleMethod(requestType)),
+      forceQRCode: !!(checkout.value.alipay_force_qrcode && normalizeVisibleMethod(requestType) === 'alipay'),
+      mobilePrecreateDeepLink: checkout.value.alipay_mobile_precreate_deep_link === true,
     })
     if (options.openid) {
       payload.openid = options.openid
@@ -834,7 +827,8 @@ async function createOrder(orderAmount: number, orderType: OrderType, planId?: n
       orderType,
       isMobile: isMobileDevice(),
       isWechatBrowser: typeof window !== 'undefined' && /MicroMessenger/i.test(window.navigator.userAgent),
-      forceQRCode: !!(checkout.value.alipay_force_qrcode && isAlipayLikeVisibleMethod(visibleMethod)),
+      forceQRCode: !!(checkout.value.alipay_force_qrcode && visibleMethod === 'alipay'),
+      mobilePrecreateDeepLink: checkout.value.alipay_mobile_precreate_deep_link === true,
       stripePopupUrl: stripeRouteUrl,
       stripeRouteUrl,
       airwallexRouteUrl,
@@ -990,7 +984,7 @@ function shouldFallbackToDesktopQr(err: unknown, paymentMethod: string, attempte
       || normalizedMessage.includes('wechat_jsapi_unavailable')
   }
 
-  if (isAlipayLikeVisibleMethod(normalizedMethod)) {
+  if (normalizedMethod === 'alipay') {
     return reason === 'PAYMENT_GATEWAY_ERROR' || reason === 'UNHANDLED_PAYMENT_SCENARIO'
   }
 
@@ -1141,13 +1135,11 @@ onMounted(async () => {
       }
     }
     await resumeWechatPaymentFromQuery()
-    if (checkout.value.balance_disabled && checkout.value.subscription_enabled) {
+    if (checkout.value.balance_disabled) {
       activeTab.value = 'subscription'
-    } else if (!checkout.value.subscription_enabled) {
-      activeTab.value = 'recharge'
     }
     // Handle renewal navigation: ?tab=subscription&group=123
-    if (route.query.tab === 'subscription' && checkout.value.subscription_enabled) {
+    if (route.query.tab === 'subscription') {
       activeTab.value = 'subscription'
       if (route.query.group) {
         const groupId = Number(route.query.group)
@@ -1159,8 +1151,6 @@ onMounted(async () => {
           showRenewalModal.value = true
         }
       }
-    } else if (route.query.tab === 'subscription') {
-      activeTab.value = checkout.value.balance_disabled ? 'subscription' : 'recharge'
     }
   } catch (err: unknown) { appStore.showError(extractI18nErrorMessage(err, t, 'payment.errors', t('common.error'))) }
   finally { loading.value = false }

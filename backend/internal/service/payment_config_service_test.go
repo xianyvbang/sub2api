@@ -73,6 +73,20 @@ func TestPcParseInt(t *testing.T) {
 	}
 }
 
+func TestAlipayMobilePrecreateEnvironmentOverride(t *testing.T) {
+	svc := &PaymentConfigService{}
+
+	t.Setenv(SettingAlipayMobilePrecreateDeepLink, "true")
+	if !svc.parsePaymentConfig(map[string]string{SettingAlipayMobilePrecreateDeepLink: "false"}).AlipayMobilePrecreateDeepLink {
+		t.Fatal("expected environment variable to enable mobile Alipay precreate")
+	}
+
+	t.Setenv(SettingAlipayMobilePrecreateDeepLink, "false")
+	if svc.parsePaymentConfig(map[string]string{SettingAlipayMobilePrecreateDeepLink: "true"}).AlipayMobilePrecreateDeepLink {
+		t.Fatal("expected environment variable to disable mobile Alipay precreate")
+	}
+}
+
 func TestParsePaymentConfig(t *testing.T) {
 	t.Parallel()
 
@@ -83,9 +97,6 @@ func TestParsePaymentConfig(t *testing.T) {
 		cfg := svc.parsePaymentConfig(map[string]string{})
 		if cfg.Enabled {
 			t.Fatal("expected Enabled=false by default")
-		}
-		if !cfg.SubscriptionEnabled {
-			t.Fatal("expected SubscriptionEnabled=true by default")
 		}
 		if cfg.MinAmount != 1 {
 			t.Fatalf("expected MinAmount=1, got %v", cfg.MinAmount)
@@ -105,31 +116,31 @@ func TestParsePaymentConfig(t *testing.T) {
 		if len(cfg.EnabledTypes) != 0 {
 			t.Fatalf("expected empty EnabledTypes, got %v", cfg.EnabledTypes)
 		}
+		if cfg.AlipayMobilePrecreateDeepLink {
+			t.Fatal("expected AlipayMobilePrecreateDeepLink=false by default")
+		}
 	})
 
 	t.Run("all values populated", func(t *testing.T) {
 		t.Parallel()
 		vals := map[string]string{
-			SettingPaymentEnabled:             "true",
-			SettingPaymentSubscriptionEnabled: "false",
-			SettingMinRechargeAmount:          "5.00",
-			SettingMaxRechargeAmount:          "1000.00",
-			SettingDailyRechargeLimit:         "5000.00",
-			SettingOrderTimeoutMinutes:        "15",
-			SettingMaxPendingOrders:           "5",
-			SettingEnabledPaymentTypes:        "alipay,wxpay,stripe",
-			SettingBalancePayDisabled:         "true",
-			SettingLoadBalanceStrategy:        "least_amount",
-			SettingProductNamePrefix:          "PRE",
-			SettingProductNameSuffix:          "SUF",
+			SettingPaymentEnabled:                "true",
+			SettingMinRechargeAmount:             "5.00",
+			SettingMaxRechargeAmount:             "1000.00",
+			SettingDailyRechargeLimit:            "5000.00",
+			SettingOrderTimeoutMinutes:           "15",
+			SettingMaxPendingOrders:              "5",
+			SettingEnabledPaymentTypes:           "alipay,wxpay,stripe",
+			SettingBalancePayDisabled:            "true",
+			SettingLoadBalanceStrategy:           "least_amount",
+			SettingProductNamePrefix:             "PRE",
+			SettingProductNameSuffix:             "SUF",
+			SettingAlipayMobilePrecreateDeepLink: "true",
 		}
 		cfg := svc.parsePaymentConfig(vals)
 
 		if !cfg.Enabled {
 			t.Fatal("expected Enabled=true")
-		}
-		if cfg.SubscriptionEnabled {
-			t.Fatal("expected SubscriptionEnabled=false")
 		}
 		if cfg.MinAmount != 5 {
 			t.Fatalf("MinAmount = %v, want 5", cfg.MinAmount)
@@ -164,6 +175,9 @@ func TestParsePaymentConfig(t *testing.T) {
 		if cfg.ProductNameSuffix != "SUF" {
 			t.Fatalf("ProductNameSuffix = %q, want %q", cfg.ProductNameSuffix, "SUF")
 		}
+		if !cfg.AlipayMobilePrecreateDeepLink {
+			t.Fatal("expected AlipayMobilePrecreateDeepLink=true")
+		}
 	})
 
 	t.Run("enabled types with spaces are trimmed", func(t *testing.T) {
@@ -183,14 +197,14 @@ func TestParsePaymentConfig(t *testing.T) {
 	t.Run("enabled types are normalized to visible methods and deduplicated", func(t *testing.T) {
 		t.Parallel()
 		vals := map[string]string{
-			SettingEnabledPaymentTypes: "alipay_direct, alipay, ustd_usdc, wxpay_direct, wxpay",
+			SettingEnabledPaymentTypes: "alipay_direct, alipay, wxpay_direct, wxpay",
 		}
 		cfg := svc.parsePaymentConfig(vals)
-		if len(cfg.EnabledTypes) != 3 {
-			t.Fatalf("EnabledTypes len = %d, want 3", len(cfg.EnabledTypes))
+		if len(cfg.EnabledTypes) != 2 {
+			t.Fatalf("EnabledTypes len = %d, want 2", len(cfg.EnabledTypes))
 		}
-		if cfg.EnabledTypes[0] != "alipay" || cfg.EnabledTypes[1] != "ustd_usdc" || cfg.EnabledTypes[2] != "wxpay" {
-			t.Fatalf("EnabledTypes = %v, want [alipay ustd_usdc wxpay]", cfg.EnabledTypes)
+		if cfg.EnabledTypes[0] != "alipay" || cfg.EnabledTypes[1] != "wxpay" {
+			t.Fatalf("EnabledTypes = %v, want [alipay wxpay]", cfg.EnabledTypes)
 		}
 	})
 
@@ -236,7 +250,6 @@ func TestGetBasePaymentType(t *testing.T) {
 		{payment.TypeLink, payment.TypeStripe},
 		{payment.TypeAlipay, payment.TypeAlipay},
 		{payment.TypeAlipayDirect, payment.TypeAlipay},
-		{payment.TypeUstdUsdc, payment.TypeUstdUsdc},
 		{payment.TypeWxpay, payment.TypeWxpay},
 		{payment.TypeWxpayDirect, payment.TypeWxpay},
 		{"unknown", "unknown"},
