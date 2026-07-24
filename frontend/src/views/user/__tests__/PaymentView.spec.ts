@@ -104,7 +104,6 @@ function checkoutInfoFixture(overrides: Partial<CheckoutInfoResponse> = {}) {
     global_max: 0,
     plans: [],
     balance_disabled: false,
-    subscription_enabled: true,
     balance_recharge_multiplier: 1,
     subscription_usd_to_cny_rate: 0,
     recharge_fee_rate: 0,
@@ -643,28 +642,5 @@ describe('PaymentView WeChat JSAPI flow', () => {
     expect(showWarning).toHaveBeenCalledWith('payment.errors.mobilePaymentFallbackToQr')
     expect(showError).not.toHaveBeenCalled()
     expect(window.localStorage.getItem(PAYMENT_RECOVERY_STORAGE_KEY)).toContain('weixin://wxpay/bizpayurl?pr=fallback-native')
-  })
-
-  it('hides subscription tab when subscription display is disabled', async () => {
-    getCheckoutInfo.mockResolvedValueOnce({
-      data: {
-        ...checkoutInfoWithPlansFixture().data,
-        subscription_enabled: false,
-      },
-    })
-
-    const wrapper = shallowMount(PaymentView, {
-      global: {
-        stubs: {
-          Teleport: true,
-          Transition: false,
-        },
-      },
-    })
-    await flushPromises()
-    await flushPromises()
-
-    expect(wrapper.html()).not.toContain('payment.tabSubscribe')
-    expect(wrapper.html()).not.toContain('Starter')
   })
 })
