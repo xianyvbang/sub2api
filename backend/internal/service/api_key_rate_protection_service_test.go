@@ -13,6 +13,7 @@ type rateProtectionServiceAPIKeyRepo struct {
 	created *APIKey
 	current *APIKey
 	updated *APIKey
+	fields  APIKeyUpdateFields
 }
 
 func (r *rateProtectionServiceAPIKeyRepo) Create(_ context.Context, key *APIKey) error {
@@ -35,9 +36,10 @@ func (r *rateProtectionServiceAPIKeyRepo) ExistsByKey(_ context.Context, _ strin
 	return false, nil
 }
 
-func (r *rateProtectionServiceAPIKeyRepo) Update(_ context.Context, key *APIKey) error {
+func (r *rateProtectionServiceAPIKeyRepo) Update(_ context.Context, key *APIKey, fields APIKeyUpdateFields) error {
 	clone := *key
 	r.updated = &clone
+	r.fields = fields
 	return nil
 }
 
@@ -158,4 +160,5 @@ func TestAPIKeyServiceUpdatePersistsRateProtectionFields(t *testing.T) {
 	require.NotNil(t, apiKeyRepo.updated)
 	require.False(t, apiKeyRepo.updated.RateProtectionEnabled)
 	require.InDelta(t, maxMultiplier, apiKeyRepo.updated.MaxRateMultiplier, 1e-12)
+	require.True(t, apiKeyRepo.fields.RateProtection)
 }

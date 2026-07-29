@@ -37,9 +37,11 @@ func (r rateProtectionAPIKeyRepo) GetByKey(_ context.Context, key string) (*serv
 func (r rateProtectionAPIKeyRepo) GetByKeyForAuth(ctx context.Context, key string) (*service.APIKey, error) {
 	return r.GetByKey(ctx, key)
 }
-func (r rateProtectionAPIKeyRepo) Update(context.Context, *service.APIKey) error { return nil }
-func (r rateProtectionAPIKeyRepo) Delete(context.Context, int64) error           { return nil }
-func (r rateProtectionAPIKeyRepo) DeleteWithAudit(context.Context, int64) error  { return nil }
+func (r rateProtectionAPIKeyRepo) Update(context.Context, *service.APIKey, service.APIKeyUpdateFields) error {
+	return nil
+}
+func (r rateProtectionAPIKeyRepo) Delete(context.Context, int64) error          { return nil }
+func (r rateProtectionAPIKeyRepo) DeleteWithAudit(context.Context, int64) error { return nil }
 func (r rateProtectionAPIKeyRepo) ListByUserID(context.Context, int64, pagination.PaginationParams, service.APIKeyListFilters) ([]service.APIKey, *pagination.PaginationResult, error) {
 	return nil, nil, errors.New("not implemented")
 }

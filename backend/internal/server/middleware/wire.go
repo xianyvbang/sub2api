@@ -8,7 +8,7 @@ import (
 // JWTAuthMiddleware JWT 认证中间件类型
 type JWTAuthMiddleware gin.HandlerFunc
 
-// OptionalJWTAuthMiddleware public route auth enrichment middleware type.
+// OptionalJWTAuthMiddleware 可选 JWT 认证中间件类型：匿名放行，带 token 严格校验
 type OptionalJWTAuthMiddleware gin.HandlerFunc
 
 // AdminAuthMiddleware 管理员认证中间件类型

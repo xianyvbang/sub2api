@@ -8,51 +8,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// NewOptionalJWTAuthMiddleware creates a public-route auth enricher.
-func NewOptionalJWTAuthMiddleware(authService *service.AuthService, userService *service.UserService) OptionalJWTAuthMiddleware {
-	return OptionalJWTAuthMiddleware(optionalJWTAuth(authService, userService, userService))
-}
-
-func optionalJWTAuth(authService *service.AuthService, userService jwtUserReader, activityToucher userActivityToucher) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authHeader := strings.TrimSpace(c.GetHeader("Authorization"))
-		if authHeader == "" {
+// NewOptionalJWTAuthMiddleware 创建可选 JWT 认证中间件。
+//
+// 无 Authorization header 时直接放行（匿名，context 中不设置 AuthSubject）；
+// 带 header 则委托严格 JWT 校验（token 版本 / 用户状态 / 会话绑定），失败返回 401——
+// 前端 API client 对 401 会自动走 refresh-token 重试，因此不做静默降级。
+func NewOptionalJWTAuthMiddleware(
+	authService *service.AuthService,
+	userService *service.UserService,
+	settingService *service.SettingService,
+	auditService *service.AuditLogService,
+) OptionalJWTAuthMiddleware {
+	strict := jwtAuth(authService, userService, userService, settingService, auditService)
+	return OptionalJWTAuthMiddleware(func(c *gin.Context) {
+		if strings.TrimSpace(c.GetHeader("Authorization")) == "" {
 			c.Next()
 			return
 		}
-
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-			c.Next()
-			return
-		}
-
-		tokenString := strings.TrimSpace(parts[1])
-		if tokenString == "" {
-			c.Next()
-			return
-		}
-
-		claims, err := authService.ValidateToken(tokenString)
-		if err != nil {
-			c.Next()
-			return
-		}
-
-		user, err := userService.GetByID(c.Request.Context(), claims.UserID)
-		if err != nil || user == nil || !user.IsActive() || claims.TokenVersion != user.TokenVersion {
-			c.Next()
-			return
-		}
-
-		c.Set(string(ContextKeyUser), AuthSubject{
-			UserID:      user.ID,
-			Concurrency: user.Concurrency,
-		})
-		c.Set(string(ContextKeyUserRole), user.Role)
-		if activityToucher != nil {
-			activityToucher.TouchLastActiveForUser(c.Request.Context(), user)
-		}
-		c.Next()
-	}
+		strict(c)
+	})
 }
