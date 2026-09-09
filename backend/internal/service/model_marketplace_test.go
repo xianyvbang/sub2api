@@ -27,7 +27,7 @@ func TestListModelMarketplace_AggregatesModelsAndChoosesLowestCurrentPrice(t *te
 				Mode:               "chat",
 			},
 		},
-	})
+	}, nil)
 	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
 		accountsByGroup: map[int64][]Account{
 			1: {{Platform: "openai", Credentials: map[string]any{"model_mapping": map[string]any{"gpt-4o": "gpt-4o"}}}},
@@ -87,6 +87,7 @@ func TestListModelMarketplace_ChannelTokenPricingAppliesGroupMultiplierToCurrent
 				},
 			},
 		},
+		nil,
 	)
 	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
 		accountsByGroup: map[int64][]Account{
@@ -153,6 +154,7 @@ func TestListModelMarketplace_ChannelTokenIntervalPricingAppliesGroupMultiplierT
 				},
 			},
 		},
+		nil,
 	)
 	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
 		accountsByGroup: map[int64][]Account{
@@ -197,6 +199,7 @@ func TestListModelMarketplace_ModelsWithoutPricingRemainVisibleAndSortLast(t *te
 				},
 			},
 		},
+		nil,
 	)
 	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
 		accountsByGroup: map[int64][]Account{
@@ -228,7 +231,7 @@ func TestListModelMarketplace_UsesOnlyExplicitModelMappings(t *testing.T) {
 		pricingData: map[string]*LiteLLMModelPricing{
 			"claude-sonnet-4-5": {LiteLLMProvider: "anthropic", InputCostPerToken: 1e-6, OutputCostPerToken: 2e-6, Mode: "chat"},
 		},
-	})
+	}, nil)
 	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
 		accountsByGroup: map[int64][]Account{
 			11: {
@@ -254,7 +257,7 @@ func TestListModelMarketplace_ExpandsWildcardMappingsAndDedupes(t *testing.T) {
 			"claude-opus-4-5":        {LiteLLMProvider: "anthropic", InputCostPerToken: 3e-6, OutputCostPerToken: 6e-6, Mode: "chat"},
 			"claude-opus-4-5-sonnet": {LiteLLMProvider: "anthropic", InputCostPerToken: 4e-6, OutputCostPerToken: 8e-6, Mode: "chat"},
 		},
-	})
+	}, nil)
 	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
 		accountsByGroup: map[int64][]Account{
 			12: {
@@ -285,7 +288,7 @@ func TestListModelMarketplace_FallsBackSupplierToPricingProvider(t *testing.T) {
 		pricingData: map[string]*LiteLLMModelPricing{
 			"custom-model": {LiteLLMProvider: "openai", InputCostPerToken: 1e-6, OutputCostPerToken: 2e-6, Mode: "chat"},
 		},
-	})
+	}, nil)
 	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
 		accountsByGroup: map[int64][]Account{
 			13: {
@@ -313,7 +316,7 @@ func TestListModelMarketplace_ImageModelUsesGroupImagePricing(t *testing.T) {
 				Mode:            "image_generation",
 			},
 		},
-	})
+	}, nil)
 	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
 		accountsByGroup: map[int64][]Account{
 			21: {
@@ -399,6 +402,7 @@ func TestListModelMarketplace_ImageModelChannelImagePriceWins(t *testing.T) {
 				},
 			},
 		},
+		nil,
 	)
 	svc := NewModelMarketplaceService(&marketplaceAccountRepoStub{
 		accountsByGroup: map[int64][]Account{
