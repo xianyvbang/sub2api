@@ -370,7 +370,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 
 		ModelMarketplaceEnabled:       settings[SettingKeyModelMarketplaceEnabled] == "true",
 		ModelMarketplaceRequiresLogin: settings[SettingKeyModelMarketplaceRequiresLogin] != "false",
-		SubscriptionEnabled: !isFalseSettingValue(settings[SettingKeySubscriptionEnabled]),
+		SubscriptionEnabled:           !isFalseSettingValue(settings[SettingKeySubscriptionEnabled]),
 
 		ModelPlazaEnabled:       settings[SettingKeyModelPlazaEnabled] == "true",
 		ModelPlazaRequireAuth:   settings[SettingKeyModelPlazaRequireAuth] == "true",
