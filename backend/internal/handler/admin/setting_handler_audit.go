@@ -585,6 +585,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.ModelMarketplaceRequiresLogin != after.ModelMarketplaceRequiresLogin {
 		changed = append(changed, "model_marketplace_requires_login")
 	}
+	if before.SubscriptionEnabled != after.SubscriptionEnabled {
+		changed = append(changed, "subscription_enabled")
+	}
 	if before.ModelPlazaEnabled != after.ModelPlazaEnabled {
 		changed = append(changed, "model_plaza_enabled")
 	}

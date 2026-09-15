@@ -206,6 +206,9 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyModelMarketplaceEnabled:       "false",
 		SettingKeyModelMarketplaceRequiresLogin: "true",
 
+		// Subscription feature (default enabled; opt-out)
+		SettingKeySubscriptionEnabled: "true",
+
 		// Model plaza feature (default disabled; opt-in, public unless require_auth)
 		SettingKeyModelPlazaEnabled:       "false",
 		SettingKeyModelPlazaRequireAuth:   "false",
@@ -827,6 +830,9 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	// Model marketplace feature (default: disabled; login required unless explicitly false)
 	result.ModelMarketplaceEnabled = settings[SettingKeyModelMarketplaceEnabled] == "true"
 	result.ModelMarketplaceRequiresLogin = settings[SettingKeyModelMarketplaceRequiresLogin] != "false"
+
+	// Subscription feature (default: enabled; only an explicit false disables)
+	result.SubscriptionEnabled = !isFalseSettingValue(settings[SettingKeySubscriptionEnabled])
 
 	// Model plaza feature (default: disabled; strict true)
 	result.ModelPlazaEnabled = settings[SettingKeyModelPlazaEnabled] == "true"
