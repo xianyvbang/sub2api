@@ -528,12 +528,13 @@ func (r *redeemCodeRepository) UseGiftChild(ctx context.Context, parentID, userI
 		return nil, err
 	}
 
-	codes, err := r.client.RedeemCode.Query().
-		Where(redeemcode.UsedByEQ(userID)).
-		WithGroup().
-		Order(dbent.Desc(redeemcode.FieldUsedAt), dbent.Desc(redeemcode.FieldID)).
-		Limit(limit).
-		All(ctx)
+	now := time.Now()
+	affected, err := client.RedeemCode.Update().
+		Where(redeemcode.IDEQ(child.ID), redeemcode.StatusEQ(service.StatusUnused), rawRedeemCodeFieldEQ("gift_parent_id", parentID)).
+		SetStatus(service.StatusUsed).
+		SetUsedBy(userID).
+		SetUsedAt(now).
+		Save(ctx)
 	if err != nil {
 		return nil, err
 	}
