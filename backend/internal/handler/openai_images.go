@@ -68,7 +68,7 @@ func (h *OpenAIGatewayHandler) Images(c *gin.Context) {
 		setOpsRequestContext(c, "", false)
 	}
 
-	parsed, err := h.gatewayService.ParseOpenAIImagesRequest(c, body)
+	parsed, err := h.gatewayService.ParseOpenAIImagesRequestForAccountSelection(c, body)
 	if err != nil {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", err.Error())
 		return

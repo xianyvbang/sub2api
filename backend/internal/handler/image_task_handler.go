@@ -140,7 +140,7 @@ func (h *AsyncImageHandler) checkSecurityAuditBeforeSubmit(c *gin.Context, apiKe
 		parsed := service.ParseGrokMediaRequest(c.GetHeader("Content-Type"), body)
 		model, moderationBody = parsed.Model, parsed.ModerationBody()
 	} else if h.openAI.gatewayService != nil {
-		parsed, err := h.openAI.gatewayService.ParseOpenAIImagesRequest(c, body)
+		parsed, err := h.openAI.gatewayService.ParseOpenAIImagesRequestForAccountSelection(c, body)
 		if err != nil {
 			imageTaskJSONError(c, http.StatusBadRequest, "invalid_request_error", err.Error())
 			return false
@@ -198,7 +198,7 @@ func (h *AsyncImageHandler) validateRequest(c *gin.Context, platform string, bod
 		}
 		return nil
 	}
-	parsed, err := h.openAI.gatewayService.ParseOpenAIImagesRequest(c, body)
+	parsed, err := h.openAI.gatewayService.ParseOpenAIImagesRequestForAccountSelection(c, body)
 	if err != nil {
 		return err
 	}

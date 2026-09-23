@@ -326,7 +326,7 @@ func TestOpenAIGatewayServiceParseOpenAIImagesRequest_ExplicitSizeRequiresNative
 	require.Equal(t, OpenAIImagesCapabilityNative, parsed.RequiredCapability)
 }
 
-func TestOpenAIGatewayServiceParseOpenAIImagesRequest_AllowsModelValidationAfterAccountSelection(t *testing.T) {
+func TestOpenAIGatewayServiceParseOpenAIImagesRequestForAccountSelectionDefersModelValidation(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	body := []byte(`{"model":"gpt-5.4","prompt":"draw a cat"}`)
 
@@ -337,7 +337,10 @@ func TestOpenAIGatewayServiceParseOpenAIImagesRequest_AllowsModelValidationAfter
 	c.Request = req
 
 	svc := &OpenAIGatewayService{}
-	parsed, err := svc.ParseOpenAIImagesRequest(c, body)
+	_, err := svc.ParseOpenAIImagesRequest(c, body)
+	require.ErrorContains(t, err, `images endpoint requires an image model, got "gpt-5.4"`)
+
+	parsed, err := svc.ParseOpenAIImagesRequestForAccountSelection(c, body)
 	require.NoError(t, err)
 	require.NotNil(t, parsed)
 	require.Equal(t, "gpt-5.4", parsed.Model)
@@ -1412,7 +1415,7 @@ func TestOpenAIGatewayServiceForwardImages_APIKeyRejectsCustomImageModelNameByDe
 		},
 	}
 	svc := &OpenAIGatewayService{cfg: &config.Config{}, httpUpstream: upstream}
-	parsed, err := svc.ParseOpenAIImagesRequest(c, body)
+	parsed, err := svc.ParseOpenAIImagesRequestForAccountSelection(c, body)
 	require.NoError(t, err)
 
 	account := &Account{
@@ -1492,7 +1495,7 @@ func TestOpenAIGatewayServiceForwardImages_APIKeySkipsCustomImageModelNameValida
 		},
 	}
 	svc := &OpenAIGatewayService{cfg: &config.Config{}, httpUpstream: upstream}
-	parsed, err := svc.ParseOpenAIImagesRequest(c, body)
+	parsed, err := svc.ParseOpenAIImagesRequestForAccountSelection(c, body)
 	require.NoError(t, err)
 
 	account := &Account{

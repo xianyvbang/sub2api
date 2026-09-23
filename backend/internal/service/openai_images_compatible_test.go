@@ -42,6 +42,11 @@ func TestCompatibleImagesGeminiModels(t *testing.T) {
 			c.Request = httptest.NewRequest(http.MethodPost, openAIImagesGenerationsEndpoint, bytes.NewReader(body))
 			_, err := (&OpenAIGatewayService{}).ParseOpenAIImagesRequest(c, body)
 			require.ErrorContains(t, err, "images endpoint requires an image model")
+			parsed, err := (&OpenAIGatewayService{}).ParseOpenAIImagesRequestForAccountSelection(c, body)
+			require.NoError(t, err)
+			require.NotNil(t, parsed)
+			_, err = (&OpenAIGatewayService{}).ForwardImages(context.Background(), c, &Account{Platform: PlatformOpenAI, Type: AccountTypeAPIKey}, body, parsed, "")
+			require.ErrorContains(t, err, "images endpoint requires an image model")
 		})
 	}
 }

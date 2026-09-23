@@ -190,6 +190,14 @@ func (r *OpenAIImagesRequest) StickySessionSeed() string {
 }
 
 func (s *OpenAIGatewayService) ParseOpenAIImagesRequest(c *gin.Context, body []byte) (*OpenAIImagesRequest, error) {
+	return s.parseOpenAIImagesRequest(c, body, false)
+}
+
+func (s *OpenAIGatewayService) ParseOpenAIImagesRequestForAccountSelection(c *gin.Context, body []byte) (*OpenAIImagesRequest, error) {
+	return s.parseOpenAIImagesRequest(c, body, true)
+}
+
+func (s *OpenAIGatewayService) parseOpenAIImagesRequest(c *gin.Context, body []byte, deferModelValidation bool) (*OpenAIImagesRequest, error) {
 	if c == nil || c.Request == nil {
 		return nil, fmt.Errorf("missing request context")
 	}
@@ -236,8 +244,10 @@ func (s *OpenAIGatewayService) ParseOpenAIImagesRequest(c *gin.Context, body []b
 			req.Model = model
 		}
 	}
-	if err := validateCompatibleImagesModel(req.Model); err != nil {
-		return nil, err
+	if !deferModelValidation {
+		if err := validateCompatibleImagesModel(req.Model); err != nil {
+			return nil, err
+		}
 	}
 	req.SizeTier = normalizeOpenAIImageSizeTier(req.Size)
 	req.RequiredCapability = classifyOpenAIImagesCapability(req)
@@ -534,6 +544,13 @@ func validateCompatibleImagesModel(model string) error {
 	return validateOpenAIImagesModel(model)
 }
 
+func validateCompatibleImagesModelForAccount(model string, account *Account) error {
+	if isGeminiCompatibleImageModel(model) {
+		return nil
+	}
+	return validateOpenAIImagesModelForAccount(model, account)
+}
+
 // RequiredCapabilityForModel also applies the API-key-only fence when channel
 // mapping introduces a compatible provider model after request parsing.
 func (req *OpenAIImagesRequest) RequiredCapabilityForModel(model string) OpenAIImagesCapability {
@@ -646,11 +663,11 @@ func (s *OpenAIGatewayService) forwardOpenAIImagesAPIKey(
 	if mapped := strings.TrimSpace(channelMappedModel); mapped != "" {
 		requestModel = mapped
 	}
-	if err := validateCompatibleImagesModel(requestModel); err != nil {
+	if err := validateCompatibleImagesModelForAccount(requestModel, account); err != nil {
 		return nil, err
 	}
 	upstreamModel := account.GetMappedModel(requestModel)
-	if err := validateCompatibleImagesModel(upstreamModel); err != nil {
+	if err := validateCompatibleImagesModelForAccount(upstreamModel, account); err != nil {
 		return nil, err
 	}
 	SetOpsUpstreamModel(c, upstreamModel)
