@@ -22,13 +22,6 @@ import (
 
 const ollamaCloudUsageProbeWritebackTimeout = 10 * time.Second
 
-func ollamaCloudUsageTimePtrEqual(left, right *time.Time) bool {
-	if left == nil || right == nil {
-		return left == nil && right == nil
-	}
-	return left.Equal(*right)
-}
-
 // ollamaCloudUsageProbeScheduler is the single-method surface RateLimitService
 // needs from the Ollama Cloud usage service. It is optional.
 type ollamaCloudUsageProbeScheduler interface {
@@ -194,10 +187,6 @@ func (s *RateLimitService) applyOllamaCloudUsageProbeReset(
 	if !valid || currentFingerprint != expectedFingerprint {
 		return
 	}
-	if !ollamaCloudUsageTimePtrEqual(expectedLimitedAt, account.RateLimitedAt) || !ollamaCloudUsageTimePtrEqual(expectedResetAt, account.RateLimitResetAt) {
-		return
-	}
-
 	setter, ok := s.accountRepo.(ollamaCloudUsageRateLimitSetterIfGeneration)
 	if !ok {
 		return
