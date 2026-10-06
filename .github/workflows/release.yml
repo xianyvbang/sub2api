@@ -31,6 +31,9 @@ permissions:
 env:
   SIMPLE_RELEASE: ${{ inputs.simple_release == true || vars.SIMPLE_RELEASE == 'true' }}
   DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == true }}
+  # Fall back to the module's origin when proxy.golang.org has a transient
+  # connection error while GoReleaser runs go mod tidy or builds binaries.
+  GOPROXY: 'https://proxy.golang.org|direct'
 
 jobs:
   prepare:
