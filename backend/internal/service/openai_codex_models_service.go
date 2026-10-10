@@ -1882,7 +1882,13 @@ func (s *OpenAIGatewayService) refreshCachedOpenAIModels(cacheKey string, reques
 	return s.openAIModelsCache.refresh.DoChan(cacheKey, func() (any, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), codexModelsManifestRequestTimeout)
 		defer cancel()
-		cached, _ := s.openAIModelsCache.get(cacheKey, time.Now())
+		cached, state := s.openAIModelsCache.get(cacheKey, time.Now())
+		// A caller can observe a miss just before another refresh completes, then
+		// join singleflight after that refresh has already left. Re-check the
+		// cache inside the flight to avoid starting a duplicate upstream request.
+		if state == openAIModelsCacheFresh {
+			return cached, nil
+		}
 		ifNoneMatch := ""
 		if cached != nil {
 			ifNoneMatch = cached.upstreamETag
