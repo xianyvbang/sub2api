@@ -4,7 +4,12 @@ const list = vi.hoisted(() => vi.fn())
 vi.mock('@/api/keys', () => ({ keysAPI: { list } }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ isAuthenticated: true }) }))
 
-beforeEach(() => { vi.resetModules(); list.mockReset() })
+beforeEach(async () => {
+  vi.resetModules()
+  list.mockReset()
+  const { createPinia, setActivePinia } = await import('pinia')
+  setActivePinia(createPinia())
+})
 
 describe('batch image access lookup', () => {
   it('retries a failed lookup when another consumer requests access', async () => {
