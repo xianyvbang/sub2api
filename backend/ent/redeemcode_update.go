@@ -214,6 +214,68 @@ func (_u *RedeemCodeUpdate) AddValidityDays(v int) *RedeemCodeUpdate {
 	return _u
 }
 
+// SetUsageLimit sets the "usage_limit" field.
+func (_u *RedeemCodeUpdate) SetUsageLimit(v int) *RedeemCodeUpdate {
+	_u.mutation.ResetUsageLimit()
+	_u.mutation.SetUsageLimit(v)
+	return _u
+}
+
+// SetNillableUsageLimit sets the "usage_limit" field if the given value is not nil.
+func (_u *RedeemCodeUpdate) SetNillableUsageLimit(v *int) *RedeemCodeUpdate {
+	if v != nil {
+		_u.SetUsageLimit(*v)
+	}
+	return _u
+}
+
+// AddUsageLimit adds value to the "usage_limit" field.
+func (_u *RedeemCodeUpdate) AddUsageLimit(v int) *RedeemCodeUpdate {
+	_u.mutation.AddUsageLimit(v)
+	return _u
+}
+
+// SetPerUserLimit sets the "per_user_limit" field.
+func (_u *RedeemCodeUpdate) SetPerUserLimit(v int) *RedeemCodeUpdate {
+	_u.mutation.ResetPerUserLimit()
+	_u.mutation.SetPerUserLimit(v)
+	return _u
+}
+
+// SetNillablePerUserLimit sets the "per_user_limit" field if the given value is not nil.
+func (_u *RedeemCodeUpdate) SetNillablePerUserLimit(v *int) *RedeemCodeUpdate {
+	if v != nil {
+		_u.SetPerUserLimit(*v)
+	}
+	return _u
+}
+
+// AddPerUserLimit adds value to the "per_user_limit" field.
+func (_u *RedeemCodeUpdate) AddPerUserLimit(v int) *RedeemCodeUpdate {
+	_u.mutation.AddPerUserLimit(v)
+	return _u
+}
+
+// SetGiftParentID sets the "gift_parent_id" field.
+func (_u *RedeemCodeUpdate) SetGiftParentID(v int64) *RedeemCodeUpdate {
+	_u.mutation.SetGiftParentID(v)
+	return _u
+}
+
+// SetNillableGiftParentID sets the "gift_parent_id" field if the given value is not nil.
+func (_u *RedeemCodeUpdate) SetNillableGiftParentID(v *int64) *RedeemCodeUpdate {
+	if v != nil {
+		_u.SetGiftParentID(*v)
+	}
+	return _u
+}
+
+// ClearGiftParentID clears the value of the "gift_parent_id" field.
+func (_u *RedeemCodeUpdate) ClearGiftParentID() *RedeemCodeUpdate {
+	_u.mutation.ClearGiftParentID()
+	return _u
+}
+
 // SetUserID sets the "user" edge to the User entity by ID.
 func (_u *RedeemCodeUpdate) SetUserID(id int64) *RedeemCodeUpdate {
 	_u.mutation.SetUserID(id)
@@ -238,6 +300,26 @@ func (_u *RedeemCodeUpdate) SetGroup(v *Group) *RedeemCodeUpdate {
 	return _u.SetGroupID(v.ID)
 }
 
+// SetGiftParent sets the "gift_parent" edge to the RedeemCode entity.
+func (_u *RedeemCodeUpdate) SetGiftParent(v *RedeemCode) *RedeemCodeUpdate {
+	return _u.SetGiftParentID(v.ID)
+}
+
+// AddGiftChildIDs adds the "gift_children" edge to the RedeemCode entity by IDs.
+func (_u *RedeemCodeUpdate) AddGiftChildIDs(ids ...int64) *RedeemCodeUpdate {
+	_u.mutation.AddGiftChildIDs(ids...)
+	return _u
+}
+
+// AddGiftChildren adds the "gift_children" edges to the RedeemCode entity.
+func (_u *RedeemCodeUpdate) AddGiftChildren(v ...*RedeemCode) *RedeemCodeUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddGiftChildIDs(ids...)
+}
+
 // Mutation returns the RedeemCodeMutation object of the builder.
 func (_u *RedeemCodeUpdate) Mutation() *RedeemCodeMutation {
 	return _u.mutation
@@ -253,6 +335,33 @@ func (_u *RedeemCodeUpdate) ClearUser() *RedeemCodeUpdate {
 func (_u *RedeemCodeUpdate) ClearGroup() *RedeemCodeUpdate {
 	_u.mutation.ClearGroup()
 	return _u
+}
+
+// ClearGiftParent clears the "gift_parent" edge to the RedeemCode entity.
+func (_u *RedeemCodeUpdate) ClearGiftParent() *RedeemCodeUpdate {
+	_u.mutation.ClearGiftParent()
+	return _u
+}
+
+// ClearGiftChildren clears all "gift_children" edges to the RedeemCode entity.
+func (_u *RedeemCodeUpdate) ClearGiftChildren() *RedeemCodeUpdate {
+	_u.mutation.ClearGiftChildren()
+	return _u
+}
+
+// RemoveGiftChildIDs removes the "gift_children" edge to RedeemCode entities by IDs.
+func (_u *RedeemCodeUpdate) RemoveGiftChildIDs(ids ...int64) *RedeemCodeUpdate {
+	_u.mutation.RemoveGiftChildIDs(ids...)
+	return _u
+}
+
+// RemoveGiftChildren removes "gift_children" edges to RedeemCode entities.
+func (_u *RedeemCodeUpdate) RemoveGiftChildren(v ...*RedeemCode) *RedeemCodeUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveGiftChildIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -297,6 +406,16 @@ func (_u *RedeemCodeUpdate) check() error {
 	if v, ok := _u.mutation.Status(); ok {
 		if err := redeemcode.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "RedeemCode.status": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.UsageLimit(); ok {
+		if err := redeemcode.UsageLimitValidator(v); err != nil {
+			return &ValidationError{Name: "usage_limit", err: fmt.Errorf(`ent: validator failed for field "RedeemCode.usage_limit": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.PerUserLimit(); ok {
+		if err := redeemcode.PerUserLimitValidator(v); err != nil {
+			return &ValidationError{Name: "per_user_limit", err: fmt.Errorf(`ent: validator failed for field "RedeemCode.per_user_limit": %w`, err)}
 		}
 	}
 	return nil
@@ -353,6 +472,18 @@ func (_u *RedeemCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 	if value, ok := _u.mutation.AddedValidityDays(); ok {
 		_spec.AddField(redeemcode.FieldValidityDays, field.TypeInt, value)
 	}
+	if value, ok := _u.mutation.UsageLimit(); ok {
+		_spec.SetField(redeemcode.FieldUsageLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedUsageLimit(); ok {
+		_spec.AddField(redeemcode.FieldUsageLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.PerUserLimit(); ok {
+		_spec.SetField(redeemcode.FieldPerUserLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedPerUserLimit(); ok {
+		_spec.AddField(redeemcode.FieldPerUserLimit, field.TypeInt, value)
+	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -404,6 +535,80 @@ func (_u *RedeemCodeUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(group.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.GiftParentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   redeemcode.GiftParentTable,
+			Columns: []string{redeemcode.GiftParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(redeemcode.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.GiftParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   redeemcode.GiftParentTable,
+			Columns: []string{redeemcode.GiftParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(redeemcode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.GiftChildrenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   redeemcode.GiftChildrenTable,
+			Columns: []string{redeemcode.GiftChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(redeemcode.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedGiftChildrenIDs(); len(nodes) > 0 && !_u.mutation.GiftChildrenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   redeemcode.GiftChildrenTable,
+			Columns: []string{redeemcode.GiftChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(redeemcode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.GiftChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   redeemcode.GiftChildrenTable,
+			Columns: []string{redeemcode.GiftChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(redeemcode.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -615,6 +820,68 @@ func (_u *RedeemCodeUpdateOne) AddValidityDays(v int) *RedeemCodeUpdateOne {
 	return _u
 }
 
+// SetUsageLimit sets the "usage_limit" field.
+func (_u *RedeemCodeUpdateOne) SetUsageLimit(v int) *RedeemCodeUpdateOne {
+	_u.mutation.ResetUsageLimit()
+	_u.mutation.SetUsageLimit(v)
+	return _u
+}
+
+// SetNillableUsageLimit sets the "usage_limit" field if the given value is not nil.
+func (_u *RedeemCodeUpdateOne) SetNillableUsageLimit(v *int) *RedeemCodeUpdateOne {
+	if v != nil {
+		_u.SetUsageLimit(*v)
+	}
+	return _u
+}
+
+// AddUsageLimit adds value to the "usage_limit" field.
+func (_u *RedeemCodeUpdateOne) AddUsageLimit(v int) *RedeemCodeUpdateOne {
+	_u.mutation.AddUsageLimit(v)
+	return _u
+}
+
+// SetPerUserLimit sets the "per_user_limit" field.
+func (_u *RedeemCodeUpdateOne) SetPerUserLimit(v int) *RedeemCodeUpdateOne {
+	_u.mutation.ResetPerUserLimit()
+	_u.mutation.SetPerUserLimit(v)
+	return _u
+}
+
+// SetNillablePerUserLimit sets the "per_user_limit" field if the given value is not nil.
+func (_u *RedeemCodeUpdateOne) SetNillablePerUserLimit(v *int) *RedeemCodeUpdateOne {
+	if v != nil {
+		_u.SetPerUserLimit(*v)
+	}
+	return _u
+}
+
+// AddPerUserLimit adds value to the "per_user_limit" field.
+func (_u *RedeemCodeUpdateOne) AddPerUserLimit(v int) *RedeemCodeUpdateOne {
+	_u.mutation.AddPerUserLimit(v)
+	return _u
+}
+
+// SetGiftParentID sets the "gift_parent_id" field.
+func (_u *RedeemCodeUpdateOne) SetGiftParentID(v int64) *RedeemCodeUpdateOne {
+	_u.mutation.SetGiftParentID(v)
+	return _u
+}
+
+// SetNillableGiftParentID sets the "gift_parent_id" field if the given value is not nil.
+func (_u *RedeemCodeUpdateOne) SetNillableGiftParentID(v *int64) *RedeemCodeUpdateOne {
+	if v != nil {
+		_u.SetGiftParentID(*v)
+	}
+	return _u
+}
+
+// ClearGiftParentID clears the value of the "gift_parent_id" field.
+func (_u *RedeemCodeUpdateOne) ClearGiftParentID() *RedeemCodeUpdateOne {
+	_u.mutation.ClearGiftParentID()
+	return _u
+}
+
 // SetUserID sets the "user" edge to the User entity by ID.
 func (_u *RedeemCodeUpdateOne) SetUserID(id int64) *RedeemCodeUpdateOne {
 	_u.mutation.SetUserID(id)
@@ -639,6 +906,26 @@ func (_u *RedeemCodeUpdateOne) SetGroup(v *Group) *RedeemCodeUpdateOne {
 	return _u.SetGroupID(v.ID)
 }
 
+// SetGiftParent sets the "gift_parent" edge to the RedeemCode entity.
+func (_u *RedeemCodeUpdateOne) SetGiftParent(v *RedeemCode) *RedeemCodeUpdateOne {
+	return _u.SetGiftParentID(v.ID)
+}
+
+// AddGiftChildIDs adds the "gift_children" edge to the RedeemCode entity by IDs.
+func (_u *RedeemCodeUpdateOne) AddGiftChildIDs(ids ...int64) *RedeemCodeUpdateOne {
+	_u.mutation.AddGiftChildIDs(ids...)
+	return _u
+}
+
+// AddGiftChildren adds the "gift_children" edges to the RedeemCode entity.
+func (_u *RedeemCodeUpdateOne) AddGiftChildren(v ...*RedeemCode) *RedeemCodeUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddGiftChildIDs(ids...)
+}
+
 // Mutation returns the RedeemCodeMutation object of the builder.
 func (_u *RedeemCodeUpdateOne) Mutation() *RedeemCodeMutation {
 	return _u.mutation
@@ -654,6 +941,33 @@ func (_u *RedeemCodeUpdateOne) ClearUser() *RedeemCodeUpdateOne {
 func (_u *RedeemCodeUpdateOne) ClearGroup() *RedeemCodeUpdateOne {
 	_u.mutation.ClearGroup()
 	return _u
+}
+
+// ClearGiftParent clears the "gift_parent" edge to the RedeemCode entity.
+func (_u *RedeemCodeUpdateOne) ClearGiftParent() *RedeemCodeUpdateOne {
+	_u.mutation.ClearGiftParent()
+	return _u
+}
+
+// ClearGiftChildren clears all "gift_children" edges to the RedeemCode entity.
+func (_u *RedeemCodeUpdateOne) ClearGiftChildren() *RedeemCodeUpdateOne {
+	_u.mutation.ClearGiftChildren()
+	return _u
+}
+
+// RemoveGiftChildIDs removes the "gift_children" edge to RedeemCode entities by IDs.
+func (_u *RedeemCodeUpdateOne) RemoveGiftChildIDs(ids ...int64) *RedeemCodeUpdateOne {
+	_u.mutation.RemoveGiftChildIDs(ids...)
+	return _u
+}
+
+// RemoveGiftChildren removes "gift_children" edges to RedeemCode entities.
+func (_u *RedeemCodeUpdateOne) RemoveGiftChildren(v ...*RedeemCode) *RedeemCodeUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveGiftChildIDs(ids...)
 }
 
 // Where appends a list predicates to the RedeemCodeUpdate builder.
@@ -711,6 +1025,16 @@ func (_u *RedeemCodeUpdateOne) check() error {
 	if v, ok := _u.mutation.Status(); ok {
 		if err := redeemcode.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "RedeemCode.status": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.UsageLimit(); ok {
+		if err := redeemcode.UsageLimitValidator(v); err != nil {
+			return &ValidationError{Name: "usage_limit", err: fmt.Errorf(`ent: validator failed for field "RedeemCode.usage_limit": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.PerUserLimit(); ok {
+		if err := redeemcode.PerUserLimitValidator(v); err != nil {
+			return &ValidationError{Name: "per_user_limit", err: fmt.Errorf(`ent: validator failed for field "RedeemCode.per_user_limit": %w`, err)}
 		}
 	}
 	return nil
@@ -784,6 +1108,18 @@ func (_u *RedeemCodeUpdateOne) sqlSave(ctx context.Context) (_node *RedeemCode, 
 	if value, ok := _u.mutation.AddedValidityDays(); ok {
 		_spec.AddField(redeemcode.FieldValidityDays, field.TypeInt, value)
 	}
+	if value, ok := _u.mutation.UsageLimit(); ok {
+		_spec.SetField(redeemcode.FieldUsageLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedUsageLimit(); ok {
+		_spec.AddField(redeemcode.FieldUsageLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.PerUserLimit(); ok {
+		_spec.SetField(redeemcode.FieldPerUserLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedPerUserLimit(); ok {
+		_spec.AddField(redeemcode.FieldPerUserLimit, field.TypeInt, value)
+	}
 	if _u.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -835,6 +1171,80 @@ func (_u *RedeemCodeUpdateOne) sqlSave(ctx context.Context) (_node *RedeemCode, 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(group.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.GiftParentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   redeemcode.GiftParentTable,
+			Columns: []string{redeemcode.GiftParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(redeemcode.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.GiftParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   redeemcode.GiftParentTable,
+			Columns: []string{redeemcode.GiftParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(redeemcode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.GiftChildrenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   redeemcode.GiftChildrenTable,
+			Columns: []string{redeemcode.GiftChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(redeemcode.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedGiftChildrenIDs(); len(nodes) > 0 && !_u.mutation.GiftChildrenCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   redeemcode.GiftChildrenTable,
+			Columns: []string{redeemcode.GiftChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(redeemcode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.GiftChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   redeemcode.GiftChildrenTable,
+			Columns: []string{redeemcode.GiftChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(redeemcode.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

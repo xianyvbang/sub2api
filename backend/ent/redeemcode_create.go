@@ -170,6 +170,48 @@ func (_c *RedeemCodeCreate) SetNillableValidityDays(v *int) *RedeemCodeCreate {
 	return _c
 }
 
+// SetUsageLimit sets the "usage_limit" field.
+func (_c *RedeemCodeCreate) SetUsageLimit(v int) *RedeemCodeCreate {
+	_c.mutation.SetUsageLimit(v)
+	return _c
+}
+
+// SetNillableUsageLimit sets the "usage_limit" field if the given value is not nil.
+func (_c *RedeemCodeCreate) SetNillableUsageLimit(v *int) *RedeemCodeCreate {
+	if v != nil {
+		_c.SetUsageLimit(*v)
+	}
+	return _c
+}
+
+// SetPerUserLimit sets the "per_user_limit" field.
+func (_c *RedeemCodeCreate) SetPerUserLimit(v int) *RedeemCodeCreate {
+	_c.mutation.SetPerUserLimit(v)
+	return _c
+}
+
+// SetNillablePerUserLimit sets the "per_user_limit" field if the given value is not nil.
+func (_c *RedeemCodeCreate) SetNillablePerUserLimit(v *int) *RedeemCodeCreate {
+	if v != nil {
+		_c.SetPerUserLimit(*v)
+	}
+	return _c
+}
+
+// SetGiftParentID sets the "gift_parent_id" field.
+func (_c *RedeemCodeCreate) SetGiftParentID(v int64) *RedeemCodeCreate {
+	_c.mutation.SetGiftParentID(v)
+	return _c
+}
+
+// SetNillableGiftParentID sets the "gift_parent_id" field if the given value is not nil.
+func (_c *RedeemCodeCreate) SetNillableGiftParentID(v *int64) *RedeemCodeCreate {
+	if v != nil {
+		_c.SetGiftParentID(*v)
+	}
+	return _c
+}
+
 // SetUserID sets the "user" edge to the User entity by ID.
 func (_c *RedeemCodeCreate) SetUserID(id int64) *RedeemCodeCreate {
 	_c.mutation.SetUserID(id)
@@ -192,6 +234,26 @@ func (_c *RedeemCodeCreate) SetUser(v *User) *RedeemCodeCreate {
 // SetGroup sets the "group" edge to the Group entity.
 func (_c *RedeemCodeCreate) SetGroup(v *Group) *RedeemCodeCreate {
 	return _c.SetGroupID(v.ID)
+}
+
+// SetGiftParent sets the "gift_parent" edge to the RedeemCode entity.
+func (_c *RedeemCodeCreate) SetGiftParent(v *RedeemCode) *RedeemCodeCreate {
+	return _c.SetGiftParentID(v.ID)
+}
+
+// AddGiftChildIDs adds the "gift_children" edge to the RedeemCode entity by IDs.
+func (_c *RedeemCodeCreate) AddGiftChildIDs(ids ...int64) *RedeemCodeCreate {
+	_c.mutation.AddGiftChildIDs(ids...)
+	return _c
+}
+
+// AddGiftChildren adds the "gift_children" edges to the RedeemCode entity.
+func (_c *RedeemCodeCreate) AddGiftChildren(v ...*RedeemCode) *RedeemCodeCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddGiftChildIDs(ids...)
 }
 
 // Mutation returns the RedeemCodeMutation object of the builder.
@@ -249,6 +311,14 @@ func (_c *RedeemCodeCreate) defaults() {
 		v := redeemcode.DefaultValidityDays
 		_c.mutation.SetValidityDays(v)
 	}
+	if _, ok := _c.mutation.UsageLimit(); !ok {
+		v := redeemcode.DefaultUsageLimit
+		_c.mutation.SetUsageLimit(v)
+	}
+	if _, ok := _c.mutation.PerUserLimit(); !ok {
+		v := redeemcode.DefaultPerUserLimit
+		_c.mutation.SetPerUserLimit(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -285,6 +355,22 @@ func (_c *RedeemCodeCreate) check() error {
 	}
 	if _, ok := _c.mutation.ValidityDays(); !ok {
 		return &ValidationError{Name: "validity_days", err: errors.New(`ent: missing required field "RedeemCode.validity_days"`)}
+	}
+	if _, ok := _c.mutation.UsageLimit(); !ok {
+		return &ValidationError{Name: "usage_limit", err: errors.New(`ent: missing required field "RedeemCode.usage_limit"`)}
+	}
+	if v, ok := _c.mutation.UsageLimit(); ok {
+		if err := redeemcode.UsageLimitValidator(v); err != nil {
+			return &ValidationError{Name: "usage_limit", err: fmt.Errorf(`ent: validator failed for field "RedeemCode.usage_limit": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.PerUserLimit(); !ok {
+		return &ValidationError{Name: "per_user_limit", err: errors.New(`ent: missing required field "RedeemCode.per_user_limit"`)}
+	}
+	if v, ok := _c.mutation.PerUserLimit(); ok {
+		if err := redeemcode.PerUserLimitValidator(v); err != nil {
+			return &ValidationError{Name: "per_user_limit", err: fmt.Errorf(`ent: validator failed for field "RedeemCode.per_user_limit": %w`, err)}
+		}
 	}
 	return nil
 }
@@ -349,6 +435,14 @@ func (_c *RedeemCodeCreate) createSpec() (*RedeemCode, *sqlgraph.CreateSpec) {
 		_spec.SetField(redeemcode.FieldValidityDays, field.TypeInt, value)
 		_node.ValidityDays = value
 	}
+	if value, ok := _c.mutation.UsageLimit(); ok {
+		_spec.SetField(redeemcode.FieldUsageLimit, field.TypeInt, value)
+		_node.UsageLimit = value
+	}
+	if value, ok := _c.mutation.PerUserLimit(); ok {
+		_spec.SetField(redeemcode.FieldPerUserLimit, field.TypeInt, value)
+		_node.PerUserLimit = value
+	}
 	if nodes := _c.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -381,6 +475,39 @@ func (_c *RedeemCodeCreate) createSpec() (*RedeemCode, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.GroupID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.GiftParentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   redeemcode.GiftParentTable,
+			Columns: []string{redeemcode.GiftParentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(redeemcode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.GiftParentID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.GiftChildrenIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   redeemcode.GiftChildrenTable,
+			Columns: []string{redeemcode.GiftChildrenColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(redeemcode.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -594,6 +721,60 @@ func (u *RedeemCodeUpsert) UpdateValidityDays() *RedeemCodeUpsert {
 // AddValidityDays adds v to the "validity_days" field.
 func (u *RedeemCodeUpsert) AddValidityDays(v int) *RedeemCodeUpsert {
 	u.Add(redeemcode.FieldValidityDays, v)
+	return u
+}
+
+// SetUsageLimit sets the "usage_limit" field.
+func (u *RedeemCodeUpsert) SetUsageLimit(v int) *RedeemCodeUpsert {
+	u.Set(redeemcode.FieldUsageLimit, v)
+	return u
+}
+
+// UpdateUsageLimit sets the "usage_limit" field to the value that was provided on create.
+func (u *RedeemCodeUpsert) UpdateUsageLimit() *RedeemCodeUpsert {
+	u.SetExcluded(redeemcode.FieldUsageLimit)
+	return u
+}
+
+// AddUsageLimit adds v to the "usage_limit" field.
+func (u *RedeemCodeUpsert) AddUsageLimit(v int) *RedeemCodeUpsert {
+	u.Add(redeemcode.FieldUsageLimit, v)
+	return u
+}
+
+// SetPerUserLimit sets the "per_user_limit" field.
+func (u *RedeemCodeUpsert) SetPerUserLimit(v int) *RedeemCodeUpsert {
+	u.Set(redeemcode.FieldPerUserLimit, v)
+	return u
+}
+
+// UpdatePerUserLimit sets the "per_user_limit" field to the value that was provided on create.
+func (u *RedeemCodeUpsert) UpdatePerUserLimit() *RedeemCodeUpsert {
+	u.SetExcluded(redeemcode.FieldPerUserLimit)
+	return u
+}
+
+// AddPerUserLimit adds v to the "per_user_limit" field.
+func (u *RedeemCodeUpsert) AddPerUserLimit(v int) *RedeemCodeUpsert {
+	u.Add(redeemcode.FieldPerUserLimit, v)
+	return u
+}
+
+// SetGiftParentID sets the "gift_parent_id" field.
+func (u *RedeemCodeUpsert) SetGiftParentID(v int64) *RedeemCodeUpsert {
+	u.Set(redeemcode.FieldGiftParentID, v)
+	return u
+}
+
+// UpdateGiftParentID sets the "gift_parent_id" field to the value that was provided on create.
+func (u *RedeemCodeUpsert) UpdateGiftParentID() *RedeemCodeUpsert {
+	u.SetExcluded(redeemcode.FieldGiftParentID)
+	return u
+}
+
+// ClearGiftParentID clears the value of the "gift_parent_id" field.
+func (u *RedeemCodeUpsert) ClearGiftParentID() *RedeemCodeUpsert {
+	u.SetNull(redeemcode.FieldGiftParentID)
 	return u
 }
 
@@ -828,6 +1009,69 @@ func (u *RedeemCodeUpsertOne) AddValidityDays(v int) *RedeemCodeUpsertOne {
 func (u *RedeemCodeUpsertOne) UpdateValidityDays() *RedeemCodeUpsertOne {
 	return u.Update(func(s *RedeemCodeUpsert) {
 		s.UpdateValidityDays()
+	})
+}
+
+// SetUsageLimit sets the "usage_limit" field.
+func (u *RedeemCodeUpsertOne) SetUsageLimit(v int) *RedeemCodeUpsertOne {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.SetUsageLimit(v)
+	})
+}
+
+// AddUsageLimit adds v to the "usage_limit" field.
+func (u *RedeemCodeUpsertOne) AddUsageLimit(v int) *RedeemCodeUpsertOne {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.AddUsageLimit(v)
+	})
+}
+
+// UpdateUsageLimit sets the "usage_limit" field to the value that was provided on create.
+func (u *RedeemCodeUpsertOne) UpdateUsageLimit() *RedeemCodeUpsertOne {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.UpdateUsageLimit()
+	})
+}
+
+// SetPerUserLimit sets the "per_user_limit" field.
+func (u *RedeemCodeUpsertOne) SetPerUserLimit(v int) *RedeemCodeUpsertOne {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.SetPerUserLimit(v)
+	})
+}
+
+// AddPerUserLimit adds v to the "per_user_limit" field.
+func (u *RedeemCodeUpsertOne) AddPerUserLimit(v int) *RedeemCodeUpsertOne {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.AddPerUserLimit(v)
+	})
+}
+
+// UpdatePerUserLimit sets the "per_user_limit" field to the value that was provided on create.
+func (u *RedeemCodeUpsertOne) UpdatePerUserLimit() *RedeemCodeUpsertOne {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.UpdatePerUserLimit()
+	})
+}
+
+// SetGiftParentID sets the "gift_parent_id" field.
+func (u *RedeemCodeUpsertOne) SetGiftParentID(v int64) *RedeemCodeUpsertOne {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.SetGiftParentID(v)
+	})
+}
+
+// UpdateGiftParentID sets the "gift_parent_id" field to the value that was provided on create.
+func (u *RedeemCodeUpsertOne) UpdateGiftParentID() *RedeemCodeUpsertOne {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.UpdateGiftParentID()
+	})
+}
+
+// ClearGiftParentID clears the value of the "gift_parent_id" field.
+func (u *RedeemCodeUpsertOne) ClearGiftParentID() *RedeemCodeUpsertOne {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.ClearGiftParentID()
 	})
 }
 
@@ -1228,6 +1472,69 @@ func (u *RedeemCodeUpsertBulk) AddValidityDays(v int) *RedeemCodeUpsertBulk {
 func (u *RedeemCodeUpsertBulk) UpdateValidityDays() *RedeemCodeUpsertBulk {
 	return u.Update(func(s *RedeemCodeUpsert) {
 		s.UpdateValidityDays()
+	})
+}
+
+// SetUsageLimit sets the "usage_limit" field.
+func (u *RedeemCodeUpsertBulk) SetUsageLimit(v int) *RedeemCodeUpsertBulk {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.SetUsageLimit(v)
+	})
+}
+
+// AddUsageLimit adds v to the "usage_limit" field.
+func (u *RedeemCodeUpsertBulk) AddUsageLimit(v int) *RedeemCodeUpsertBulk {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.AddUsageLimit(v)
+	})
+}
+
+// UpdateUsageLimit sets the "usage_limit" field to the value that was provided on create.
+func (u *RedeemCodeUpsertBulk) UpdateUsageLimit() *RedeemCodeUpsertBulk {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.UpdateUsageLimit()
+	})
+}
+
+// SetPerUserLimit sets the "per_user_limit" field.
+func (u *RedeemCodeUpsertBulk) SetPerUserLimit(v int) *RedeemCodeUpsertBulk {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.SetPerUserLimit(v)
+	})
+}
+
+// AddPerUserLimit adds v to the "per_user_limit" field.
+func (u *RedeemCodeUpsertBulk) AddPerUserLimit(v int) *RedeemCodeUpsertBulk {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.AddPerUserLimit(v)
+	})
+}
+
+// UpdatePerUserLimit sets the "per_user_limit" field to the value that was provided on create.
+func (u *RedeemCodeUpsertBulk) UpdatePerUserLimit() *RedeemCodeUpsertBulk {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.UpdatePerUserLimit()
+	})
+}
+
+// SetGiftParentID sets the "gift_parent_id" field.
+func (u *RedeemCodeUpsertBulk) SetGiftParentID(v int64) *RedeemCodeUpsertBulk {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.SetGiftParentID(v)
+	})
+}
+
+// UpdateGiftParentID sets the "gift_parent_id" field to the value that was provided on create.
+func (u *RedeemCodeUpsertBulk) UpdateGiftParentID() *RedeemCodeUpsertBulk {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.UpdateGiftParentID()
+	})
+}
+
+// ClearGiftParentID clears the value of the "gift_parent_id" field.
+func (u *RedeemCodeUpsertBulk) ClearGiftParentID() *RedeemCodeUpsertBulk {
+	return u.Update(func(s *RedeemCodeUpsert) {
+		s.ClearGiftParentID()
 	})
 }
 

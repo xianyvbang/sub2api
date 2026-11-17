@@ -1113,6 +1113,36 @@ func (u *APIKeyUpsert) ClearWindow7dStart() *APIKeyUpsert {
 	return u
 }
 
+// SetRateProtectionEnabled sets the "rate_protection_enabled" field.
+func (u *APIKeyUpsert) SetRateProtectionEnabled(v bool) *APIKeyUpsert {
+	u.Set(apikey.FieldRateProtectionEnabled, v)
+	return u
+}
+
+// UpdateRateProtectionEnabled sets the "rate_protection_enabled" field to the value that was provided on create.
+func (u *APIKeyUpsert) UpdateRateProtectionEnabled() *APIKeyUpsert {
+	u.SetExcluded(apikey.FieldRateProtectionEnabled)
+	return u
+}
+
+// SetMaxRateMultiplier sets the "max_rate_multiplier" field.
+func (u *APIKeyUpsert) SetMaxRateMultiplier(v float64) *APIKeyUpsert {
+	u.Set(apikey.FieldMaxRateMultiplier, v)
+	return u
+}
+
+// UpdateMaxRateMultiplier sets the "max_rate_multiplier" field to the value that was provided on create.
+func (u *APIKeyUpsert) UpdateMaxRateMultiplier() *APIKeyUpsert {
+	u.SetExcluded(apikey.FieldMaxRateMultiplier)
+	return u
+}
+
+// AddMaxRateMultiplier adds v to the "max_rate_multiplier" field.
+func (u *APIKeyUpsert) AddMaxRateMultiplier(v float64) *APIKeyUpsert {
+	u.Add(apikey.FieldMaxRateMultiplier, v)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -1582,6 +1612,41 @@ func (u *APIKeyUpsertOne) UpdateWindow7dStart() *APIKeyUpsertOne {
 func (u *APIKeyUpsertOne) ClearWindow7dStart() *APIKeyUpsertOne {
 	return u.Update(func(s *APIKeyUpsert) {
 		s.ClearWindow7dStart()
+	})
+}
+
+// SetRateProtectionEnabled sets the "rate_protection_enabled" field.
+func (u *APIKeyUpsertOne) SetRateProtectionEnabled(v bool) *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.SetRateProtectionEnabled(v)
+	})
+}
+
+// UpdateRateProtectionEnabled sets the "rate_protection_enabled" field to the value that was provided on create.
+func (u *APIKeyUpsertOne) UpdateRateProtectionEnabled() *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.UpdateRateProtectionEnabled()
+	})
+}
+
+// SetMaxRateMultiplier sets the "max_rate_multiplier" field.
+func (u *APIKeyUpsertOne) SetMaxRateMultiplier(v float64) *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.SetMaxRateMultiplier(v)
+	})
+}
+
+// AddMaxRateMultiplier adds v to the "max_rate_multiplier" field.
+func (u *APIKeyUpsertOne) AddMaxRateMultiplier(v float64) *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.AddMaxRateMultiplier(v)
+	})
+}
+
+// UpdateMaxRateMultiplier sets the "max_rate_multiplier" field to the value that was provided on create.
+func (u *APIKeyUpsertOne) UpdateMaxRateMultiplier() *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.UpdateMaxRateMultiplier()
 	})
 }
 
@@ -2220,6 +2285,41 @@ func (u *APIKeyUpsertBulk) UpdateWindow7dStart() *APIKeyUpsertBulk {
 func (u *APIKeyUpsertBulk) ClearWindow7dStart() *APIKeyUpsertBulk {
 	return u.Update(func(s *APIKeyUpsert) {
 		s.ClearWindow7dStart()
+	})
+}
+
+// SetRateProtectionEnabled sets the "rate_protection_enabled" field.
+func (u *APIKeyUpsertBulk) SetRateProtectionEnabled(v bool) *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.SetRateProtectionEnabled(v)
+	})
+}
+
+// UpdateRateProtectionEnabled sets the "rate_protection_enabled" field to the value that was provided on create.
+func (u *APIKeyUpsertBulk) UpdateRateProtectionEnabled() *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.UpdateRateProtectionEnabled()
+	})
+}
+
+// SetMaxRateMultiplier sets the "max_rate_multiplier" field.
+func (u *APIKeyUpsertBulk) SetMaxRateMultiplier(v float64) *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.SetMaxRateMultiplier(v)
+	})
+}
+
+// AddMaxRateMultiplier adds v to the "max_rate_multiplier" field.
+func (u *APIKeyUpsertBulk) AddMaxRateMultiplier(v float64) *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.AddMaxRateMultiplier(v)
+	})
+}
+
+// UpdateMaxRateMultiplier sets the "max_rate_multiplier" field to the value that was provided on create.
+func (u *APIKeyUpsertBulk) UpdateMaxRateMultiplier() *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.UpdateMaxRateMultiplier()
 	})
 }
 

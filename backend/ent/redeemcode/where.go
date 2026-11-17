@@ -110,6 +110,21 @@ func ValidityDays(v int) predicate.RedeemCode {
 	return predicate.RedeemCode(sql.FieldEQ(FieldValidityDays, v))
 }
 
+// UsageLimit applies equality check predicate on the "usage_limit" field. It's identical to UsageLimitEQ.
+func UsageLimit(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldEQ(FieldUsageLimit, v))
+}
+
+// PerUserLimit applies equality check predicate on the "per_user_limit" field. It's identical to PerUserLimitEQ.
+func PerUserLimit(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldEQ(FieldPerUserLimit, v))
+}
+
+// GiftParentID applies equality check predicate on the "gift_parent_id" field. It's identical to GiftParentIDEQ.
+func GiftParentID(v int64) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldEQ(FieldGiftParentID, v))
+}
+
 // CodeEQ applies the EQ predicate on the "code" field.
 func CodeEQ(v string) predicate.RedeemCode {
 	return predicate.RedeemCode(sql.FieldEQ(FieldCode, v))
@@ -660,6 +675,116 @@ func ValidityDaysLTE(v int) predicate.RedeemCode {
 	return predicate.RedeemCode(sql.FieldLTE(FieldValidityDays, v))
 }
 
+// UsageLimitEQ applies the EQ predicate on the "usage_limit" field.
+func UsageLimitEQ(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldEQ(FieldUsageLimit, v))
+}
+
+// UsageLimitNEQ applies the NEQ predicate on the "usage_limit" field.
+func UsageLimitNEQ(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldNEQ(FieldUsageLimit, v))
+}
+
+// UsageLimitIn applies the In predicate on the "usage_limit" field.
+func UsageLimitIn(vs ...int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldIn(FieldUsageLimit, vs...))
+}
+
+// UsageLimitNotIn applies the NotIn predicate on the "usage_limit" field.
+func UsageLimitNotIn(vs ...int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldNotIn(FieldUsageLimit, vs...))
+}
+
+// UsageLimitGT applies the GT predicate on the "usage_limit" field.
+func UsageLimitGT(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldGT(FieldUsageLimit, v))
+}
+
+// UsageLimitGTE applies the GTE predicate on the "usage_limit" field.
+func UsageLimitGTE(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldGTE(FieldUsageLimit, v))
+}
+
+// UsageLimitLT applies the LT predicate on the "usage_limit" field.
+func UsageLimitLT(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldLT(FieldUsageLimit, v))
+}
+
+// UsageLimitLTE applies the LTE predicate on the "usage_limit" field.
+func UsageLimitLTE(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldLTE(FieldUsageLimit, v))
+}
+
+// PerUserLimitEQ applies the EQ predicate on the "per_user_limit" field.
+func PerUserLimitEQ(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldEQ(FieldPerUserLimit, v))
+}
+
+// PerUserLimitNEQ applies the NEQ predicate on the "per_user_limit" field.
+func PerUserLimitNEQ(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldNEQ(FieldPerUserLimit, v))
+}
+
+// PerUserLimitIn applies the In predicate on the "per_user_limit" field.
+func PerUserLimitIn(vs ...int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldIn(FieldPerUserLimit, vs...))
+}
+
+// PerUserLimitNotIn applies the NotIn predicate on the "per_user_limit" field.
+func PerUserLimitNotIn(vs ...int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldNotIn(FieldPerUserLimit, vs...))
+}
+
+// PerUserLimitGT applies the GT predicate on the "per_user_limit" field.
+func PerUserLimitGT(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldGT(FieldPerUserLimit, v))
+}
+
+// PerUserLimitGTE applies the GTE predicate on the "per_user_limit" field.
+func PerUserLimitGTE(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldGTE(FieldPerUserLimit, v))
+}
+
+// PerUserLimitLT applies the LT predicate on the "per_user_limit" field.
+func PerUserLimitLT(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldLT(FieldPerUserLimit, v))
+}
+
+// PerUserLimitLTE applies the LTE predicate on the "per_user_limit" field.
+func PerUserLimitLTE(v int) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldLTE(FieldPerUserLimit, v))
+}
+
+// GiftParentIDEQ applies the EQ predicate on the "gift_parent_id" field.
+func GiftParentIDEQ(v int64) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldEQ(FieldGiftParentID, v))
+}
+
+// GiftParentIDNEQ applies the NEQ predicate on the "gift_parent_id" field.
+func GiftParentIDNEQ(v int64) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldNEQ(FieldGiftParentID, v))
+}
+
+// GiftParentIDIn applies the In predicate on the "gift_parent_id" field.
+func GiftParentIDIn(vs ...int64) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldIn(FieldGiftParentID, vs...))
+}
+
+// GiftParentIDNotIn applies the NotIn predicate on the "gift_parent_id" field.
+func GiftParentIDNotIn(vs ...int64) predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldNotIn(FieldGiftParentID, vs...))
+}
+
+// GiftParentIDIsNil applies the IsNil predicate on the "gift_parent_id" field.
+func GiftParentIDIsNil() predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldIsNull(FieldGiftParentID))
+}
+
+// GiftParentIDNotNil applies the NotNil predicate on the "gift_parent_id" field.
+func GiftParentIDNotNil() predicate.RedeemCode {
+	return predicate.RedeemCode(sql.FieldNotNull(FieldGiftParentID))
+}
+
 // HasUser applies the HasEdge predicate on the "user" edge.
 func HasUser() predicate.RedeemCode {
 	return predicate.RedeemCode(func(s *sql.Selector) {
@@ -698,6 +823,52 @@ func HasGroup() predicate.RedeemCode {
 func HasGroupWith(preds ...predicate.Group) predicate.RedeemCode {
 	return predicate.RedeemCode(func(s *sql.Selector) {
 		step := newGroupStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasGiftParent applies the HasEdge predicate on the "gift_parent" edge.
+func HasGiftParent() predicate.RedeemCode {
+	return predicate.RedeemCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, GiftParentTable, GiftParentColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasGiftParentWith applies the HasEdge predicate on the "gift_parent" edge with a given conditions (other predicates).
+func HasGiftParentWith(preds ...predicate.RedeemCode) predicate.RedeemCode {
+	return predicate.RedeemCode(func(s *sql.Selector) {
+		step := newGiftParentStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasGiftChildren applies the HasEdge predicate on the "gift_children" edge.
+func HasGiftChildren() predicate.RedeemCode {
+	return predicate.RedeemCode(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, GiftChildrenTable, GiftChildrenColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasGiftChildrenWith applies the HasEdge predicate on the "gift_children" edge with a given conditions (other predicates).
+func HasGiftChildrenWith(preds ...predicate.RedeemCode) predicate.RedeemCode {
+	return predicate.RedeemCode(func(s *sql.Selector) {
+		step := newGiftChildrenStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

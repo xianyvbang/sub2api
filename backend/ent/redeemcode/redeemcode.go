@@ -36,10 +36,20 @@ const (
 	FieldGroupID = "group_id"
 	// FieldValidityDays holds the string denoting the validity_days field in the database.
 	FieldValidityDays = "validity_days"
+	// FieldUsageLimit holds the string denoting the usage_limit field in the database.
+	FieldUsageLimit = "usage_limit"
+	// FieldPerUserLimit holds the string denoting the per_user_limit field in the database.
+	FieldPerUserLimit = "per_user_limit"
+	// FieldGiftParentID holds the string denoting the gift_parent_id field in the database.
+	FieldGiftParentID = "gift_parent_id"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// EdgeGroup holds the string denoting the group edge name in mutations.
 	EdgeGroup = "group"
+	// EdgeGiftParent holds the string denoting the gift_parent edge name in mutations.
+	EdgeGiftParent = "gift_parent"
+	// EdgeGiftChildren holds the string denoting the gift_children edge name in mutations.
+	EdgeGiftChildren = "gift_children"
 	// Table holds the table name of the redeemcode in the database.
 	Table = "redeem_codes"
 	// UserTable is the table that holds the user relation/edge.
@@ -56,6 +66,14 @@ const (
 	GroupInverseTable = "groups"
 	// GroupColumn is the table column denoting the group relation/edge.
 	GroupColumn = "group_id"
+	// GiftParentTable is the table that holds the gift_parent relation/edge.
+	GiftParentTable = "redeem_codes"
+	// GiftParentColumn is the table column denoting the gift_parent relation/edge.
+	GiftParentColumn = "gift_parent_id"
+	// GiftChildrenTable is the table that holds the gift_children relation/edge.
+	GiftChildrenTable = "redeem_codes"
+	// GiftChildrenColumn is the table column denoting the gift_children relation/edge.
+	GiftChildrenColumn = "gift_parent_id"
 )
 
 // Columns holds all SQL columns for redeemcode fields.
@@ -72,6 +90,9 @@ var Columns = []string{
 	FieldExpiresAt,
 	FieldGroupID,
 	FieldValidityDays,
+	FieldUsageLimit,
+	FieldPerUserLimit,
+	FieldGiftParentID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -101,6 +122,14 @@ var (
 	DefaultCreatedAt func() time.Time
 	// DefaultValidityDays holds the default value on creation for the "validity_days" field.
 	DefaultValidityDays int
+	// DefaultUsageLimit holds the default value on creation for the "usage_limit" field.
+	DefaultUsageLimit int
+	// UsageLimitValidator is a validator for the "usage_limit" field. It is called by the builders before save.
+	UsageLimitValidator func(int) error
+	// DefaultPerUserLimit holds the default value on creation for the "per_user_limit" field.
+	DefaultPerUserLimit int
+	// PerUserLimitValidator is a validator for the "per_user_limit" field. It is called by the builders before save.
+	PerUserLimitValidator func(int) error
 )
 
 // OrderOption defines the ordering options for the RedeemCode queries.
@@ -166,6 +195,21 @@ func ByValidityDays(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldValidityDays, opts...).ToFunc()
 }
 
+// ByUsageLimit orders the results by the usage_limit field.
+func ByUsageLimit(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUsageLimit, opts...).ToFunc()
+}
+
+// ByPerUserLimit orders the results by the per_user_limit field.
+func ByPerUserLimit(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPerUserLimit, opts...).ToFunc()
+}
+
+// ByGiftParentID orders the results by the gift_parent_id field.
+func ByGiftParentID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGiftParentID, opts...).ToFunc()
+}
+
 // ByUserField orders the results by user field.
 func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -177,6 +221,27 @@ func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 func ByGroupField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newGroupStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByGiftParentField orders the results by gift_parent field.
+func ByGiftParentField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newGiftParentStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByGiftChildrenCount orders the results by gift_children count.
+func ByGiftChildrenCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newGiftChildrenStep(), opts...)
+	}
+}
+
+// ByGiftChildren orders the results by gift_children terms.
+func ByGiftChildren(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newGiftChildrenStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 func newUserStep() *sqlgraph.Step {
@@ -191,5 +256,19 @@ func newGroupStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(GroupInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, GroupTable, GroupColumn),
+	)
+}
+func newGiftParentStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, GiftParentTable, GiftParentColumn),
+	)
+}
+func newGiftChildrenStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, GiftChildrenTable, GiftChildrenColumn),
 	)
 }

@@ -98,6 +98,8 @@ func (RedeemCode) Edges() []ent.Edge {
 			Ref("gift_children").
 			Field("gift_parent_id").
 			Unique(),
+		edge.To("gift_children", RedeemCode.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 
